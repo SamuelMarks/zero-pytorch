@@ -20,25 +20,22 @@ class Parameter(Tensor):
     def data(self):
         """Function."""
         if _tracer.is_tracing:
-            if not hasattr(self, "_param_id"):  # pragma: no cover
-                self._param_id = "param_" + str(uuid.uuid4())  # pragma: no cover
-            # emit read variable  # pragma: no cover
-            out_id = str(uuid.uuid4())  # pragma: no cover
-            node = LogicalNode(  # pragma: no cover
-                id=out_id,  # pragma: no cover
-                op_type="ReadVariable",  # pragma: no cover
-                inputs=[self._param_id],  # pragma: no cover
-                shape_metadata=self.shape,  # pragma: no cover
-            )  # pragma: no cover
-            _tracer.add_node(node)  # pragma: no cover
-            from ml_switcheroo.tracing import ProxyTensor  # pragma: no cover
-            from ml_switcheroo import Tensor as SwitcherooTensor  # pragma: no cover
+            if not hasattr(self, "_param_id"):
+                self._param_id = "param_" + str(uuid.uuid4())
+            # emit read variable
+            out_id = str(uuid.uuid4())
+            node = LogicalNode(
+                id=out_id,
+                op_type="ReadVariable",
+                inputs=[self._param_id],
+                shape_metadata=self.shape,
+            )
+            _tracer.add_node(node)
+            from ml_switcheroo.tracing import ProxyTensor
+            from ml_switcheroo import Tensor as SwitcherooTensor
 
-            # pragma: no cover
-            pt = ProxyTensor(
-                id=out_id, shape=self.shape, dtype=str(self.dtype)
-            )  # pragma: no cover
-            return SwitcherooTensor(  # pragma: no cover
+            pt = ProxyTensor(id=out_id, shape=self.shape, dtype=str(self.dtype))
+            return SwitcherooTensor(
                 data=pt, shape=self.shape, dtype=self.dtype, device=self._tensor.device
             )
         return self._tensor.data
@@ -71,11 +68,11 @@ class Module:
         """Function."""
         if isinstance(value, Parameter):
             if not hasattr(self, "_parameters"):
-                self.__dict__["_parameters"] = {}  # pragma: no cover
+                self.__dict__["_parameters"] = {}
             self._parameters[name] = value
         elif isinstance(value, Module):
             if not hasattr(self, "_modules"):
-                self.__dict__["_modules"] = {}  # pragma: no cover
+                self.__dict__["_modules"] = {}
             self._modules[name] = value
         super().__setattr__(name, value)
 
@@ -86,7 +83,7 @@ class Module:
         if recurse:
             for name, module in self._modules.items():
                 for buf in module.buffers(recurse=True):
-                    yield buf  # pragma: no cover
+                    yield buf
 
     def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
         """Function."""

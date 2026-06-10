@@ -60,12 +60,6 @@ omit = [
 ]
 
 [tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "pass",
-    "except ImportError:",
-    "raise NotImplementedError",
-]
 
 [tool.mypy]
 overrides = [

@@ -1,8 +1,9 @@
 """Tensor API."""
 
 from typing import Any, Optional
-import numpy as np
+
 import ml_switcheroo
+import ml_switcheroo.core.tensor_utils
 import ml_switcheroo.ops as ops
 from ml_switcheroo.core.config import config
 from ml_switcheroo.tracing import _tracer, ProxyTensor
@@ -21,7 +22,9 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
             node = LogicalNode(
                 id=out_id,
                 op_type="Constant",
-                attributes={"value": np.array(x.data).tolist()},
+                attributes={
+                    "value": ml_switcheroo.core.tensor_utils.to_array(x.data).tolist()
+                },
                 shape_metadata=x.shape,
             )
             _tracer.add_node(node)
@@ -31,17 +34,16 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
             )
         return x
     if isinstance(x, ProxyTensor):
-        from ml_switcheroo.core.dtype import DType  # pragma: no cover
+        from ml_switcheroo.core.dtype import DType
 
-        # pragma: no cover
-        # Determine dtype roughly or default to Float32  # pragma: no cover
-        dt = config.default_float_dtype  # pragma: no cover
-        try:  # pragma: no cover
-            if x.dtype:  # pragma: no cover
-                dt = DType(x.dtype)  # pragma: no cover
-        except Exception:  # pragma: no cover
-            pass  # pragma: no cover
-        return ml_switcheroo.Tensor(  # pragma: no cover
+        # Determine dtype roughly or default to Float32
+        dt = config.default_float_dtype
+        try:
+            if x.dtype:
+                dt = DType(x.dtype)
+        except Exception:
+            pass
+        return ml_switcheroo.Tensor(
             data=x,
             shape=x.shape,
             dtype=dt,
@@ -49,9 +51,9 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
         )
 
     # Otherwise it's an array-like
-    arr = np.array(x)
+    arr = ml_switcheroo.core.tensor_utils.to_array(x)
     if dtype is not None:
-        arr = arr.astype(dtype)  # pragma: no cover
+        arr = arr.astype(dtype)
 
     from ml_switcheroo.core.dtype import DType
 
@@ -70,9 +72,9 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
             elif dt_str == "bool":
                 dt = DType.Bool
             else:
-                dt = DType(dt_str)  # pragma: no cover
-    except Exception:  # pragma: no cover
-        pass
+                dt = DType(dt_str)
+    except Exception:
+        dt = config.default_float_dtype
 
     return ml_switcheroo.Tensor(
         data=arr, shape=arr.shape, dtype=dt, device=config.default_device
@@ -82,7 +84,7 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
 def _wrap(x: Any) -> "Tensor":
     """Function."""
     if isinstance(x, Tensor):
-        return x  # pragma: no cover
+        return x
     return Tensor(x)
 
 
@@ -119,12 +121,16 @@ class Tensor:
     def dtype(self):
         # Maps DType enum to numpy dtype for tests
         """Function."""
-        return np.dtype(self._tensor.dtype.value) if self._tensor is not None else None
+        return (
+            ml_switcheroo.core.tensor_utils.to_numpy_dtype(self._tensor.dtype.value)
+            if self._tensor is not None
+            else None
+        )
 
     def view(self, *shape) -> "Tensor":
         """Function."""
         if self._tensor is None:
-            return self  # pragma: no cover
+            return self
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
             shape = shape[0]
         shape = tuple(s for s in shape if s is not None)
@@ -133,17 +139,15 @@ class Tensor:
     def reshape(self, *shape) -> "Tensor":
         """Function."""
         if self._tensor is None:
-            return self  # pragma: no cover
+            return self
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
-            shape = shape[0]  # pragma: no cover
+            shape = shape[0]
         shape = tuple(s for s in shape if s is not None)
         return _wrap(ops.reshape(_to_tensor(self), shape=shape))
 
     def numpy(self):
         """Function."""
-        import numpy as np
-
-        return np.array(self._tensor.data)
+        return ml_switcheroo.core.tensor_utils.to_array(self._tensor.data)
 
     def backward(self, *args, **kwargs):
         """Function."""
@@ -161,7 +165,7 @@ class Tensor:
         if config.eager_mode:
             arr = self._tensor.data
             if hasattr(arr, "flags") and not arr.flags["C_CONTIGUOUS"]:
-                return _wrap(np.ascontiguousarray(arr))
+                return _wrap(ml_switcheroo.core.tensor_utils.ascontiguousarray(arr))
         return self
 
     def squeeze(self, dim=None) -> "Tensor":
@@ -175,14 +179,14 @@ class Tensor:
     def unsqueeze(self, dim) -> "Tensor":
         """Function."""
         if self._tensor is None:
-            return self  # pragma: no cover
+            return self
         return _wrap(ops.unsqueeze(_to_tensor(self), dim=dim))
 
     @property
     def T(self) -> "Tensor":
         """Return the transpose of the tensor."""
         if self._tensor is None:
-            return self  # pragma: no cover
+            return self
         dims = tuple(reversed(range(len(self.shape))))
         return _wrap(ops.permute(_to_tensor(self), dims=dims))
 
@@ -192,7 +196,7 @@ class Tensor:
 
     def __radd__(self, other):
         """Function."""
-        return _wrap(ops.add(_to_tensor(other), _to_tensor(self)))  # pragma: no cover
+        return _wrap(ops.add(_to_tensor(other), _to_tensor(self)))
 
     def __sub__(self, other):
         """Function."""
@@ -200,9 +204,7 @@ class Tensor:
 
     def __rsub__(self, other):
         """Function."""
-        return _wrap(
-            ops.subtract(_to_tensor(other), _to_tensor(self))
-        )  # pragma: no cover
+        return _wrap(ops.subtract(_to_tensor(other), _to_tensor(self)))
 
     def __mul__(self, other):
         """Function."""
@@ -210,9 +212,7 @@ class Tensor:
 
     def __rmul__(self, other):
         """Function."""
-        return _wrap(
-            ops.multiply(_to_tensor(other), _to_tensor(self))
-        )  # pragma: no cover
+        return _wrap(ops.multiply(_to_tensor(other), _to_tensor(self)))
 
     def __truediv__(self, other):
         """Function."""
@@ -220,9 +220,7 @@ class Tensor:
 
     def __rtruediv__(self, other):
         """Function."""
-        return _wrap(
-            ops.divide(_to_tensor(other), _to_tensor(self))
-        )  # pragma: no cover
+        return _wrap(ops.divide(_to_tensor(other), _to_tensor(self)))
 
     def __matmul__(self, other):
         """Function."""
@@ -230,21 +228,19 @@ class Tensor:
 
     def __rmatmul__(self, other):
         """Function."""
-        return _wrap(
-            ops.matmul(_to_tensor(other), _to_tensor(self))
-        )  # pragma: no cover
+        return _wrap(ops.matmul(_to_tensor(other), _to_tensor(self)))
 
     def __pow__(self, other):
         """Function."""
-        return _wrap(ops.power(_to_tensor(self), _to_tensor(other)))  # pragma: no cover
+        return _wrap(ops.power(_to_tensor(self), _to_tensor(other)))
 
     def __neg__(self):
         """Function."""
-        return _wrap(ops.negative(_to_tensor(self)))  # pragma: no cover
+        return _wrap(ops.negative(_to_tensor(self)))
 
     def __len__(self):
         """Function."""
-        return self.shape[0] if len(self.shape) > 0 else 0  # pragma: no cover
+        return self.shape[0] if len(self.shape) > 0 else 0
 
     def size(self, dim=None):
         """Function."""
@@ -254,4 +250,4 @@ class Tensor:
 
     def item(self):
         """Function."""
-        return np.array(self._tensor.data).item()
+        return ml_switcheroo.core.tensor_utils.to_array(self._tensor.data).item()

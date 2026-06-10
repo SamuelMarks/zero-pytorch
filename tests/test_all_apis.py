@@ -506,10 +506,11 @@ def test_api_complex_shape_ops():
 def test_api_slice_ops():
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([1, 2, 3, 4])
-        from ml_switcheroo.core.errors import UnimplementedMathError
 
-        with pytest.raises(UnimplementedMathError):
-            zero_torch.dynamic_slice(t, (1,), (2,))
+        res = zero_torch.dynamic_slice(t, (1,), (2,))
+        import numpy as np
+
+        np.testing.assert_array_equal(res.numpy(), [2, 3])
 
 
 def test_api_divmod():

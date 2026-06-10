@@ -299,14 +299,11 @@ class SGD(Optimizer):
 
     def step(self, closure=None):
         """Function."""
-        import numpy as np
-        from zero_torch.tensor import Tensor
-
         for p in self.params:
             if hasattr(p, "grad") and p.grad is not None:
                 # eager update
-                new_data = np.array(p.data) - self.lr * np.array(p.grad.data)
-                p._tensor = Tensor(new_data)._tensor
+                new_data = p - p.grad * self.lr
+                p._tensor = new_data._tensor
 
 
 class SparseAdam(Optimizer):

@@ -9,7 +9,7 @@ def conv2d(*args, **kwargs):
     res = getattr(_nn, "conv2d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def relu(*args, **kwargs):
@@ -25,7 +25,7 @@ def softmax(*args, **kwargs):
     res = getattr(_nn, "softmax")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def scaled_dot_product_attention(*args, **kwargs):
@@ -33,7 +33,7 @@ def scaled_dot_product_attention(*args, **kwargs):
     res = getattr(_nn, "scaled_dot_product_attention")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def celu(*args, **kwargs):
@@ -72,7 +72,7 @@ def gelu(*args, **kwargs):
     res = getattr(_nn, "gelu")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def cosine_embedding_loss(*args, **kwargs):
@@ -90,7 +90,7 @@ def glu(*args, **kwargs):
     res = getattr(_nn, "glu")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def gaussian_nll_loss(*args, **kwargs):
@@ -156,7 +156,7 @@ def hardswish(*args, **kwargs):
     res = getattr(_nn, "hardswish")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def margin_ranking_loss(*args, **kwargs):
@@ -197,7 +197,7 @@ def log_softmax(*args, **kwargs):
     res = getattr(_nn, "log_softmax")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def mish(*args, **kwargs):
@@ -205,7 +205,7 @@ def mish(*args, **kwargs):
     res = getattr(_nn, "mish")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def prelu(*args, **kwargs):
@@ -228,7 +228,7 @@ def selu(*args, **kwargs):
     res = getattr(_nn, "selu")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def silu(*args, **kwargs):
@@ -251,7 +251,7 @@ def softplus(*args, **kwargs):
     res = getattr(_nn, "softplus")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def softshrink(*args, **kwargs):
@@ -287,7 +287,7 @@ def activations(*args, **kwargs):
     res = getattr(_nn, "activations")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def adaptive_avg_pool2d(*args, **kwargs):
@@ -295,7 +295,7 @@ def adaptive_avg_pool2d(*args, **kwargs):
     res = getattr(_nn, "adaptive_avg_pool2d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def alpha_dropout(*args, **kwargs):
@@ -303,7 +303,7 @@ def alpha_dropout(*args, **kwargs):
     res = getattr(_nn, "alpha_dropout")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def avg_pool1d(*args, **kwargs):
@@ -311,7 +311,7 @@ def avg_pool1d(*args, **kwargs):
     res = getattr(_nn, "avg_pool1d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def avg_pool2d(*args, **kwargs):
@@ -319,7 +319,7 @@ def avg_pool2d(*args, **kwargs):
     res = getattr(_nn, "avg_pool2d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def avg_pool3d(*args, **kwargs):
@@ -327,7 +327,7 @@ def avg_pool3d(*args, **kwargs):
     res = getattr(_nn, "avg_pool3d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def batch_norm(*args, **kwargs):
@@ -335,7 +335,7 @@ def batch_norm(*args, **kwargs):
     res = getattr(_nn, "batch_norm")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def complex(*args, **kwargs):
@@ -343,7 +343,7 @@ def complex(*args, **kwargs):
     res = getattr(_nn, "complex")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def conv1d(*args, **kwargs):
@@ -351,7 +351,7 @@ def conv1d(*args, **kwargs):
     res = getattr(_nn, "conv1d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def conv3d(*args, **kwargs):
@@ -359,7 +359,7 @@ def conv3d(*args, **kwargs):
     res = getattr(_nn, "conv3d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def conv_transpose1d(*args, **kwargs):
@@ -367,7 +367,7 @@ def conv_transpose1d(*args, **kwargs):
     res = getattr(_nn, "conv_transpose1d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def conv_transpose2d(*args, **kwargs):
@@ -375,7 +375,7 @@ def conv_transpose2d(*args, **kwargs):
     res = getattr(_nn, "conv_transpose2d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def conv_transpose3d(*args, **kwargs):
@@ -383,7 +383,7 @@ def conv_transpose3d(*args, **kwargs):
     res = getattr(_nn, "conv_transpose3d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def dropout(*args, **kwargs):
@@ -391,7 +391,7 @@ def dropout(*args, **kwargs):
     res = getattr(_nn, "dropout")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def embedding(*args, **kwargs):
@@ -399,7 +399,7 @@ def embedding(*args, **kwargs):
     res = getattr(_nn, "embedding")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def feature_alpha_dropout(*args, **kwargs):
@@ -407,7 +407,7 @@ def feature_alpha_dropout(*args, **kwargs):
     res = getattr(_nn, "feature_alpha_dropout")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def fractional_max_pool2d(*args, **kwargs):
@@ -415,7 +415,7 @@ def fractional_max_pool2d(*args, **kwargs):
     res = getattr(_nn, "fractional_max_pool2d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def group_norm(*args, **kwargs):
@@ -423,7 +423,7 @@ def group_norm(*args, **kwargs):
     res = getattr(_nn, "group_norm")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def gru_cell(*args, **kwargs):
@@ -431,7 +431,7 @@ def gru_cell(*args, **kwargs):
     res = getattr(_nn, "gru_cell")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def instance_norm(*args, **kwargs):
@@ -439,7 +439,7 @@ def instance_norm(*args, **kwargs):
     res = getattr(_nn, "instance_norm")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def layer_norm(*args, **kwargs):
@@ -447,7 +447,7 @@ def layer_norm(*args, **kwargs):
     res = getattr(_nn, "layer_norm")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def lstm_cell(*args, **kwargs):
@@ -455,7 +455,7 @@ def lstm_cell(*args, **kwargs):
     res = getattr(_nn, "lstm_cell")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def max_pool1d(*args, **kwargs):
@@ -463,7 +463,7 @@ def max_pool1d(*args, **kwargs):
     res = getattr(_nn, "max_pool1d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def max_pool2d(*args, **kwargs):
@@ -471,7 +471,7 @@ def max_pool2d(*args, **kwargs):
     res = getattr(_nn, "max_pool2d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def max_pool3d(*args, **kwargs):
@@ -479,7 +479,7 @@ def max_pool3d(*args, **kwargs):
     res = getattr(_nn, "max_pool3d")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def pad(*args, **kwargs):
@@ -487,7 +487,7 @@ def pad(*args, **kwargs):
     res = getattr(_nn, "pad")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def rms_norm(*args, **kwargs):
@@ -495,7 +495,7 @@ def rms_norm(*args, **kwargs):
     res = getattr(_nn, "rms_norm")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def rnn_cell(*args, **kwargs):
@@ -503,7 +503,7 @@ def rnn_cell(*args, **kwargs):
     res = getattr(_nn, "rnn_cell")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def spatial_dropout(*args, **kwargs):
@@ -511,7 +511,7 @@ def spatial_dropout(*args, **kwargs):
     res = getattr(_nn, "spatial_dropout")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def swish(*args, **kwargs):
@@ -527,7 +527,7 @@ def upsample_bilinear(*args, **kwargs):
     res = getattr(_nn, "upsample_bilinear")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def upsample_nearest(*args, **kwargs):
@@ -535,7 +535,7 @@ def upsample_nearest(*args, **kwargs):
     res = getattr(_nn, "upsample_nearest")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return _wrap(res)  # pragma: no cover
+    return _wrap(res)
 
 
 def linear(input, weight, bias=None):

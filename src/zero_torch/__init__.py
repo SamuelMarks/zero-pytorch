@@ -74,9 +74,7 @@ def allclose(*args, **kwargs):
     res = getattr(_ops, "allclose")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    import numpy as np
-
-    return bool(np.array(res.data)) if hasattr(res, "data") else bool(res)
+    return res
 
 
 def any(*args, **kwargs):

@@ -5,7 +5,6 @@ import ml_switcheroo
 "Initialization functions."
 from typing import Any, Optional, Tuple
 import math
-import numpy as np
 from zero_torch.tensor import Tensor
 
 __all__ = [
