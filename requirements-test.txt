@@ -1,0 +1,8 @@
+pytest
+pytest-cov
+expecttest
+hypothesis
+numpy
+typing_extensions
+torch
+torchvision

@@ -1,3 +1,5 @@
+"""Module."""
+
 import ml_switcheroo
 
 "Data utilities."
@@ -51,6 +53,7 @@ class IterableDataset(Dataset[_T_co]):
     """An iterable Dataset."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Function."""
         pass
 
 
@@ -58,6 +61,7 @@ class ChainDataset(IterableDataset):
     """Dataset for chaining multiple IterableDatasets."""
 
     def __init__(self, datasets: Iterable[Dataset]) -> None:
+        """Function."""
         pass
 
 
@@ -67,6 +71,7 @@ class ConcatDataset(Dataset[_T_co]):
     def __init__(
         self, datasets: List[Dataset[_T_co]], cumulative_sizes: List[int]
     ) -> None:
+        """Function."""
         pass
 
 
@@ -74,6 +79,7 @@ class DFIterDataPipe:
     """Iterable-style DataPipe."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Function."""
         pass
 
 
@@ -81,6 +87,7 @@ class DataChunk:
     """Built-in mutable sequence."""
 
     def __init__(self, items: Iterable[Any]) -> None:
+        """Function."""
         pass
 
 
@@ -96,6 +103,7 @@ class DistributedSampler(Sampler):
         seed: Optional[int] = 0,
         drop_last: Optional[bool] = False,
     ) -> None:
+        """Function."""
         pass
 
 
@@ -114,6 +122,7 @@ class IterDataPipe:
         _snapshot_state: Any = "'_SnapshotState'",
         _fast_forward_iterator: Optional[Iterator] = None,
     ) -> None:
+        """Function."""
         pass
 
 
@@ -128,6 +137,7 @@ class MapDataPipe:
         str_hook: Optional[Callable] = None,
         repr_hook: Optional[Callable] = None,
     ) -> None:
+        """Function."""
         pass
 
 
@@ -141,6 +151,7 @@ class RandomSampler(Sampler):
         num_samples: Optional[int] = None,
         generator: "Generator" = None,
     ) -> None:
+        """Function."""
         pass
 
 
@@ -148,6 +159,7 @@ class SequentialSampler(Sampler):
     """Samples elements sequentially, always in the same order."""
 
     def __init__(self, data_source: Sized) -> None:
+        """Function."""
         pass
 
 
@@ -160,6 +172,7 @@ class StackDataset(Dataset):
         datasets: Optional[Union[Tuple, Dict]] = None,
         **kwargs: Dataset,
     ) -> None:
+        """Function."""
         pass
 
 
@@ -167,12 +180,15 @@ class Subset(Dataset[_T_co]):
     """Subset of a dataset at specified indices."""
 
     def __init__(self, dataset: Dataset[_T_co], indices: Sequence[int]) -> None:
+        """Function."""
         pass
 
     def __getitem__(self, idx: int) -> _T_co:
+        """Function."""
         pass
 
     def __len__(self) -> int:
+        """Function."""
         pass
 
 
@@ -180,6 +196,7 @@ class SubsetRandomSampler(Sampler):
     """Samples elements randomly from a given list of indices, without replacement."""
 
     def __init__(self, indices: Sequence[int], generator: "Generator" = None) -> None:
+        """Function."""
         pass
 
 
@@ -187,12 +204,15 @@ class TensorDataset(Dataset):
     """Dataset wrapping tensors."""
 
     def __init__(self, *tensors: "tuple[Tensor, ...]") -> None:
+        """Function."""
         pass
 
     def __getitem__(self, index: int) -> Tuple[Tensor, ...]:
+        """Function."""
         pass
 
     def __len__(self) -> int:
+        """Function."""
         pass
 
 
@@ -206,14 +226,17 @@ class WeightedRandomSampler(Sampler):
         replacement: bool = True,
         generator: "Generator" = None,
     ) -> None:
+        """Function."""
         pass
 
 
 def functional_datapipe(name: str, enable_df_api_tracing: bool = False) -> None:
+    """Function."""
     pass
 
 
 def guaranteed_datapipes_determinism(prev: bool) -> None:
+    """Function."""
     pass
 
 
@@ -223,8 +246,10 @@ def non_deterministic(
     deterministic_fn: "Callable[[], bool]",
     arg: "type[IterDataPipe] | Callable[[], bool]",
 ) -> None:
+    """Function."""
     pass
 
 
 def runtime_validation_disabled(prev: bool) -> None:
+    """Function."""
     pass

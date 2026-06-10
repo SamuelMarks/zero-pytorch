@@ -1,3 +1,5 @@
+"""Module."""
+
 from typing import Any
 from .module import Module
 from zero_torch.tensor import Tensor

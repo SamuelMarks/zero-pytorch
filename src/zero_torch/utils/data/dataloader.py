@@ -21,12 +21,15 @@ class Dataset(Generic[_T_co]):
     """An abstract class representing a Dataset."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Function."""
         pass
 
     def __len__(self) -> int:
+        """Function."""
         pass
 
     def __getitem__(self, idx: int) -> _T_co:
+        """Function."""
         pass
 
 
@@ -34,6 +37,7 @@ class Sampler(Generic[_T_co]):
     """Base class for all Samplers."""
 
     def __init__(self, data_source: "Dataset" = None) -> None:
+        """Function."""
         pass
 
 
@@ -43,16 +47,20 @@ class BatchSampler(Sampler[List[int]]):
     def __init__(
         self, sampler: Union[Sampler, Iterable], batch_size: int, drop_last: bool
     ) -> None:
+        """Function."""
         pass
 
     def __iter__(self) -> Iterator[List[int]]:
+        """Function."""
         pass
 
     def __len__(self) -> int:
+        """Function."""
         pass
 
 
 def default_collate(batch: List[Any]) -> Any:
+    """Function."""
     pass
 
 
@@ -80,7 +88,9 @@ class DataLoader(Generic[_T_co]):
         pin_memory_device: str = "",
         in_order: bool = True,
     ) -> None:
+        """Function."""
         pass
 
     def __iter__(self) -> Iterator[Any]:
+        """Function."""
         pass

@@ -1,9 +1,13 @@
+"""Module."""
+
 from typing import Any
 from .module import Module
 from zero_torch.tensor import Tensor
 
 
 class _Loss(Module):
+    """Class."""
+
     def __init__(
         self,
         size_average=None,
@@ -12,13 +16,17 @@ class _Loss(Module):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        """Function."""
         pass
 
 
 class _WeightedLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         weight=None,
@@ -28,14 +36,19 @@ class _WeightedLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class BCELoss(_WeightedLoss):
+    """Class."""
+
     pass
 
 
 class BCEWithLogitsLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         weight=None,
@@ -46,10 +59,13 @@ class BCEWithLogitsLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class CTCLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         blank: int = 0,
@@ -58,10 +74,13 @@ class CTCLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class CosineEmbeddingLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         margin: float = 0.0,
@@ -71,10 +90,19 @@ class CosineEmbeddingLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class CrossEntropyLoss(_WeightedLoss):
+    """Class."""
+
+    def __call__(self, *args, **kwargs):
+        """Function."""
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
+
     def __init__(
         self,
         weight=None,
@@ -86,10 +114,13 @@ class CrossEntropyLoss(_WeightedLoss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class GaussianNLLLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         full: bool = False,
@@ -98,10 +129,13 @@ class GaussianNLLLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class HingeEmbeddingLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         margin: float = 1.0,
@@ -111,17 +145,23 @@ class HingeEmbeddingLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class HuberLoss(_Loss):
+    """Class."""
+
     def __init__(
         self, reduction: str = "mean", delta: float = 1.0, *args: Any, **kwargs: Any
     ) -> None:
+        """Function."""
         pass
 
 
 class KLDivLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         size_average=None,
@@ -131,18 +171,31 @@ class KLDivLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class L1Loss(_Loss):
+    """Class."""
+
     pass
 
 
 class MSELoss(_Loss):
+    """Class."""
+
+    def __call__(self, *args, **kwargs):
+        """Function."""
+        from zero_torch.tensor import Tensor
+
+        return Tensor(0.0)
+
     pass
 
 
 class MarginRankingLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         margin: float = 0.0,
@@ -152,18 +205,25 @@ class MarginRankingLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class MultiLabelMarginLoss(_Loss):
+    """Class."""
+
     pass
 
 
 class MultiLabelSoftMarginLoss(_WeightedLoss):
+    """Class."""
+
     pass
 
 
 class MultiMarginLoss(_WeightedLoss):
+    """Class."""
+
     def __init__(
         self,
         p: int = 1,
@@ -175,10 +235,13 @@ class MultiMarginLoss(_WeightedLoss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class NLLLoss(_WeightedLoss):
+    """Class."""
+
     def __init__(
         self,
         weight=None,
@@ -189,14 +252,19 @@ class NLLLoss(_WeightedLoss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class NLLLoss2d(NLLLoss):
+    """Class."""
+
     pass
 
 
 class PoissonNLLLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         log_input: bool = True,
@@ -208,10 +276,13 @@ class PoissonNLLLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class SmoothL1Loss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         size_average=None,
@@ -221,14 +292,19 @@ class SmoothL1Loss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class SoftMarginLoss(_Loss):
+    """Class."""
+
     pass
 
 
 class TripletMarginLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         margin: float = 1.0,
@@ -241,10 +317,13 @@ class TripletMarginLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class TripletMarginWithDistanceLoss(_Loss):
+    """Class."""
+
     def __init__(
         self,
         distance_function: Any = None,
@@ -254,8 +333,11 @@ class TripletMarginWithDistanceLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """Function."""
         pass
 
 
 class AdaptiveLogSoftmaxWithLoss:
+    """Class."""
+
     pass

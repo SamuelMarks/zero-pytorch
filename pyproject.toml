@@ -1,14 +1,21 @@
 [build-system]
-requires = ["hatchling", "hatch-requirements-txt"]
+requires = [
+    "hatchling",
+    "hatch-requirements-txt",
+]
 build-backend = "hatchling.build"
 
 [project]
 name = "zero-pytorch"
 version = "2.10.0"
 description = "Zero-dependency pure Python implementation of the PyTorch API surface."
-authors = [{ name = "Samuel Marks" }]
+authors = [
+    { name = "Samuel Marks" },
+]
 requires-python = ">=3.9"
-dynamic = ["dependencies"]
+dynamic = [
+    "dependencies",
+]
 
 [project.optional-dependencies]
 test = [
@@ -20,25 +27,47 @@ test = [
 allow-direct-references = true
 
 [tool.hatch.metadata.hooks.requirements_txt]
-files = ["requirements.txt"]
+files = [
+    "requirements.txt",
+]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/zero_torch"]
+packages = [
+    "src/zero_torch",
+]
 
 [tool.ruff]
-exclude = ["stubs"]
+exclude = [
+    "stubs",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [
+    "F401",
+    "E402",
+]
 
 [tool.coverage.run]
-source = ["src/zero_torch"]
-omit = ["tests/*", "scripts/*", "embed_stubs.py", "fix_*.py", "generate_*.py"]
+source = [
+    "src/zero_torch",
+]
+omit = [
+    "tests/*",
+    "scripts/*",
+    "embed_stubs.py",
+    "fix_*.py",
+    "generate_*.py",
+]
 
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
     "pass",
     "except ImportError:",
-    "raise NotImplementedError"
+    "raise NotImplementedError",
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401", "E402"]
+[tool.mypy]
+overrides = [
+    { module = "ml_switcheroo.*", ignore_missing_imports = true },
+]

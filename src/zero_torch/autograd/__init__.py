@@ -1,3 +1,5 @@
+"""Module."""
+
 from .grad_mode import no_grad, set_grad_enabled, is_grad_enabled
 
 

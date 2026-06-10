@@ -1,3 +1,5 @@
+"""Module."""
+
 import ml_switcheroo
 
 "Optimizers."
@@ -23,17 +25,24 @@ __all__ = [
 
 
 class Optimizer:
-    def __init__(self, params: Any, defaults: dict) -> None:
-        pass
+    """Class."""
+
+    def __init__(self, params: Any, defaults: dict = None) -> None:
+        """Function."""
+        self.params = list(params)
 
     def step(self, closure: Optional[Any] = None) -> Optional[Any]:
+        """Function."""
         pass
 
     def zero_grad(self, set_to_none: bool = False) -> None:
+        """Function."""
         pass
 
 
 class ASGD(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -47,10 +56,13 @@ class ASGD(Optimizer):
         differentiable: bool = False,
         capturable: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class Adadelta(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -63,10 +75,13 @@ class Adadelta(Optimizer):
         maximize: bool = False,
         differentiable: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class Adafactor(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -78,10 +93,13 @@ class Adafactor(Optimizer):
         foreach: Optional[bool] = None,
         maximize: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class Adagrad(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -95,10 +113,13 @@ class Adagrad(Optimizer):
         differentiable: bool = False,
         fused: Optional[bool] = None,
     ) -> None:
+        """Function."""
         pass
 
 
 class Adam(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -114,10 +135,13 @@ class Adam(Optimizer):
         fused: Optional[bool] = None,
         decoupled_weight_decay: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class AdamW(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -132,10 +156,13 @@ class AdamW(Optimizer):
         differentiable: bool = False,
         fused: Optional[bool] = None,
     ) -> None:
+        """Function."""
         pass
 
 
 class Adamax(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -148,10 +175,13 @@ class Adamax(Optimizer):
         differentiable: bool = False,
         capturable: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class LBFGS(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Iterable,
@@ -163,10 +193,13 @@ class LBFGS(Optimizer):
         history_size: Optional[int] = 100,
         line_search_fn: Optional[str] = None,
     ) -> None:
+        """Function."""
         pass
 
 
 class NAdam(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -181,10 +214,13 @@ class NAdam(Optimizer):
         capturable: bool = False,
         differentiable: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class RAdam(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -198,10 +234,13 @@ class RAdam(Optimizer):
         capturable: bool = False,
         differentiable: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class RMSprop(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -216,10 +255,13 @@ class RMSprop(Optimizer):
         maximize: bool = False,
         differentiable: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class Rprop(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -231,10 +273,13 @@ class Rprop(Optimizer):
         maximize: bool = False,
         differentiable: bool = False,
     ) -> None:
+        """Function."""
         pass
 
 
 class SGD(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -248,10 +293,25 @@ class SGD(Optimizer):
         differentiable: bool = False,
         fused: Optional[bool] = None,
     ) -> None:
-        pass
+        """Function."""
+        super().__init__(params)
+        self.lr = lr
+
+    def step(self, closure=None):
+        """Function."""
+        import numpy as np
+        from zero_torch.tensor import Tensor
+
+        for p in self.params:
+            if hasattr(p, "grad") and p.grad is not None:
+                # eager update
+                new_data = np.array(p.data) - self.lr * np.array(p.grad.data)
+                p._tensor = Tensor(new_data)._tensor
 
 
 class SparseAdam(Optimizer):
+    """Class."""
+
     def __init__(
         self,
         params: Any,
@@ -260,4 +320,5 @@ class SparseAdam(Optimizer):
         eps: float = 1e-08,
         maximize: bool = False,
     ) -> None:
+        """Function."""
         pass

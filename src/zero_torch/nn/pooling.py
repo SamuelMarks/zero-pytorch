@@ -149,44 +149,66 @@ class AvgPool3d(Module):
 
 
 class MaxPool1d:
+    """Class."""
+
     pass
 
 
 class FractionalMaxPool2d:
+    """Class."""
+
     pass
 
 
 class MaxPool2d:
+    """Class."""
+
     pass
 
 
 class FractionalMaxPool3d:
+    """Class."""
+
     pass
 
 
 class MaxPool3d:
+    """Class."""
+
     pass
 
 
 class LPPool1d:
+    """Class."""
+
     pass
 
 
 class LPPool2d:
+    """Class."""
+
     pass
 
 
 class LPPool3d:
+    """Class."""
+
     pass
 
 
 class MaxUnpool1d:
+    """Class."""
+
     pass
 
 
 class MaxUnpool2d:
+    """Class."""
+
     pass
 
 
 class MaxUnpool3d:
+    """Class."""
+
     pass

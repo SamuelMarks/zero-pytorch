@@ -19,8 +19,15 @@ class Linear(Module):
         **kwargs: Any,
     ) -> None:
         """Initialize Linear module."""
-        pass
+        super().__init__()
+        from .module import Parameter
+        import zero_torch
+
+        self.weight = Parameter(zero_torch.ones((out_features, in_features)))
+        self.bias = Parameter(zero_torch.ones((out_features,)))
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass."""
-        pass
+        import zero_torch.nn.functional as F
+
+        return F.linear(input, self.weight, self.bias)

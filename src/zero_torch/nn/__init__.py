@@ -241,6 +241,12 @@ class BatchNorm2d:
         """Stub."""
         pass
 
+    def __call__(self, *args, **kwargs):
+        """Function."""
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
+
 
 class BatchNorm3d:
     """Stub."""
@@ -344,6 +350,12 @@ class Conv2d:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Stub."""
         pass
+
+    def __call__(self, *args, **kwargs):
+        """Function."""
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class Conv3d:
