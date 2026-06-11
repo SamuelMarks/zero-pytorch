@@ -6,6 +6,7 @@ from ml_switcheroo.tracing import _tracer
 
 
 def test_torch_add():
+    """Tests for test_torch_add."""
     t1 = Tensor([1, 2])
     t2 = Tensor([3, 4])
     t3 = t1 + t2
@@ -18,6 +19,7 @@ def test_torch_add():
 
 
 def test_torch_sub():
+    """Tests for test_torch_sub."""
     t1 = Tensor([3, 4])
     t2 = Tensor([1, 2])
     t3 = t1 - t2
@@ -25,6 +27,7 @@ def test_torch_sub():
 
 
 def test_torch_mul():
+    """Tests for test_torch_mul."""
     t1 = Tensor([1, 2])
     t2 = Tensor([3, 4])
     t3 = t1 * t2
@@ -32,6 +35,7 @@ def test_torch_mul():
 
 
 def test_torch_div():
+    """Tests for test_torch_div."""
     t1 = Tensor([6, 8])
     t2 = Tensor([2, 2])
     t3 = t1 / t2
@@ -39,6 +43,7 @@ def test_torch_div():
 
 
 def test_torch_matmul():
+    """Tests for test_torch_matmul."""
     t1 = Tensor([[1, 2]])
     t2 = Tensor([[3], [4]])
     t3 = t1 @ t2
@@ -46,6 +51,7 @@ def test_torch_matmul():
 
 
 def test_torch_math_tracing():
+    """Tests for test_torch_math_tracing."""
     _tracer.start_tracing()
     t1 = Tensor([[1, 2]])
     t2 = Tensor([[3], [4]])
@@ -57,12 +63,14 @@ def test_torch_math_tracing():
 
 
 def test_tensor_copy_init():
+    """Tests for test_tensor_copy_init."""
     t1 = Tensor([1])
     t2 = Tensor(t1)
     assert t1._data is t2._data
 
 
 def test_dtype_and_contiguous():
+    """Tests for test_dtype_and_contiguous."""
     import numpy as np
 
     t = Tensor(np.array([[1, 2], [3, 4]], dtype=np.float32))
@@ -73,6 +81,7 @@ def test_dtype_and_contiguous():
 
 
 def test_tensor_none_ops():
+    """Tests for test_tensor_none_ops."""
     t = Tensor(None)
     assert t.contiguous() is t
     assert t.squeeze() is t

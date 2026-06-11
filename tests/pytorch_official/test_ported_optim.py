@@ -6,6 +6,7 @@ import zero_torch.nn as nn
 
 
 def test_sgd():
+    """Tests for test_sgd."""
     with ml_switcheroo.EagerMode():
         # Parameter
         w = nn.Parameter(torch.ones((2, 2)))

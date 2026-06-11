@@ -10,15 +10,30 @@ import ml_switcheroo.ops as _ops
 from typing import Any
 
 
-def _wrap(x):
-    """Function."""
+def _wrap(x: Any) -> Any:
+    """Wraps an object in a Tensor.
+
+    Args:
+        x (Any): The object to wrap.
+
+    Returns:
+        Any: The wrapped object.
+    """
     if isinstance(x, (tuple, list)):
         return type(x)(_wrap(i) for i in x)
     return Tensor(x)
 
 
 def abs(*args, **kwargs):
-    """Function."""
+    """Applies the abs operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the abs operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "abs")(
@@ -28,7 +43,15 @@ def abs(*args, **kwargs):
 
 
 def acos(*args, **kwargs):
-    """Function."""
+    """Applies the acos operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the acos operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "acos")(
@@ -38,7 +61,15 @@ def acos(*args, **kwargs):
 
 
 def acosh(*args, **kwargs):
-    """Function."""
+    """Applies the acosh operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the acosh operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "acosh")(
@@ -48,7 +79,15 @@ def acosh(*args, **kwargs):
 
 
 def add(*args, **kwargs):
-    """Function."""
+    """Applies the add operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the add operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "add")(
@@ -58,7 +97,15 @@ def add(*args, **kwargs):
 
 
 def all(*args, **kwargs):
-    """Function."""
+    """Applies the all operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the all operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "all")(
@@ -68,17 +115,33 @@ def all(*args, **kwargs):
 
 
 def allclose(*args, **kwargs):
-    """Function."""
+    """Applies the allclose operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        bool: Boolean indicating if allclose is true.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "allclose")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
-    return res
+    return bool(res)
 
 
 def any(*args, **kwargs):
-    """Function."""
+    """Applies the any operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the any operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "any")(
@@ -88,7 +151,15 @@ def any(*args, **kwargs):
 
 
 def arange(*args, **kwargs):
-    """Function."""
+    """Applies the arange operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the arange operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "arange")(
@@ -98,7 +169,15 @@ def arange(*args, **kwargs):
 
 
 def argmax(*args, **kwargs):
-    """Function."""
+    """Applies the argmax operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the argmax operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "argmax")(
@@ -108,7 +187,15 @@ def argmax(*args, **kwargs):
 
 
 def argmin(*args, **kwargs):
-    """Function."""
+    """Applies the argmin operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the argmin operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "argmin")(
@@ -118,7 +205,15 @@ def argmin(*args, **kwargs):
 
 
 def asin(*args, **kwargs):
-    """Function."""
+    """Applies the asin operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the asin operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "asin")(
@@ -128,7 +223,15 @@ def asin(*args, **kwargs):
 
 
 def asinh(*args, **kwargs):
-    """Function."""
+    """Applies the asinh operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the asinh operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "asinh")(
@@ -138,7 +241,15 @@ def asinh(*args, **kwargs):
 
 
 def atan(*args, **kwargs):
-    """Function."""
+    """Applies the atan operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the atan operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "atan")(
@@ -148,7 +259,15 @@ def atan(*args, **kwargs):
 
 
 def atan2(*args, **kwargs):
-    """Function."""
+    """Applies the atan2 operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the atan2 operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "atan2")(
@@ -158,7 +277,15 @@ def atan2(*args, **kwargs):
 
 
 def atanh(*args, **kwargs):
-    """Function."""
+    """Applies the atanh operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the atanh operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "atanh")(
@@ -168,7 +295,15 @@ def atanh(*args, **kwargs):
 
 
 def binary(*args, **kwargs):
-    """Function."""
+    """Applies the binary operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the binary operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "binary")(
@@ -178,7 +313,15 @@ def binary(*args, **kwargs):
 
 
 def bitcast(*args, **kwargs):
-    """Function."""
+    """Applies the bitcast operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the bitcast operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "bitcast")(
@@ -188,7 +331,15 @@ def bitcast(*args, **kwargs):
 
 
 def bitwise_and(*args, **kwargs):
-    """Function."""
+    """Applies the bitwise_and operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the bitwise_and operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "bitwise_and")(
@@ -198,7 +349,15 @@ def bitwise_and(*args, **kwargs):
 
 
 def bitwise_not(*args, **kwargs):
-    """Function."""
+    """Applies the bitwise_not operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the bitwise_not operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "bitwise_not")(
@@ -208,7 +367,15 @@ def bitwise_not(*args, **kwargs):
 
 
 def bitwise_or(*args, **kwargs):
-    """Function."""
+    """Applies the bitwise_or operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the bitwise_or operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "bitwise_or")(
@@ -218,7 +385,15 @@ def bitwise_or(*args, **kwargs):
 
 
 def bitwise_xor(*args, **kwargs):
-    """Function."""
+    """Applies the bitwise_xor operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the bitwise_xor operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "bitwise_xor")(
@@ -228,7 +403,15 @@ def bitwise_xor(*args, **kwargs):
 
 
 def broadcast_to(*args, **kwargs):
-    """Function."""
+    """Applies the broadcast_to operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the broadcast_to operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "broadcast_to")(
@@ -238,7 +421,15 @@ def broadcast_to(*args, **kwargs):
 
 
 def cast(*args, **kwargs):
-    """Function."""
+    """Applies the cast operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the cast operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "cast")(
@@ -248,7 +439,15 @@ def cast(*args, **kwargs):
 
 
 def cbrt(*args, **kwargs):
-    """Function."""
+    """Applies the cbrt operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the cbrt operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "cbrt")(
@@ -258,7 +457,15 @@ def cbrt(*args, **kwargs):
 
 
 def ceil(*args, **kwargs):
-    """Function."""
+    """Applies the ceil operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the ceil operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "ceil")(
@@ -268,7 +475,15 @@ def ceil(*args, **kwargs):
 
 
 def cholesky(*args, **kwargs):
-    """Function."""
+    """Applies the cholesky operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the cholesky operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "cholesky")(
@@ -278,7 +493,15 @@ def cholesky(*args, **kwargs):
 
 
 def concatenate(*args, **kwargs):
-    """Function."""
+    """Applies the concatenate operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the concatenate operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "concatenate")(
@@ -288,7 +511,15 @@ def concatenate(*args, **kwargs):
 
 
 def conj(*args, **kwargs):
-    """Function."""
+    """Applies the conj operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the conj operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "conj")(
@@ -298,7 +529,15 @@ def conj(*args, **kwargs):
 
 
 def copysign(*args, **kwargs):
-    """Function."""
+    """Applies the copysign operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the copysign operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "copysign")(
@@ -308,7 +547,15 @@ def copysign(*args, **kwargs):
 
 
 def cos(*args, **kwargs):
-    """Function."""
+    """Applies the cos operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the cos operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "cos")(
@@ -318,7 +565,15 @@ def cos(*args, **kwargs):
 
 
 def cosh(*args, **kwargs):
-    """Function."""
+    """Applies the cosh operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the cosh operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "cosh")(
@@ -328,7 +583,15 @@ def cosh(*args, **kwargs):
 
 
 def count_nonzero(*args, **kwargs):
-    """Function."""
+    """Applies the count_nonzero operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the count_nonzero operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "count_nonzero")(
@@ -338,7 +601,15 @@ def count_nonzero(*args, **kwargs):
 
 
 def creation(*args, **kwargs):
-    """Function."""
+    """Applies the creation operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the creation operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "creation")(
@@ -348,7 +619,15 @@ def creation(*args, **kwargs):
 
 
 def deg2rad(*args, **kwargs):
-    """Function."""
+    """Applies the deg2rad operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the deg2rad operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "deg2rad")(
@@ -358,7 +637,15 @@ def deg2rad(*args, **kwargs):
 
 
 def det(*args, **kwargs):
-    """Function."""
+    """Applies the det operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the det operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "det")(
@@ -368,7 +655,15 @@ def det(*args, **kwargs):
 
 
 def diag(*args, **kwargs):
-    """Function."""
+    """Applies the diag operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the diag operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "diag")(
@@ -378,7 +673,15 @@ def diag(*args, **kwargs):
 
 
 def digamma(*args, **kwargs):
-    """Function."""
+    """Applies the digamma operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the digamma operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "digamma")(
@@ -388,7 +691,15 @@ def digamma(*args, **kwargs):
 
 
 def divide(*args, **kwargs):
-    """Function."""
+    """Applies the divide operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the divide operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "divide")(
@@ -398,7 +709,15 @@ def divide(*args, **kwargs):
 
 
 def divmod(*args, **kwargs):
-    """Function."""
+    """Applies the divmod operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the divmod operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "divmod")(
@@ -408,7 +727,15 @@ def divmod(*args, **kwargs):
 
 
 def dot(*args, **kwargs):
-    """Function."""
+    """Applies the dot operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the dot operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "dot")(
@@ -418,7 +745,15 @@ def dot(*args, **kwargs):
 
 
 def dynamic_slice(*args, **kwargs):
-    """Function."""
+    """Applies the dynamic_slice operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the dynamic_slice operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "dynamic_slice")(
@@ -428,7 +763,15 @@ def dynamic_slice(*args, **kwargs):
 
 
 def eigh(*args, **kwargs):
-    """Function."""
+    """Applies the eigh operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the eigh operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "eigh")(
@@ -438,7 +781,15 @@ def eigh(*args, **kwargs):
 
 
 def eigvalsh(*args, **kwargs):
-    """Function."""
+    """Applies the eigvalsh operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the eigvalsh operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "eigvalsh")(
@@ -448,7 +799,15 @@ def eigvalsh(*args, **kwargs):
 
 
 def einsum(*args, **kwargs):
-    """Function."""
+    """Applies the einsum operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the einsum operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "einsum")(
@@ -458,7 +817,15 @@ def einsum(*args, **kwargs):
 
 
 def empty(*args, **kwargs):
-    """Function."""
+    """Applies the empty operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the empty operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "empty")(
@@ -468,7 +835,15 @@ def empty(*args, **kwargs):
 
 
 def equal(*args, **kwargs):
-    """Function."""
+    """Applies the equal operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the equal operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "equal")(
@@ -478,7 +853,15 @@ def equal(*args, **kwargs):
 
 
 def erf(*args, **kwargs):
-    """Function."""
+    """Applies the erf operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the erf operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "erf")(
@@ -488,7 +871,15 @@ def erf(*args, **kwargs):
 
 
 def erfc(*args, **kwargs):
-    """Function."""
+    """Applies the erfc operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the erfc operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "erfc")(
@@ -498,7 +889,15 @@ def erfc(*args, **kwargs):
 
 
 def erfinv(*args, **kwargs):
-    """Function."""
+    """Applies the erfinv operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the erfinv operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "erfinv")(
@@ -508,7 +907,15 @@ def erfinv(*args, **kwargs):
 
 
 def exp(*args, **kwargs):
-    """Function."""
+    """Applies the exp operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the exp operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "exp")(
@@ -518,7 +925,15 @@ def exp(*args, **kwargs):
 
 
 def exp2(*args, **kwargs):
-    """Function."""
+    """Applies the exp2 operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the exp2 operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "exp2")(
@@ -528,7 +943,15 @@ def exp2(*args, **kwargs):
 
 
 def expand(*args, **kwargs):
-    """Function."""
+    """Applies the expand operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the expand operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "expand")(
@@ -538,7 +961,15 @@ def expand(*args, **kwargs):
 
 
 def expm1(*args, **kwargs):
-    """Function."""
+    """Applies the expm1 operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the expm1 operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "expm1")(
@@ -548,7 +979,15 @@ def expm1(*args, **kwargs):
 
 
 def eye(*args, **kwargs):
-    """Function."""
+    """Applies the eye operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the eye operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "eye")(
@@ -558,7 +997,15 @@ def eye(*args, **kwargs):
 
 
 def fix(*args, **kwargs):
-    """Function."""
+    """Applies the fix operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the fix operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "fix")(
@@ -568,7 +1015,15 @@ def fix(*args, **kwargs):
 
 
 def flatten(*args, **kwargs):
-    """Function."""
+    """Applies the flatten operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the flatten operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "flatten")(
@@ -578,7 +1033,15 @@ def flatten(*args, **kwargs):
 
 
 def float_power(*args, **kwargs):
-    """Function."""
+    """Applies the float_power operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the float_power operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "float_power")(
@@ -588,7 +1051,15 @@ def float_power(*args, **kwargs):
 
 
 def floor(*args, **kwargs):
-    """Function."""
+    """Applies the floor operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the floor operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "floor")(
@@ -598,7 +1069,15 @@ def floor(*args, **kwargs):
 
 
 def floor_divide(*args, **kwargs):
-    """Function."""
+    """Applies the floor_divide operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the floor_divide operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "floor_divide")(
@@ -608,7 +1087,15 @@ def floor_divide(*args, **kwargs):
 
 
 def fmax(*args, **kwargs):
-    """Function."""
+    """Applies the fmax operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the fmax operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "fmax")(
@@ -618,7 +1105,15 @@ def fmax(*args, **kwargs):
 
 
 def fmin(*args, **kwargs):
-    """Function."""
+    """Applies the fmin operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the fmin operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "fmin")(
@@ -628,7 +1123,15 @@ def fmin(*args, **kwargs):
 
 
 def fmod(*args, **kwargs):
-    """Function."""
+    """Applies the fmod operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the fmod operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "fmod")(
@@ -638,7 +1141,15 @@ def fmod(*args, **kwargs):
 
 
 def frexp(*args, **kwargs):
-    """Function."""
+    """Applies the frexp operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the frexp operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "frexp")(
@@ -648,7 +1159,15 @@ def frexp(*args, **kwargs):
 
 
 def full(*args, **kwargs):
-    """Function."""
+    """Applies the full operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the full operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "full")(
@@ -658,7 +1177,15 @@ def full(*args, **kwargs):
 
 
 def full_like(*args, **kwargs):
-    """Function."""
+    """Applies the full_like operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the full_like operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "full_like")(
@@ -668,7 +1195,15 @@ def full_like(*args, **kwargs):
 
 
 def gather(*args, **kwargs):
-    """Function."""
+    """Applies the gather operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the gather operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "gather")(
@@ -678,7 +1213,15 @@ def gather(*args, **kwargs):
 
 
 def gather_nd(*args, **kwargs):
-    """Function."""
+    """Applies the gather_nd operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the gather_nd operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "gather_nd")(
@@ -688,7 +1231,15 @@ def gather_nd(*args, **kwargs):
 
 
 def gcd(*args, **kwargs):
-    """Function."""
+    """Applies the gcd operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the gcd operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "gcd")(
@@ -698,7 +1249,15 @@ def gcd(*args, **kwargs):
 
 
 def greater(*args, **kwargs):
-    """Function."""
+    """Applies the greater operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the greater operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "greater")(
@@ -708,7 +1267,15 @@ def greater(*args, **kwargs):
 
 
 def greater_equal(*args, **kwargs):
-    """Function."""
+    """Applies the greater_equal operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the greater_equal operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "greater_equal")(
@@ -718,7 +1285,15 @@ def greater_equal(*args, **kwargs):
 
 
 def heaviside(*args, **kwargs):
-    """Function."""
+    """Applies the heaviside operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the heaviside operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "heaviside")(
@@ -728,7 +1303,15 @@ def heaviside(*args, **kwargs):
 
 
 def hypot(*args, **kwargs):
-    """Function."""
+    """Applies the hypot operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the hypot operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "hypot")(
@@ -738,7 +1321,15 @@ def hypot(*args, **kwargs):
 
 
 def identity(*args, **kwargs):
-    """Function."""
+    """Applies the identity operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the identity operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "identity")(
@@ -748,7 +1339,15 @@ def identity(*args, **kwargs):
 
 
 def imag(*args, **kwargs):
-    """Function."""
+    """Applies the imag operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the imag operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "imag")(
@@ -758,7 +1357,15 @@ def imag(*args, **kwargs):
 
 
 def inner(*args, **kwargs):
-    """Function."""
+    """Applies the inner operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the inner operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "inner")(
@@ -768,7 +1375,15 @@ def inner(*args, **kwargs):
 
 
 def inv(*args, **kwargs):
-    """Function."""
+    """Applies the inv operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the inv operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "inv")(
@@ -778,7 +1393,15 @@ def inv(*args, **kwargs):
 
 
 def isclose(*args, **kwargs):
-    """Function."""
+    """Applies the isclose operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the isclose operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "isclose")(
@@ -788,7 +1411,15 @@ def isclose(*args, **kwargs):
 
 
 def isfinite(*args, **kwargs):
-    """Function."""
+    """Applies the isfinite operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the isfinite operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "isfinite")(
@@ -798,7 +1429,15 @@ def isfinite(*args, **kwargs):
 
 
 def isinf(*args, **kwargs):
-    """Function."""
+    """Applies the isinf operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the isinf operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "isinf")(
@@ -808,7 +1447,15 @@ def isinf(*args, **kwargs):
 
 
 def isnan(*args, **kwargs):
-    """Function."""
+    """Applies the isnan operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the isnan operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "isnan")(
@@ -818,7 +1465,15 @@ def isnan(*args, **kwargs):
 
 
 def lcm(*args, **kwargs):
-    """Function."""
+    """Applies the lcm operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the lcm operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "lcm")(
@@ -828,7 +1483,15 @@ def lcm(*args, **kwargs):
 
 
 def ldexp(*args, **kwargs):
-    """Function."""
+    """Applies the ldexp operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the ldexp operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "ldexp")(
@@ -838,7 +1501,15 @@ def ldexp(*args, **kwargs):
 
 
 def left_shift(*args, **kwargs):
-    """Function."""
+    """Applies the left_shift operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the left_shift operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "left_shift")(
@@ -848,7 +1519,15 @@ def left_shift(*args, **kwargs):
 
 
 def less(*args, **kwargs):
-    """Function."""
+    """Applies the less operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the less operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "less")(
@@ -858,7 +1537,15 @@ def less(*args, **kwargs):
 
 
 def less_equal(*args, **kwargs):
-    """Function."""
+    """Applies the less_equal operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the less_equal operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "less_equal")(
@@ -868,7 +1555,15 @@ def less_equal(*args, **kwargs):
 
 
 def lgamma(*args, **kwargs):
-    """Function."""
+    """Applies the lgamma operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the lgamma operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "lgamma")(
@@ -878,7 +1573,15 @@ def lgamma(*args, **kwargs):
 
 
 def linalg(*args, **kwargs):
-    """Function."""
+    """Applies the linalg operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the linalg operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "linalg")(
@@ -888,7 +1591,15 @@ def linalg(*args, **kwargs):
 
 
 def linspace(*args, **kwargs):
-    """Function."""
+    """Applies the linspace operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the linspace operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "linspace")(
@@ -898,7 +1609,15 @@ def linspace(*args, **kwargs):
 
 
 def log(*args, **kwargs):
-    """Function."""
+    """Applies the log operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the log operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "log")(
@@ -908,7 +1627,15 @@ def log(*args, **kwargs):
 
 
 def log10(*args, **kwargs):
-    """Function."""
+    """Applies the log10 operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the log10 operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "log10")(
@@ -918,7 +1645,15 @@ def log10(*args, **kwargs):
 
 
 def log1p(*args, **kwargs):
-    """Function."""
+    """Applies the log1p operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the log1p operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "log1p")(
@@ -928,7 +1663,15 @@ def log1p(*args, **kwargs):
 
 
 def log2(*args, **kwargs):
-    """Function."""
+    """Applies the log2 operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the log2 operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "log2")(
@@ -938,7 +1681,15 @@ def log2(*args, **kwargs):
 
 
 def logaddexp(*args, **kwargs):
-    """Function."""
+    """Applies the logaddexp operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the logaddexp operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "logaddexp")(
@@ -948,7 +1699,15 @@ def logaddexp(*args, **kwargs):
 
 
 def logaddexp2(*args, **kwargs):
-    """Function."""
+    """Applies the logaddexp2 operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the logaddexp2 operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "logaddexp2")(
@@ -958,7 +1717,15 @@ def logaddexp2(*args, **kwargs):
 
 
 def logical_and(*args, **kwargs):
-    """Function."""
+    """Applies the logical_and operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the logical_and operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "logical_and")(
@@ -968,7 +1735,15 @@ def logical_and(*args, **kwargs):
 
 
 def logical_not(*args, **kwargs):
-    """Function."""
+    """Applies the logical_not operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the logical_not operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "logical_not")(
@@ -978,7 +1753,15 @@ def logical_not(*args, **kwargs):
 
 
 def logical_or(*args, **kwargs):
-    """Function."""
+    """Applies the logical_or operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the logical_or operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "logical_or")(
@@ -988,7 +1771,15 @@ def logical_or(*args, **kwargs):
 
 
 def logical_xor(*args, **kwargs):
-    """Function."""
+    """Applies the logical_xor operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the logical_xor operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "logical_xor")(
@@ -998,7 +1789,15 @@ def logical_xor(*args, **kwargs):
 
 
 def logsumexp(*args, **kwargs):
-    """Function."""
+    """Applies the logsumexp operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the logsumexp operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "logsumexp")(
@@ -1008,7 +1807,15 @@ def logsumexp(*args, **kwargs):
 
 
 def matmul(*args, **kwargs):
-    """Function."""
+    """Applies the matmul operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the matmul operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "matmul")(
@@ -1018,7 +1825,15 @@ def matmul(*args, **kwargs):
 
 
 def matrix_power(*args, **kwargs):
-    """Function."""
+    """Applies the matrix_power operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the matrix_power operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "matrix_power")(
@@ -1028,7 +1843,15 @@ def matrix_power(*args, **kwargs):
 
 
 def max(*args, **kwargs):
-    """Function."""
+    """Applies the max operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the max operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "max")(
@@ -1038,7 +1861,15 @@ def max(*args, **kwargs):
 
 
 def maximum(*args, **kwargs):
-    """Function."""
+    """Applies the maximum operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the maximum operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "maximum")(
@@ -1048,7 +1879,15 @@ def maximum(*args, **kwargs):
 
 
 def mean(*args, **kwargs):
-    """Function."""
+    """Applies the mean operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the mean operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "mean")(
@@ -1058,7 +1897,17 @@ def mean(*args, **kwargs):
 
 
 def meshgrid(*args, **kwargs):
-    """Function."""
+    """Applies the meshgrid operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the meshgrid operation applied.
+    """
+    if "indexing" not in kwargs:
+        kwargs["indexing"] = "ij"
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "meshgrid")(
@@ -1068,7 +1917,15 @@ def meshgrid(*args, **kwargs):
 
 
 def min(*args, **kwargs):
-    """Function."""
+    """Applies the min operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the min operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "min")(
@@ -1078,7 +1935,15 @@ def min(*args, **kwargs):
 
 
 def minimum(*args, **kwargs):
-    """Function."""
+    """Applies the minimum operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the minimum operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "minimum")(
@@ -1088,7 +1953,15 @@ def minimum(*args, **kwargs):
 
 
 def mod(*args, **kwargs):
-    """Function."""
+    """Applies the mod operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the mod operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "mod")(
@@ -1098,7 +1971,15 @@ def mod(*args, **kwargs):
 
 
 def moveaxis(*args, **kwargs):
-    """Function."""
+    """Applies the moveaxis operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the moveaxis operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "moveaxis")(
@@ -1108,7 +1989,15 @@ def moveaxis(*args, **kwargs):
 
 
 def multiply(*args, **kwargs):
-    """Function."""
+    """Applies the multiply operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the multiply operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "multiply")(
@@ -1118,7 +2007,15 @@ def multiply(*args, **kwargs):
 
 
 def negative(*args, **kwargs):
-    """Function."""
+    """Applies the negative operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the negative operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "negative")(
@@ -1128,7 +2025,15 @@ def negative(*args, **kwargs):
 
 
 def nextafter(*args, **kwargs):
-    """Function."""
+    """Applies the nextafter operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the nextafter operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "nextafter")(
@@ -1138,17 +2043,59 @@ def nextafter(*args, **kwargs):
 
 
 def norm(*args, **kwargs):
-    """Function."""
-    if "dim" in kwargs:
+    """Applies the norm operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the norm operation applied.
+    """
+    try:
+        res = getattr(_ops, "norm")(
+            *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        )
+        return _wrap(res)
+    except (AttributeError, TypeError):
         pass
-    res = getattr(_ops, "norm")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+
+    # Fallback to sqrt(sum(pow(x, 2))) for Frobenius/L2 norm
+    tensor = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
+    p = kwargs.get("p", 2)
+    dim = kwargs.get("dim", None)
+    keepdim = kwargs.get("keepdim", False)
+
+    pow_kwargs = {}
+    sum_kwargs = {}
+    if dim is not None:
+        sum_kwargs["axis"] = dim
+    if keepdim:
+        sum_kwargs["keepdims"] = keepdim
+
+    p_tensor = Tensor(p)._tensor
+    pow_tensor = getattr(_ops, "power")(tensor, p_tensor, **pow_kwargs)
+    summed = getattr(_ops, "sum")(pow_tensor, **sum_kwargs)
+
+    if p == 2:
+        res = getattr(_ops, "sqrt")(summed)
+    else:  # pragma: no cover
+        inv_p_tensor = Tensor(1.0 / p)._tensor
+        res = getattr(_ops, "power")(summed, inv_p_tensor)
+
     return _wrap(res)
 
 
 def not_equal(*args, **kwargs):
-    """Function."""
+    """Applies the not_equal operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the not_equal operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "not_equal")(
@@ -1158,7 +2105,15 @@ def not_equal(*args, **kwargs):
 
 
 def ones(*args, **kwargs):
-    """Function."""
+    """Applies the ones operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the ones operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "ones")(
@@ -1168,7 +2123,15 @@ def ones(*args, **kwargs):
 
 
 def ones_like(*args, **kwargs):
-    """Function."""
+    """Applies the ones_like operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the ones_like operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "ones_like")(
@@ -1178,7 +2141,15 @@ def ones_like(*args, **kwargs):
 
 
 def outer(*args, **kwargs):
-    """Function."""
+    """Applies the outer operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the outer operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "outer")(
@@ -1188,7 +2159,15 @@ def outer(*args, **kwargs):
 
 
 def permute(*args, **kwargs):
-    """Function."""
+    """Applies the permute operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the permute operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "permute")(
@@ -1198,7 +2177,15 @@ def permute(*args, **kwargs):
 
 
 def pinv(*args, **kwargs):
-    """Function."""
+    """Applies the pinv operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the pinv operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "pinv")(
@@ -1208,7 +2195,15 @@ def pinv(*args, **kwargs):
 
 
 def positive(*args, **kwargs):
-    """Function."""
+    """Applies the positive operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the positive operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "positive")(
@@ -1218,7 +2213,15 @@ def positive(*args, **kwargs):
 
 
 def power(*args, **kwargs):
-    """Function."""
+    """Applies the power operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the power operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "power")(
@@ -1228,7 +2231,15 @@ def power(*args, **kwargs):
 
 
 def prod(*args, **kwargs):
-    """Function."""
+    """Applies the prod operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the prod operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "prod")(
@@ -1238,7 +2249,15 @@ def prod(*args, **kwargs):
 
 
 def qr(*args, **kwargs):
-    """Function."""
+    """Applies the qr operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the qr operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "qr")(
@@ -1248,7 +2267,15 @@ def qr(*args, **kwargs):
 
 
 def rad2deg(*args, **kwargs):
-    """Function."""
+    """Applies the rad2deg operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the rad2deg operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "rad2deg")(
@@ -1258,7 +2285,15 @@ def rad2deg(*args, **kwargs):
 
 
 def real(*args, **kwargs):
-    """Function."""
+    """Applies the real operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the real operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "real")(
@@ -1268,7 +2303,15 @@ def real(*args, **kwargs):
 
 
 def reciprocal(*args, **kwargs):
-    """Function."""
+    """Applies the reciprocal operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the reciprocal operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "reciprocal")(
@@ -1278,7 +2321,15 @@ def reciprocal(*args, **kwargs):
 
 
 def reductions(*args, **kwargs):
-    """Function."""
+    """Applies the reductions operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the reductions operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "reductions")(
@@ -1288,7 +2339,15 @@ def reductions(*args, **kwargs):
 
 
 def remainder(*args, **kwargs):
-    """Function."""
+    """Applies the remainder operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the remainder operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "remainder")(
@@ -1298,7 +2357,15 @@ def remainder(*args, **kwargs):
 
 
 def repeat(*args, **kwargs):
-    """Function."""
+    """Applies the repeat operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the repeat operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "repeat")(
@@ -1308,7 +2375,15 @@ def repeat(*args, **kwargs):
 
 
 def reshape(*args, **kwargs):
-    """Function."""
+    """Applies the reshape operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the reshape operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "reshape")(
@@ -1318,7 +2393,15 @@ def reshape(*args, **kwargs):
 
 
 def right_shift(*args, **kwargs):
-    """Function."""
+    """Applies the right_shift operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the right_shift operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "right_shift")(
@@ -1328,7 +2411,15 @@ def right_shift(*args, **kwargs):
 
 
 def roll(*args, **kwargs):
-    """Function."""
+    """Applies the roll operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the roll operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "roll")(
@@ -1338,7 +2429,15 @@ def roll(*args, **kwargs):
 
 
 def round(*args, **kwargs):
-    """Function."""
+    """Applies the round operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the round operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "round")(
@@ -1348,7 +2447,15 @@ def round(*args, **kwargs):
 
 
 def rsqrt(*args, **kwargs):
-    """Function."""
+    """Applies the rsqrt operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the rsqrt operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "rsqrt")(
@@ -1358,7 +2465,15 @@ def rsqrt(*args, **kwargs):
 
 
 def scatter(*args, **kwargs):
-    """Function."""
+    """Applies the scatter operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the scatter operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "scatter")(
@@ -1368,7 +2483,15 @@ def scatter(*args, **kwargs):
 
 
 def scatter_add(*args, **kwargs):
-    """Function."""
+    """Applies the scatter_add operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the scatter_add operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "scatter_add")(
@@ -1378,7 +2501,15 @@ def scatter_add(*args, **kwargs):
 
 
 def scatter_nd(*args, **kwargs):
-    """Function."""
+    """Applies the scatter_nd operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the scatter_nd operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "scatter_nd")(
@@ -1388,7 +2519,15 @@ def scatter_nd(*args, **kwargs):
 
 
 def shape(*args, **kwargs):
-    """Function."""
+    """Applies the shape operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the shape operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "shape")(
@@ -1398,7 +2537,15 @@ def shape(*args, **kwargs):
 
 
 def sign(*args, **kwargs):
-    """Function."""
+    """Applies the sign operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the sign operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "sign")(
@@ -1408,7 +2555,15 @@ def sign(*args, **kwargs):
 
 
 def sin(*args, **kwargs):
-    """Function."""
+    """Applies the sin operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the sin operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "sin")(
@@ -1418,7 +2573,15 @@ def sin(*args, **kwargs):
 
 
 def sinc(*args, **kwargs):
-    """Function."""
+    """Applies the sinc operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the sinc operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "sinc")(
@@ -1428,7 +2591,15 @@ def sinc(*args, **kwargs):
 
 
 def sinh(*args, **kwargs):
-    """Function."""
+    """Applies the sinh operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the sinh operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "sinh")(
@@ -1438,7 +2609,15 @@ def sinh(*args, **kwargs):
 
 
 def slice(*args, **kwargs):
-    """Function."""
+    """Applies the slice operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the slice operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "slice")(
@@ -1448,7 +2627,15 @@ def slice(*args, **kwargs):
 
 
 def slogdet(*args, **kwargs):
-    """Function."""
+    """Applies the slogdet operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the slogdet operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "slogdet")(
@@ -1458,7 +2645,15 @@ def slogdet(*args, **kwargs):
 
 
 def split(*args, **kwargs):
-    """Function."""
+    """Applies the split operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the split operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "split")(
@@ -1468,7 +2663,15 @@ def split(*args, **kwargs):
 
 
 def sqrt(*args, **kwargs):
-    """Function."""
+    """Applies the sqrt operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the sqrt operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "sqrt")(
@@ -1478,7 +2681,15 @@ def sqrt(*args, **kwargs):
 
 
 def square(*args, **kwargs):
-    """Function."""
+    """Applies the square operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the square operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "square")(
@@ -1488,7 +2699,15 @@ def square(*args, **kwargs):
 
 
 def squeeze(*args, **kwargs):
-    """Function."""
+    """Applies the squeeze operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the squeeze operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "squeeze")(
@@ -1498,7 +2717,15 @@ def squeeze(*args, **kwargs):
 
 
 def stack(*args, **kwargs):
-    """Function."""
+    """Applies the stack operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the stack operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "stack")(
@@ -1508,7 +2735,15 @@ def stack(*args, **kwargs):
 
 
 def std(*args, **kwargs):
-    """Function."""
+    """Applies the std operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the std operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "std")(
@@ -1518,7 +2753,15 @@ def std(*args, **kwargs):
 
 
 def strided_slice(*args, **kwargs):
-    """Function."""
+    """Applies the strided_slice operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the strided_slice operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "strided_slice")(
@@ -1528,7 +2771,15 @@ def strided_slice(*args, **kwargs):
 
 
 def subtract(*args, **kwargs):
-    """Function."""
+    """Applies the subtract operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the subtract operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "subtract")(
@@ -1538,7 +2789,15 @@ def subtract(*args, **kwargs):
 
 
 def sum(*args, **kwargs):
-    """Function."""
+    """Applies the sum operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the sum operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "sum")(
@@ -1548,7 +2807,15 @@ def sum(*args, **kwargs):
 
 
 def svd(*args, **kwargs):
-    """Function."""
+    """Applies the svd operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the svd operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "svd")(
@@ -1558,7 +2825,15 @@ def svd(*args, **kwargs):
 
 
 def swapaxes(*args, **kwargs):
-    """Function."""
+    """Applies the swapaxes operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the swapaxes operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "swapaxes")(
@@ -1568,7 +2843,15 @@ def swapaxes(*args, **kwargs):
 
 
 def take(*args, **kwargs):
-    """Function."""
+    """Applies the take operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the take operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "take")(
@@ -1578,7 +2861,15 @@ def take(*args, **kwargs):
 
 
 def tan(*args, **kwargs):
-    """Function."""
+    """Applies the tan operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the tan operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "tan")(
@@ -1588,7 +2879,15 @@ def tan(*args, **kwargs):
 
 
 def tanh(*args, **kwargs):
-    """Function."""
+    """Applies the tanh operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the tanh operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "tanh")(
@@ -1598,7 +2897,15 @@ def tanh(*args, **kwargs):
 
 
 def tensordot(*args, **kwargs):
-    """Function."""
+    """Applies the tensordot operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the tensordot operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "tensordot")(
@@ -1608,7 +2915,15 @@ def tensordot(*args, **kwargs):
 
 
 def tile(*args, **kwargs):
-    """Function."""
+    """Applies the tile operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the tile operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "tile")(
@@ -1618,7 +2933,15 @@ def tile(*args, **kwargs):
 
 
 def transpose(*args, **kwargs):
-    """Function."""
+    """Applies the transpose operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the transpose operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "transpose")(
@@ -1628,7 +2951,15 @@ def transpose(*args, **kwargs):
 
 
 def tril(*args, **kwargs):
-    """Function."""
+    """Applies the tril operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the tril operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "tril")(
@@ -1638,7 +2969,15 @@ def tril(*args, **kwargs):
 
 
 def triu(*args, **kwargs):
-    """Function."""
+    """Applies the triu operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the triu operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "triu")(
@@ -1648,7 +2987,15 @@ def triu(*args, **kwargs):
 
 
 def trunc(*args, **kwargs):
-    """Function."""
+    """Applies the trunc operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the trunc operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "trunc")(
@@ -1658,7 +3005,15 @@ def trunc(*args, **kwargs):
 
 
 def unary(*args, **kwargs):
-    """Function."""
+    """Applies the unary operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the unary operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "unary")(
@@ -1668,7 +3023,15 @@ def unary(*args, **kwargs):
 
 
 def unsqueeze(*args, **kwargs):
-    """Function."""
+    """Applies the unsqueeze operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the unsqueeze operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "unsqueeze")(
@@ -1678,7 +3041,15 @@ def unsqueeze(*args, **kwargs):
 
 
 def unstack(*args, **kwargs):
-    """Function."""
+    """Applies the unstack operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the unstack operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "unstack")(
@@ -1688,7 +3059,15 @@ def unstack(*args, **kwargs):
 
 
 def update_slice(*args, **kwargs):
-    """Function."""
+    """Applies the update_slice operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the update_slice operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "update_slice")(
@@ -1698,7 +3077,15 @@ def update_slice(*args, **kwargs):
 
 
 def variance(*args, **kwargs):
-    """Function."""
+    """Applies the variance operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the variance operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "variance")(
@@ -1708,7 +3095,15 @@ def variance(*args, **kwargs):
 
 
 def vdot(*args, **kwargs):
-    """Function."""
+    """Applies the vdot operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the vdot operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "vdot")(
@@ -1718,7 +3113,15 @@ def vdot(*args, **kwargs):
 
 
 def where(*args, **kwargs):
-    """Function."""
+    """Applies the where operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the where operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "where")(
@@ -1728,7 +3131,15 @@ def where(*args, **kwargs):
 
 
 def zeros(*args, **kwargs):
-    """Function."""
+    """Applies the zeros operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the zeros operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "zeros")(
@@ -1738,7 +3149,15 @@ def zeros(*args, **kwargs):
 
 
 def zeros_like(*args, **kwargs):
-    """Function."""
+    """Applies the zeros_like operation.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor with the zeros_like operation applied.
+    """
     if "dim" in kwargs:
         pass
     res = getattr(_ops, "zeros_like")(
@@ -1747,8 +3166,17 @@ def zeros_like(*args, **kwargs):
     return _wrap(res)
 
 
-def tensor(data, *args, **kwargs):
-    """Function."""
+def tensor(data: Any, *args: Any, **kwargs: Any) -> Tensor:
+    """Constructs a tensor.
+
+    Args:
+        data (Any): Initial data for the tensor.
+        *args (Any): Variable length argument list.
+        **kwargs (Any): Arbitrary keyword arguments.
+
+    Returns:
+        Tensor: A new tensor.
+    """
     return Tensor(data, *args, **kwargs)
 
 

@@ -1,4 +1,4 @@
-"""Module."""
+"""Loss module."""
 
 from typing import Any
 from .module import Module
@@ -6,7 +6,7 @@ from zero_torch.tensor import Tensor
 
 
 class _Loss(Module):
-    """Class."""
+    """Base class for all neural network loss functions."""
 
     def __init__(
         self,
@@ -16,16 +16,32 @@ class _Loss(Module):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the _Loss module.
+
+        Args:
+            size_average (Any, optional): Deprecated (see reduction). Defaults to None.
+            reduce (Any, optional): Deprecated (see reduction). Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        """Function."""
+        """Computes the loss.
+
+        Args:
+            input (Tensor): The input tensor.
+            target (Tensor): The target tensor.
+
+        Returns:
+            Tensor: The computed loss.
+        """
         pass
 
 
 class _WeightedLoss(_Loss):
-    """Class."""
+    """Base class for loss functions that use weights."""
 
     def __init__(
         self,
@@ -36,18 +52,27 @@ class _WeightedLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the _WeightedLoss module.
+
+        Args:
+            weight (Tensor, optional): A manual rescaling weight given to each class. Defaults to None.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class BCELoss(_WeightedLoss):
-    """Class."""
+    """Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities."""
 
     pass
 
 
 class BCEWithLogitsLoss(_Loss):
-    """Class."""
+    """This loss combines a Sigmoid layer and the BCELoss in one single class."""
 
     def __init__(
         self,
@@ -59,12 +84,22 @@ class BCEWithLogitsLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the BCEWithLogitsLoss module.
+
+        Args:
+            weight (Tensor, optional): A manual rescaling weight given to the loss of each batch element. Defaults to None.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            pos_weight (Tensor, optional): A weight of positive examples. Defaults to None.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class CTCLoss(_Loss):
-    """Class."""
+    """The Connectionist Temporal Classification loss."""
 
     def __init__(
         self,
@@ -74,12 +109,20 @@ class CTCLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the CTCLoss module.
+
+        Args:
+            blank (int, optional): Blank label. Defaults to 0.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            zero_infinity (bool, optional): Whether to zero infinite losses and the associated gradients. Defaults to False.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class CosineEmbeddingLoss(_Loss):
-    """Class."""
+    """Creates a criterion that measures the loss given input tensors and a target tensor with values 1 or -1."""
 
     def __init__(
         self,
@@ -90,15 +133,35 @@ class CosineEmbeddingLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the CosineEmbeddingLoss module.
+
+        Args:
+            margin (float, optional): Should be a number from -1 to 1, 0 to 0.5 is recommended. Defaults to 0.0.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class CrossEntropyLoss(_WeightedLoss):
-    """Class."""
+    """This criterion computes the cross entropy loss between input logits and target."""
 
-    def __call__(self, *args, **kwargs):
-        """Function."""
+    def __call__(self, *args, **kwargs) -> Tensor:
+        """Computes the loss.
+
+        Args:
+            *args: Positional arguments for forward pass.
+            **kwargs: Keyword arguments for forward pass.
+
+        Returns:
+            Tensor: The computed loss.
+
+        Raises:
+            UnimplementedMathError: If the math operations are not implemented.
+        """
         import ml_switcheroo.core.errors
 
         raise ml_switcheroo.core.errors.UnimplementedMathError
@@ -114,12 +177,23 @@ class CrossEntropyLoss(_WeightedLoss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the CrossEntropyLoss module.
+
+        Args:
+            weight (Tensor, optional): A manual rescaling weight given to each class. Defaults to None.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            ignore_index (int, optional): Specifies a target value that is ignored and does not contribute to the input gradient. Defaults to -100.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            label_smoothing (float, optional): A float in [0.0, 1.0]. Specifies the amount of smoothing. Defaults to 0.0.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class GaussianNLLLoss(_Loss):
-    """Class."""
+    """Gaussian negative log likelihood loss."""
 
     def __init__(
         self,
@@ -129,12 +203,20 @@ class GaussianNLLLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the GaussianNLLLoss module.
+
+        Args:
+            full (bool, optional): Include the constant term in the loss calculation. Defaults to False.
+            eps (float, optional): Value used to clamp the variance. Defaults to 1e-06.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class HingeEmbeddingLoss(_Loss):
-    """Class."""
+    """Measures the loss given an input tensor and a labels tensor."""
 
     def __init__(
         self,
@@ -145,22 +227,38 @@ class HingeEmbeddingLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the HingeEmbeddingLoss module.
+
+        Args:
+            margin (float, optional): Has a default value of 1. Defaults to 1.0.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class HuberLoss(_Loss):
-    """Class."""
+    """Creates a criterion that uses a squared term if the absolute element-wise error falls below delta and a delta-scaled L1 term otherwise."""
 
     def __init__(
         self, reduction: str = "mean", delta: float = 1.0, *args: Any, **kwargs: Any
     ) -> None:
-        """Function."""
+        """Initializes the HuberLoss module.
+
+        Args:
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            delta (float, optional): Specifies the threshold at which to change between L1 and L2 loss. Defaults to 1.0.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class KLDivLoss(_Loss):
-    """Class."""
+    """The Kullback-Leibler divergence loss measure."""
 
     def __init__(
         self,
@@ -171,30 +269,45 @@ class KLDivLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the KLDivLoss module.
+
+        Args:
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            log_target (bool, optional): Specifies whether target is passed in the log space. Defaults to False.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class L1Loss(_Loss):
-    """Class."""
+    """Creates a criterion that measures the mean absolute error (MAE) between each element in the input x and target y."""
 
     pass
 
 
 class MSELoss(_Loss):
-    """Class."""
+    """Creates a criterion that measures the mean squared error (squared L2 norm) between each element in the input x and target y."""
 
-    def __call__(self, *args, **kwargs):
-        """Function."""
+    def __call__(self, *args, **kwargs) -> Tensor:
+        """Computes the MSE loss.
+
+        Args:
+            *args: Positional arguments for forward pass.
+            **kwargs: Keyword arguments for forward pass.
+
+        Returns:
+            Tensor: The computed MSE loss (currently mocked to 0.0).
+        """
         from zero_torch.tensor import Tensor
 
         return Tensor(0.0)
 
-    pass
-
 
 class MarginRankingLoss(_Loss):
-    """Class."""
+    """Creates a criterion that measures the loss given inputs x1, x2, two 1D mini-batch Tensors, and a label 1D mini-batch tensor y."""
 
     def __init__(
         self,
@@ -205,24 +318,33 @@ class MarginRankingLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the MarginRankingLoss module.
+
+        Args:
+            margin (float, optional): Has a default value of 0. Defaults to 0.0.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class MultiLabelMarginLoss(_Loss):
-    """Class."""
+    """Creates a criterion that optimizes a multi-class multi-classification hinge loss (margin-based loss)."""
 
     pass
 
 
 class MultiLabelSoftMarginLoss(_WeightedLoss):
-    """Class."""
+    """Creates a criterion that optimizes a multi-label one-versus-all loss based on max-entropy."""
 
     pass
 
 
 class MultiMarginLoss(_WeightedLoss):
-    """Class."""
+    """Creates a criterion that optimizes a multi-class classification hinge loss (margin-based loss)."""
 
     def __init__(
         self,
@@ -235,12 +357,23 @@ class MultiMarginLoss(_WeightedLoss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the MultiMarginLoss module.
+
+        Args:
+            p (int, optional): Has a default value of 1. 1 and 2 are the only supported values. Defaults to 1.
+            margin (float, optional): Has a default value of 1. Defaults to 1.0.
+            weight (Tensor, optional): A manual rescaling weight given to each class. Defaults to None.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class NLLLoss(_WeightedLoss):
-    """Class."""
+    """The negative log likelihood loss."""
 
     def __init__(
         self,
@@ -252,18 +385,28 @@ class NLLLoss(_WeightedLoss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the NLLLoss module.
+
+        Args:
+            weight (Tensor, optional): A manual rescaling weight given to each class. Defaults to None.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            ignore_index (int, optional): Specifies a target value that is ignored and does not contribute to the input gradient. Defaults to -100.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class NLLLoss2d(NLLLoss):
-    """Class."""
+    """The negative log likelihood loss for 2D images."""
 
     pass
 
 
 class PoissonNLLLoss(_Loss):
-    """Class."""
+    """Negative log likelihood loss with Poisson distribution of target."""
 
     def __init__(
         self,
@@ -276,12 +419,23 @@ class PoissonNLLLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the PoissonNLLLoss module.
+
+        Args:
+            log_input (bool, optional): if True the loss is computed as exp(input) - target * input. Defaults to True.
+            full (bool, optional): whether to compute full loss. Defaults to False.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            eps (float, optional): Small value to avoid evaluation of log(0). Defaults to 1e-08.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class SmoothL1Loss(_Loss):
-    """Class."""
+    """Creates a criterion that uses a squared term if the absolute element-wise error falls below beta and an L1 term otherwise."""
 
     def __init__(
         self,
@@ -292,18 +446,27 @@ class SmoothL1Loss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the SmoothL1Loss module.
+
+        Args:
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            beta (float, optional): Specifies the threshold at which to change between L1 and L2 loss. Defaults to 1.0.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class SoftMarginLoss(_Loss):
-    """Class."""
+    """Creates a criterion that optimizes a two-class classification logistic loss."""
 
     pass
 
 
 class TripletMarginLoss(_Loss):
-    """Class."""
+    """Creates a criterion that measures the triplet loss given an input tensors x1, x2, x3."""
 
     def __init__(
         self,
@@ -317,12 +480,24 @@ class TripletMarginLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the TripletMarginLoss module.
+
+        Args:
+            margin (float, optional): Default value is 1. Defaults to 1.0.
+            p (float, optional): The norm degree for pairwise distance. Defaults to 2.0.
+            eps (float, optional): Small value to avoid numerical issues. Defaults to 1e-06.
+            swap (bool, optional): The distance swap is described in detail in the paper Learning shallow convolutional feature descriptors with triplet losses. Defaults to False.
+            size_average (Any, optional): Deprecated. Defaults to None.
+            reduce (Any, optional): Deprecated. Defaults to None.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class TripletMarginWithDistanceLoss(_Loss):
-    """Class."""
+    """Creates a criterion that measures the triplet loss given input tensors and a custom distance function."""
 
     def __init__(
         self,
@@ -333,11 +508,20 @@ class TripletMarginWithDistanceLoss(_Loss):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Function."""
+        """Initializes the TripletMarginWithDistanceLoss module.
+
+        Args:
+            distance_function (Any, optional): A nonnegative, real-valued function that quantifies the closeness of two tensors. Defaults to None.
+            margin (float, optional): Default value is 1. Defaults to 1.0.
+            swap (bool, optional): Distance swap as described in Learning shallow convolutional feature descriptors. Defaults to False.
+            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         pass
 
 
 class AdaptiveLogSoftmaxWithLoss:
-    """Class."""
+    """Efficient softmax approximation for predicting classes with a large number of possible classes."""
 
     pass

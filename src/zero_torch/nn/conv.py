@@ -6,48 +6,48 @@ from .module import Module
 
 
 class Conv1d:
-    """Class."""
+    """Applies a Conv1d over an input signal."""
 
     pass
 
 
 class Conv2d(Module):
-    """Class."""
+    """Applies a Conv2d over an input signal."""
 
     pass
 
 
 class Conv3d:
-    """Class."""
+    """Applies a Conv3d over an input signal."""
 
     pass
 
 
 class ConvTranspose1d:
-    """Class."""
+    """Applies a ConvTranspose1d over an input signal."""
 
     pass
 
 
 class ConvTranspose2d:
-    """Class."""
+    """Applies a ConvTranspose2d over an input signal."""
 
     pass
 
 
 class ConvTranspose3d:
-    """Class."""
+    """Applies a ConvTranspose3d over an input signal."""
 
     pass
 
 
 class Unfold:
-    """Class."""
+    """Implementation of the Unfold module."""
 
     pass
 
 
 class Fold:
-    """Class."""
+    """Implementation of the Fold module."""
 
     pass

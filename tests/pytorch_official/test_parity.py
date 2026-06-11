@@ -4,6 +4,15 @@ import numpy as np
 
 
 def assert_parity(name, args, kwargs, real_out):
+    """Tests for assert_parity.
+
+    Args:
+        *args: arguments
+        **kwargs: keyword arguments
+
+    Returns:
+        Any: returns
+    """
     if not hasattr(zero_torch, name):
         return
 

@@ -7,6 +7,15 @@ import zero_torch
 
 
 def get_dummy_args(sig):
+    """Tests for get_dummy_args.
+
+    Args:
+        *args: arguments
+        **kwargs: keyword arguments
+
+    Returns:
+        Any: returns
+    """
     args = []
     kwargs = {}
     for name, param in sig.parameters.items():
@@ -22,7 +31,26 @@ def get_dummy_args(sig):
 
 
 def test_all_modules_and_functions():
+    """Tests for test_all_modules_and_functions.
+
+    Args:
+        *args: arguments
+        **kwargs: keyword arguments
+
+    Returns:
+        Any: returns
+    """
+
     def import_submodules(package, recursive=True):
+        """Tests for import_submodules.
+
+        Args:
+            *args: arguments
+            **kwargs: keyword arguments
+
+        Returns:
+            Any: returns
+        """
         if isinstance(package, str):
             package = importlib.import_module(package)
         results = {}

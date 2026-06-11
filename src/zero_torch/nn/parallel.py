@@ -5,7 +5,11 @@ from .module import Module
 
 
 class DataParallel(Module):
-    """Implements data parallelism at the module level."""
+    """Implements data parallelism at the module level.
+
+    This container parallelizes the application of the given module by
+    splitting the input across the specified devices.
+    """
 
     def __init__(
         self,
@@ -16,9 +20,26 @@ class DataParallel(Module):
         *args: Any,
         **kwargs: Any,
     ):
-        """Initialize."""
+        """Initialize the DataParallel module.
+
+        Args:
+            module (Any): The module to be parallelized.
+            device_ids (Any, optional): CUDA devices to place the replicas on. Defaults to None.
+            output_device (Any, optional): Device location of output. Defaults to None.
+            dim (int, optional): Tensors are scattered along this dimension. Defaults to 0.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         pass
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        """Forward pass."""
+        """Forward pass parallelized across multiple devices.
+
+        Args:
+            *inputs (Any): The inputs to the module.
+            **kwargs (Any): Keyword arguments to the module.
+
+        Returns:
+            Any: The combined output of the module replicas.
+        """
         pass

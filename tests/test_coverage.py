@@ -2,6 +2,7 @@ import zero_torch
 
 
 def test_coverage_init():
+    """Tests for test_coverage_init."""
     import unittest.mock as mock
     import ml_switcheroo.ops as _ops
     import zero_torch as zt
@@ -23,6 +24,7 @@ def test_coverage_init():
 
 
 def test_coverage_other():
+    """Tests for test_coverage_other."""
     t = zero_torch.Tensor([1.0])
     # Hit missing lines in autograd, nn, optim, data
     from zero_torch.autograd.grad_mode import set_grad_enabled, is_grad_enabled
@@ -155,6 +157,7 @@ def test_coverage_other():
 
 
 def test_functional_and_tensor():
+    """Tests for test_functional_and_tensor."""
     import zero_torch.nn.functional as F
     import ml_switcheroo.nn as _nn
     import unittest.mock as mock
@@ -362,6 +365,7 @@ def test_functional_and_tensor():
 
 
 def test_parameter_tracing():
+    """Tests for test_parameter_tracing."""
     import zero_torch.nn as nn
     from ml_switcheroo.tracing import _tracer
     import zero_torch
@@ -381,6 +385,7 @@ def test_parameter_tracing():
 
 
 def test_parameter_no_tracing():
+    """Tests for test_parameter_no_tracing."""
     import zero_torch.nn as nn
     import zero_torch
 

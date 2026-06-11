@@ -6,6 +6,7 @@ import zero_torch as torch
 
 
 def test_zeros_empty_full():
+    """Tests for test_zeros_empty_full."""
     with ml_switcheroo.EagerMode():
         # zeros
         z = torch.zeros((2, 3))
@@ -23,6 +24,7 @@ def test_zeros_empty_full():
 
 
 def test_arange():
+    """Tests for test_arange."""
     with ml_switcheroo.EagerMode():
         a = torch.arange(5)
         assert a.shape == (5,)
@@ -34,6 +36,7 @@ def test_arange():
 
 
 def test_cat():
+    """Tests for test_cat."""
     with ml_switcheroo.EagerMode():
         t1 = torch.zeros((2, 3))
         t2 = torch.ones((2, 3))
@@ -48,6 +51,7 @@ def test_cat():
 
 
 def test_linspace():
+    """Tests for test_linspace."""
     with ml_switcheroo.EagerMode():
         lin = torch.linspace(0.0, 10.0, 5)
         assert lin.shape == (5,)
@@ -55,6 +59,7 @@ def test_linspace():
 
 
 def test_eye():
+    """Tests for test_eye."""
     with ml_switcheroo.EagerMode():
         e = torch.eye(3)
         assert e.shape == (3, 3)

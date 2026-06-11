@@ -8,9 +8,21 @@ class Identity(Module):
     """A placeholder identity operator that is argument-insensitive."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize the Identity module."""
+        """Initialize the Identity module.
+
+        Args:
+            *args: Variable length argument list. Ignored.
+            **kwargs: Arbitrary keyword arguments. Ignored.
+        """
         pass
 
     def forward(self, input: Any) -> Any:
-        """Forward pass."""
+        """Forward pass of the identity module.
+
+        Args:
+            input (Any): The input data.
+
+        Returns:
+            Any: The input data unmodified.
+        """
         pass

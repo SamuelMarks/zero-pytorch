@@ -4,6 +4,7 @@ from ml_switcheroo.tracing import _tracer
 
 
 def test_tensor_t():
+    """Tests for test_tensor_t."""
     t = Tensor(np.ones((2, 3)))
     t2 = t.T
     assert t2.shape == (3, 2)
@@ -13,6 +14,7 @@ def test_tensor_t():
 
 
 def test_tensor_t_traced():
+    """Tests for test_tensor_t_traced."""
     t = Tensor(np.ones((2, 3)))
     _tracer.start_tracing()
 

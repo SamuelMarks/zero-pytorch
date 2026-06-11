@@ -1,8 +1,6 @@
-"""Module."""
+"""Optimizers module."""
 
 import ml_switcheroo
-
-"Optimizers."
 from typing import Any, Iterable, Optional, Tuple, Union
 from zero_torch.tensor import Tensor
 
@@ -25,23 +23,39 @@ __all__ = [
 
 
 class Optimizer:
-    """Class."""
+    """Base class for all optimizers."""
 
     def __init__(self, params: Any, defaults: dict = None) -> None:
-        """Function."""
+        """Initializes the Optimizer.
+
+        Args:
+            params (Any): An iterable of parameters to optimize or dicts defining parameter groups.
+            defaults (dict, optional): A dict containing default values of optimization options. Defaults to None.
+        """
         self.params = list(params)
 
     def step(self, closure: Optional[Any] = None) -> Optional[Any]:
-        """Function."""
+        """Performs a single optimization step.
+
+        Args:
+            closure (Optional[Any], optional): A closure that reevaluates the model and returns the loss. Defaults to None.
+
+        Returns:
+            Optional[Any]: The loss if closure is provided, else None.
+        """
         pass
 
     def zero_grad(self, set_to_none: bool = False) -> None:
-        """Function."""
+        """Sets the gradients of all optimized parameters to zero.
+
+        Args:
+            set_to_none (bool, optional): Instead of setting to zero, set the grads to None. Defaults to False.
+        """
         pass
 
 
 class ASGD(Optimizer):
-    """Class."""
+    """Implements Averaged Stochastic Gradient Descent."""
 
     def __init__(
         self,
@@ -56,12 +70,25 @@ class ASGD(Optimizer):
         differentiable: bool = False,
         capturable: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes ASGD optimizer.
+
+        Args:
+            params (Any): Iterable of parameters to optimize.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.01.
+            lambd (float, optional): Decay term. Defaults to 0.0001.
+            alpha (float, optional): Power for eta update. Defaults to 0.75.
+            t0 (float, optional): Point at which to start averaging. Defaults to 1000000.0.
+            weight_decay (float, optional): Weight decay (L2 penalty). Defaults to 0.
+            foreach (Optional[bool], optional): Whether foreach implementation of optimizer is used. Defaults to None.
+            maximize (bool, optional): Maximize the params based on the objective. Defaults to False.
+            differentiable (bool, optional): Whether autograd should track the optimizer step. Defaults to False.
+            capturable (bool, optional): Whether this instance is safe to capture in a CUDA graph. Defaults to False.
+        """
         pass
 
 
 class Adadelta(Optimizer):
-    """Class."""
+    """Implements Adadelta algorithm."""
 
     def __init__(
         self,
@@ -75,12 +102,24 @@ class Adadelta(Optimizer):
         maximize: bool = False,
         differentiable: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes Adadelta optimizer.
+
+        Args:
+            params (Any): Iterable of parameters to optimize.
+            lr (Union[float, Tensor], optional): Coefficient that scales delta before it is applied. Defaults to 1.0.
+            rho (float, optional): Interpolation parameter. Defaults to 0.9.
+            eps (float, optional): Term added to the denominator to improve numerical stability. Defaults to 1e-06.
+            weight_decay (float, optional): Weight decay. Defaults to 0.
+            foreach (Optional[bool], optional): Whether foreach implementation is used. Defaults to None.
+            capturable (bool, optional): Safe to capture in CUDA graph. Defaults to False.
+            maximize (bool, optional): Maximize the params. Defaults to False.
+            differentiable (bool, optional): Track optimizer step in autograd. Defaults to False.
+        """
         pass
 
 
 class Adafactor(Optimizer):
-    """Class."""
+    """Implements Adafactor algorithm."""
 
     def __init__(
         self,
@@ -93,12 +132,23 @@ class Adafactor(Optimizer):
         foreach: Optional[bool] = None,
         maximize: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes Adafactor optimizer.
+
+        Args:
+            params (Any): Iterable of parameters to optimize.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.01.
+            beta2_decay (float, optional): Beta2 decay term. Defaults to -0.8.
+            eps (Tuple[Optional[float], float], optional): Epsilon values for numerical stability. Defaults to (None, 0.001).
+            d (float, optional): Scaling factor. Defaults to 1.0.
+            weight_decay (float, optional): Weight decay. Defaults to 0.0.
+            foreach (Optional[bool], optional): Use foreach implementation. Defaults to None.
+            maximize (bool, optional): Maximize the objective. Defaults to False.
+        """
         pass
 
 
 class Adagrad(Optimizer):
-    """Class."""
+    """Implements Adagrad algorithm."""
 
     def __init__(
         self,
@@ -113,12 +163,25 @@ class Adagrad(Optimizer):
         differentiable: bool = False,
         fused: Optional[bool] = None,
     ) -> None:
-        """Function."""
+        """Initializes Adagrad optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.01.
+            lr_decay (float, optional): Learning rate decay. Defaults to 0.
+            weight_decay (float, optional): Weight decay. Defaults to 0.
+            initial_accumulator_value (float, optional): Initial value for accumulator. Defaults to 0.
+            eps (float, optional): Epsilon term. Defaults to 1e-10.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+            fused (Optional[bool], optional): Fused implementation. Defaults to None.
+        """
         pass
 
 
 class Adam(Optimizer):
-    """Class."""
+    """Implements Adam algorithm."""
 
     def __init__(
         self,
@@ -135,12 +198,27 @@ class Adam(Optimizer):
         fused: Optional[bool] = None,
         decoupled_weight_decay: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes Adam optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.001.
+            betas (Tuple[Union[float, Tensor], Union[float, Tensor]], optional): Coefficients used for computing running averages. Defaults to (0.9, 0.999).
+            eps (float, optional): Term for numerical stability. Defaults to 1e-08.
+            weight_decay (float, optional): Weight decay. Defaults to 0.
+            amsgrad (bool, optional): Use AMSGrad variant. Defaults to False.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            capturable (bool, optional): Safe to capture in CUDA graph. Defaults to False.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+            fused (Optional[bool], optional): Fused implementation. Defaults to None.
+            decoupled_weight_decay (bool, optional): Decoupled weight decay. Defaults to False.
+        """
         pass
 
 
 class AdamW(Optimizer):
-    """Class."""
+    """Implements AdamW algorithm."""
 
     def __init__(
         self,
@@ -156,12 +234,26 @@ class AdamW(Optimizer):
         differentiable: bool = False,
         fused: Optional[bool] = None,
     ) -> None:
-        """Function."""
+        """Initializes AdamW optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.001.
+            betas (Tuple[Union[float, Tensor], Union[float, Tensor]], optional): Coefficients for running averages. Defaults to (0.9, 0.999).
+            eps (float, optional): Term for numerical stability. Defaults to 1e-08.
+            weight_decay (float, optional): Weight decay coefficient. Defaults to 0.01.
+            amsgrad (bool, optional): Use AMSGrad variant. Defaults to False.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            capturable (bool, optional): Safe to capture in CUDA graph. Defaults to False.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+            fused (Optional[bool], optional): Fused implementation. Defaults to None.
+        """
         pass
 
 
 class Adamax(Optimizer):
-    """Class."""
+    """Implements Adamax algorithm (a variant of Adam based on infinity norm)."""
 
     def __init__(
         self,
@@ -175,12 +267,24 @@ class Adamax(Optimizer):
         differentiable: bool = False,
         capturable: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes Adamax optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.002.
+            betas (Tuple[float, float], optional): Coefficients used for computing running averages. Defaults to (0.9, 0.999).
+            eps (float, optional): Term for numerical stability. Defaults to 1e-08.
+            weight_decay (float, optional): Weight decay. Defaults to 0.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+            capturable (bool, optional): Safe to capture in CUDA graph. Defaults to False.
+        """
         pass
 
 
 class LBFGS(Optimizer):
-    """Class."""
+    """Implements L-BFGS algorithm."""
 
     def __init__(
         self,
@@ -193,12 +297,23 @@ class LBFGS(Optimizer):
         history_size: Optional[int] = 100,
         line_search_fn: Optional[str] = None,
     ) -> None:
-        """Function."""
+        """Initializes L-BFGS optimizer.
+
+        Args:
+            params (Iterable): Iterable of parameters to optimize.
+            lr (Optional[float], optional): Learning rate. Defaults to 1.
+            max_iter (Optional[int], optional): Maximal number of iterations per optimization step. Defaults to 20.
+            max_eval (Optional[int], optional): Maximal number of function evaluations per step. Defaults to None.
+            tolerance_grad (Optional[float], optional): Termination tolerance on first order optimality. Defaults to 1e-07.
+            tolerance_change (Optional[float], optional): Termination tolerance on function value/parameter changes. Defaults to 1e-09.
+            history_size (Optional[int], optional): Update history size. Defaults to 100.
+            line_search_fn (Optional[str], optional): Either 'strong_wolfe' or None. Defaults to None.
+        """
         pass
 
 
 class NAdam(Optimizer):
-    """Class."""
+    """Implements NAdam algorithm."""
 
     def __init__(
         self,
@@ -214,12 +329,26 @@ class NAdam(Optimizer):
         capturable: bool = False,
         differentiable: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes NAdam optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.002.
+            betas (Tuple[float, float], optional): Coefficients used for computing running averages. Defaults to (0.9, 0.999).
+            eps (float, optional): Epsilon term. Defaults to 1e-08.
+            weight_decay (float, optional): Weight decay. Defaults to 0.
+            momentum_decay (float, optional): Momentum decay. Defaults to 0.004.
+            decoupled_weight_decay (bool, optional): Decoupled weight decay. Defaults to False.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            capturable (bool, optional): Capturable in CUDA graphs. Defaults to False.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+        """
         pass
 
 
 class RAdam(Optimizer):
-    """Class."""
+    """Implements RAdam algorithm."""
 
     def __init__(
         self,
@@ -234,12 +363,25 @@ class RAdam(Optimizer):
         capturable: bool = False,
         differentiable: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes RAdam optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.001.
+            betas (Tuple[float, float], optional): Coefficients used for computing running averages. Defaults to (0.9, 0.999).
+            eps (float, optional): Epsilon term. Defaults to 1e-08.
+            weight_decay (float, optional): Weight decay. Defaults to 0.
+            decoupled_weight_decay (bool, optional): Decoupled weight decay. Defaults to False.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            capturable (bool, optional): Capturable in CUDA graphs. Defaults to False.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+        """
         pass
 
 
 class RMSprop(Optimizer):
-    """Class."""
+    """Implements RMSprop algorithm."""
 
     def __init__(
         self,
@@ -255,12 +397,26 @@ class RMSprop(Optimizer):
         maximize: bool = False,
         differentiable: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes RMSprop optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.01.
+            alpha (float, optional): Smoothing constant. Defaults to 0.99.
+            eps (float, optional): Epsilon term. Defaults to 1e-08.
+            weight_decay (float, optional): Weight decay. Defaults to 0.
+            momentum (float, optional): Momentum factor. Defaults to 0.
+            centered (bool, optional): Compute centered RMSprop. Defaults to False.
+            capturable (bool, optional): Capturable in CUDA graphs. Defaults to False.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+        """
         pass
 
 
 class Rprop(Optimizer):
-    """Class."""
+    """Implements the resilient backpropagation algorithm."""
 
     def __init__(
         self,
@@ -273,12 +429,23 @@ class Rprop(Optimizer):
         maximize: bool = False,
         differentiable: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes Rprop optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.01.
+            etas (Tuple[float, float], optional): Pair of (etaminus, etaplus). Defaults to (0.5, 1.2).
+            step_sizes (Tuple[float, float], optional): Pair of minimal and maximal allowed step sizes. Defaults to (1e-06, 50).
+            capturable (bool, optional): Capturable in CUDA graphs. Defaults to False.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+        """
         pass
 
 
 class SGD(Optimizer):
-    """Class."""
+    """Implements stochastic gradient descent (optionally with momentum)."""
 
     def __init__(
         self,
@@ -293,12 +460,32 @@ class SGD(Optimizer):
         differentiable: bool = False,
         fused: Optional[bool] = None,
     ) -> None:
-        """Function."""
+        """Initializes SGD optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.001.
+            momentum (float, optional): Momentum factor. Defaults to 0.
+            dampening (float, optional): Dampening for momentum. Defaults to 0.
+            weight_decay (Union[float, Tensor], optional): Weight decay (L2 penalty). Defaults to 0.
+            nesterov (bool, optional): Enables Nesterov momentum. Defaults to False.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+            foreach (Optional[bool], optional): Use foreach. Defaults to None.
+            differentiable (bool, optional): Differentiable step. Defaults to False.
+            fused (Optional[bool], optional): Fused implementation. Defaults to None.
+        """
         super().__init__(params)
         self.lr = lr
 
-    def step(self, closure=None):
-        """Function."""
+    def step(self, closure=None) -> Optional[Any]:
+        """Performs a single optimization step.
+
+        Args:
+            closure (callable, optional): A closure that reevaluates the model and returns the loss. Defaults to None.
+
+        Returns:
+            Optional[Any]: The loss if closure is provided, otherwise None.
+        """
         for p in self.params:
             if hasattr(p, "grad") and p.grad is not None:
                 # eager update
@@ -307,7 +494,7 @@ class SGD(Optimizer):
 
 
 class SparseAdam(Optimizer):
-    """Class."""
+    """Implements lazy version of Adam algorithm suitable for sparse tensors."""
 
     def __init__(
         self,
@@ -317,5 +504,13 @@ class SparseAdam(Optimizer):
         eps: float = 1e-08,
         maximize: bool = False,
     ) -> None:
-        """Function."""
+        """Initializes SparseAdam optimizer.
+
+        Args:
+            params (Any): Iterable of parameters.
+            lr (Union[float, Tensor], optional): Learning rate. Defaults to 0.001.
+            betas (Tuple[float, float], optional): Coefficients used for computing running averages. Defaults to (0.9, 0.999).
+            eps (float, optional): Term for numerical stability. Defaults to 1e-08.
+            maximize (bool, optional): Maximize objective. Defaults to False.
+        """
         pass

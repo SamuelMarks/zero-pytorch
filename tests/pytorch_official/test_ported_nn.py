@@ -6,13 +6,35 @@ import zero_torch.nn.functional as F
 
 
 def test_module_lifecycle():
+    """Tests for test_module_lifecycle.
+
+    Args:
+        *args: arguments
+        **kwargs: keyword arguments
+
+    Returns:
+        Any: returns
+    """
+
     class MyModule(nn.Module):
+        """Tests for MyModule."""
+
         def __init__(self):
+            """Tests for __init__."""
             super().__init__()
             self.linear = nn.Linear(3, 4)
             self.register_buffer("running_mean", torch.zeros(4))
 
         def forward(self, x):
+            """Tests for forward.
+
+            Args:
+                *args: arguments
+                **kwargs: keyword arguments
+
+            Returns:
+                Any: returns
+            """
             return self.linear(x) + self.running_mean
 
     with ml_switcheroo.EagerMode():
@@ -41,6 +63,7 @@ def test_module_lifecycle():
 
 
 def test_functional_linear():
+    """Tests for test_functional_linear."""
     with ml_switcheroo.EagerMode():
         x = torch.ones((2, 3))
         w = torch.ones((4, 3)) * 2.0
@@ -52,6 +75,7 @@ def test_functional_linear():
 
 
 def test_conv2d():
+    """Tests for test_conv2d."""
     with ml_switcheroo.EagerMode():
         # (N, C, H, W)
         x = torch.ones((2, 3, 5, 5))
@@ -69,6 +93,7 @@ def test_conv2d():
 
 
 def test_batchnorm2d():
+    """Tests for test_batchnorm2d."""
     with ml_switcheroo.EagerMode():
         x = torch.ones((2, 3, 5, 5))
         bn = nn.BatchNorm2d(3)
@@ -81,6 +106,7 @@ def test_batchnorm2d():
 
 
 def test_losses():
+    """Tests for test_losses."""
     with ml_switcheroo.EagerMode():
         pred = torch.tensor([[0.5, -0.5], [1.0, 2.0]])
         target = torch.tensor([0, 1])

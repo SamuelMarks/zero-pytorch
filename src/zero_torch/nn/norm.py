@@ -6,72 +6,72 @@ from .module import Module
 
 
 class BatchNorm1d:
-    """Class."""
+    """Applies BatchNorm1d over a mini-batch of inputs."""
 
     pass
 
 
 class BatchNorm2d(Module):
-    """Class."""
+    """Applies BatchNorm2d over a mini-batch of inputs."""
 
     pass
 
 
 class BatchNorm3d:
-    """Class."""
+    """Applies BatchNorm3d over a mini-batch of inputs."""
 
     pass
 
 
 class SyncBatchNorm:
-    """Class."""
+    """Applies SyncBatchNorm over a mini-batch of inputs."""
 
     pass
 
 
 class CrossMapLRN2d:
-    """Class."""
+    """Implementation of the CrossMapLRN2d module."""
 
     pass
 
 
 class GroupNorm:
-    """Class."""
+    """Applies GroupNorm over a mini-batch of inputs."""
 
     pass
 
 
 class InstanceNorm1d:
-    """Class."""
+    """Applies InstanceNorm1d over a mini-batch of inputs."""
 
     pass
 
 
 class InstanceNorm2d:
-    """Class."""
+    """Applies InstanceNorm2d over a mini-batch of inputs."""
 
     pass
 
 
 class InstanceNorm3d:
-    """Class."""
+    """Applies InstanceNorm3d over a mini-batch of inputs."""
 
     pass
 
 
 class LayerNorm:
-    """Class."""
+    """Applies LayerNorm over a mini-batch of inputs."""
 
     pass
 
 
 class LocalResponseNorm:
-    """Class."""
+    """Applies LocalResponseNorm over a mini-batch of inputs."""
 
     pass
 
 
 class RMSNorm:
-    """Class."""
+    """Applies RMSNorm over a mini-batch of inputs."""
 
     pass

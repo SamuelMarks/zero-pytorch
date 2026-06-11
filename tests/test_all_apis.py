@@ -190,6 +190,15 @@ zero_torch_apis = [
 
 # A helper to generate safe inputs
 def get_inputs_for_api(api_name):
+    """Tests for get_inputs_for_api.
+
+    Args:
+        *args: arguments
+        **kwargs: keyword arguments
+
+    Returns:
+        Any: returns
+    """
     np.random.seed(42)
     # Most unary ops are safe with values strictly between 0 and 1
     t1_safe = np.random.uniform(0.1, 0.9, (2, 3)).astype(np.float32)
@@ -308,7 +317,26 @@ def get_inputs_for_api(api_name):
 
 
 def convert_inputs_to_framework(args, kwargs, framework):
+    """Tests for convert_inputs_to_framework.
+
+    Args:
+        *args: arguments
+        **kwargs: keyword arguments
+
+    Returns:
+        Any: returns
+    """
+
     def to_tensor(arg):
+        """Tests for to_tensor.
+
+        Args:
+            *args: arguments
+            **kwargs: keyword arguments
+
+        Returns:
+            Any: returns
+        """
         if framework.__name__ == "torch":
             return framework.tensor(arg)
         else:
@@ -337,6 +365,15 @@ def convert_inputs_to_framework(args, kwargs, framework):
 
 @pytest.mark.parametrize("api_name", zero_torch_apis)
 def test_api_parity(api_name):
+    """Tests for test_api_parity.
+
+    Args:
+        *args: arguments
+        **kwargs: keyword arguments
+
+    Returns:
+        Any: returns
+    """
     # Some internal / generic ops we don't map directly 1-to-1 in simple tests
     if api_name in [
         "binary",
@@ -407,6 +444,15 @@ def test_api_parity(api_name):
 
         # Compare outputs
         def _compare(t_val, z_val):
+            """Tests for _compare.
+
+            Args:
+                *args: arguments
+                **kwargs: keyword arguments
+
+            Returns:
+                Any: returns
+            """
             if isinstance(t_val, torch.Tensor):
                 assert isinstance(z_val, zero_torch.Tensor), (
                     f"Expected Tensor, got {type(z_val)}"
@@ -443,6 +489,7 @@ def test_api_parity(api_name):
 
 
 def test_api_equal():
+    """Tests for test_api_equal."""
     with ml_switcheroo.EagerMode():
         t1 = zero_torch.Tensor([1, 2])
         t2 = zero_torch.Tensor([1, 2])
@@ -454,6 +501,7 @@ def test_api_equal():
 
 
 def test_api_std():
+    """Tests for test_api_std."""
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([1.0, 2.0, 3.0])
         res = zero_torch.std(t)
@@ -461,6 +509,7 @@ def test_api_std():
 
 
 def test_api_split():
+    """Tests for test_api_split."""
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([1, 2, 3, 4])
         res = zero_torch.split(t, 2)
@@ -468,6 +517,7 @@ def test_api_split():
 
 
 def test_api_svd():
+    """Tests for test_api_svd."""
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([[1.0, 2.0], [3.0, 4.0]])
         res = zero_torch.svd(t)
@@ -475,6 +525,7 @@ def test_api_svd():
 
 
 def test_api_tensordot():
+    """Tests for test_api_tensordot."""
     with ml_switcheroo.EagerMode():
         t1 = zero_torch.Tensor([[1.0, 2.0], [3.0, 4.0]])
         t2 = zero_torch.Tensor([[1.0, 2.0], [3.0, 4.0]])
@@ -484,6 +535,7 @@ def test_api_tensordot():
 
 
 def test_api_einsum():
+    """Tests for test_api_einsum."""
     with ml_switcheroo.EagerMode():
         t1 = zero_torch.Tensor([[1.0, 2.0], [3.0, 4.0]])
         res = zero_torch.einsum("ii->i", t1)
@@ -491,6 +543,7 @@ def test_api_einsum():
 
 
 def test_api_complex_shape_ops():
+    """Tests for test_api_complex_shape_ops."""
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([1, 2, 3])
         assert zero_torch.expand(t, (2, 3)) is not None
@@ -504,6 +557,7 @@ def test_api_complex_shape_ops():
 
 
 def test_api_slice_ops():
+    """Tests for test_api_slice_ops."""
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([1, 2, 3, 4])
 
@@ -514,6 +568,7 @@ def test_api_slice_ops():
 
 
 def test_api_divmod():
+    """Tests for test_api_divmod."""
     with ml_switcheroo.EagerMode():
         t1 = zero_torch.Tensor([5, 6])
         t2 = zero_torch.Tensor([2, 2])
@@ -522,6 +577,7 @@ def test_api_divmod():
 
 
 def test_api_unimplemented_math():
+    """Tests for test_api_unimplemented_math."""
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([0.5])
         from ml_switcheroo.core.errors import UnimplementedMathError
@@ -537,6 +593,7 @@ def test_api_unimplemented_math():
 
 
 def test_api_internal_helpers():
+    """Tests for test_api_internal_helpers."""
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([1.0])
         # Calling them just to ensure they are callable (coverage)

@@ -219,948 +219,1900 @@ from .pooling import (
 
 
 class AdaptiveLogSoftmaxWithLoss:
-    """Stub."""
+    """Implementation of the AdaptiveLogSoftmaxWithLoss module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class BatchNorm1d:
-    """Stub."""
+    """Applies BatchNorm1d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class BatchNorm2d:
-    """Stub."""
+    """Applies BatchNorm2d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
     def __call__(self, *args, **kwargs):
-        """Function."""
+        """Executes the call operation.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            Any: The result of the __call__ operation.
+        """
         import ml_switcheroo.core.errors
 
         raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class BatchNorm3d:
-    """Stub."""
+    """Applies BatchNorm3d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Bilinear:
-    """Stub."""
+    """Implementation of the Bilinear module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class CELU:
-    """Stub."""
+    """Implementation of the CELU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ChannelShuffle:
-    """Stub."""
+    """Implementation of the ChannelShuffle module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class CircularPad1d:
-    """Stub."""
+    """Implementation of the CircularPad1d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class CircularPad2d:
-    """Stub."""
+    """Implementation of the CircularPad2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class CircularPad3d:
-    """Stub."""
+    """Implementation of the CircularPad3d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ConstantPad1d:
-    """Stub."""
+    """Implementation of the ConstantPad1d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ConstantPad2d:
-    """Stub."""
+    """Implementation of the ConstantPad2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ConstantPad3d:
-    """Stub."""
+    """Implementation of the ConstantPad3d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Container:
-    """Stub."""
+    """Implementation of the Container module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Conv1d:
-    """Stub."""
+    """Applies a Conv1d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Conv2d:
-    """Stub."""
+    """Applies a Conv2d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
     def __call__(self, *args, **kwargs):
-        """Function."""
+        """Executes the call operation.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            Any: The result of the __call__ operation.
+        """
         import ml_switcheroo.core.errors
 
         raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class Conv3d:
-    """Stub."""
+    """Applies a Conv3d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ConvTranspose1d:
-    """Stub."""
+    """Applies a ConvTranspose1d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ConvTranspose2d:
-    """Stub."""
+    """Applies a ConvTranspose2d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ConvTranspose3d:
-    """Stub."""
+    """Applies a ConvTranspose3d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class CosineSimilarity:
-    """Stub."""
+    """Implementation of the CosineSimilarity module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class CrossMapLRN2d:
-    """Stub."""
+    """Implementation of the CrossMapLRN2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ELU:
-    """Stub."""
+    """Implementation of the ELU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Embedding:
-    """Stub."""
+    """Implementation of the Embedding module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class EmbeddingBag:
-    """Stub."""
+    """Implementation of the EmbeddingBag module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Flatten:
-    """Stub."""
+    """Implementation of the Flatten module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Fold:
-    """Stub."""
+    """Implementation of the Fold module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class FractionalMaxPool2d:
-    """Stub."""
+    """Applies FractionalMaxPool2d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class FractionalMaxPool3d:
-    """Stub."""
+    """Applies FractionalMaxPool3d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class GELU:
-    """Stub."""
+    """Implementation of the GELU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class GLU:
-    """Stub."""
+    """Implementation of the GLU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class GRU:
-    """Stub."""
+    """Implementation of the GRU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class GRUCell:
-    """Stub."""
+    """Implementation of the GRUCell module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class GroupNorm:
-    """Stub."""
+    """Applies GroupNorm over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Hardshrink:
-    """Stub."""
+    """Implementation of the Hardshrink module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Hardsigmoid:
-    """Stub."""
+    """Implementation of the Hardsigmoid module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Hardswish:
-    """Stub."""
+    """Implementation of the Hardswish module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Hardtanh:
-    """Stub."""
+    """Implementation of the Hardtanh module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class InstanceNorm1d:
-    """Stub."""
+    """Applies InstanceNorm1d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class InstanceNorm2d:
-    """Stub."""
+    """Applies InstanceNorm2d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class InstanceNorm3d:
-    """Stub."""
+    """Applies InstanceNorm3d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LPPool1d:
-    """Stub."""
+    """Applies LPPool1d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LPPool2d:
-    """Stub."""
+    """Applies LPPool2d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LPPool3d:
-    """Stub."""
+    """Applies LPPool3d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LSTM:
-    """Stub."""
+    """Implementation of the LSTM module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LSTMCell:
-    """Stub."""
+    """Implementation of the LSTMCell module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LayerNorm:
-    """Stub."""
+    """Applies LayerNorm over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyBatchNorm1d:
-    """Stub."""
+    """Applies LazyBatchNorm1d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyBatchNorm2d:
-    """Stub."""
+    """Applies LazyBatchNorm2d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyBatchNorm3d:
-    """Stub."""
+    """Applies LazyBatchNorm3d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyConv1d:
-    """Stub."""
+    """Applies a LazyConv1d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyConv2d:
-    """Stub."""
+    """Applies a LazyConv2d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyConv3d:
-    """Stub."""
+    """Applies a LazyConv3d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyConvTranspose1d:
-    """Stub."""
+    """Applies a LazyConvTranspose1d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyConvTranspose2d:
-    """Stub."""
+    """Applies a LazyConvTranspose2d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyConvTranspose3d:
-    """Stub."""
+    """Applies a LazyConvTranspose3d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyInstanceNorm1d:
-    """Stub."""
+    """Applies LazyInstanceNorm1d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyInstanceNorm2d:
-    """Stub."""
+    """Applies LazyInstanceNorm2d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyInstanceNorm3d:
-    """Stub."""
+    """Applies LazyInstanceNorm3d over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LazyLinear:
-    """Stub."""
+    """Implementation of the LazyLinear module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LeakyReLU:
-    """Stub."""
+    """Implementation of the LeakyReLU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LocalResponseNorm:
-    """Stub."""
+    """Applies LocalResponseNorm over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LogSigmoid:
-    """Stub."""
+    """Implementation of the LogSigmoid module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class LogSoftmax:
-    """Stub."""
+    """Implementation of the LogSoftmax module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class MaxPool1d:
-    """Stub."""
+    """Applies MaxPool1d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class MaxPool2d:
-    """Stub."""
+    """Applies MaxPool2d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class MaxPool3d:
-    """Stub."""
+    """Applies MaxPool3d over an input signal."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class MaxUnpool1d:
-    """Stub."""
+    """Implementation of the MaxUnpool1d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class MaxUnpool2d:
-    """Stub."""
+    """Implementation of the MaxUnpool2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class MaxUnpool3d:
-    """Stub."""
+    """Implementation of the MaxUnpool3d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Mish:
-    """Stub."""
+    """Implementation of the Mish module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ModuleDict:
-    """Stub."""
+    """Implementation of the ModuleDict module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class MultiheadAttention:
-    """Stub."""
+    """Implementation of the MultiheadAttention module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class PReLU:
-    """Stub."""
+    """Implementation of the PReLU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class PairwiseDistance:
-    """Stub."""
+    """Implementation of the PairwiseDistance module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ParameterDict:
-    """Stub."""
+    """Implementation of the ParameterDict module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class PixelShuffle:
-    """Stub."""
+    """Implementation of the PixelShuffle module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class PixelUnshuffle:
-    """Stub."""
+    """Implementation of the PixelUnshuffle module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class RMSNorm:
-    """Stub."""
+    """Applies RMSNorm over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class RNN:
-    """Stub."""
+    """Implementation of the RNN module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class RNNBase:
-    """Stub."""
+    """Implementation of the RNNBase module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class RNNCell:
-    """Stub."""
+    """Implementation of the RNNCell module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class RNNCellBase:
-    """Stub."""
+    """Implementation of the RNNCellBase module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class RReLU:
-    """Stub."""
+    """Implementation of the RReLU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ReLU6:
-    """Stub."""
+    """Implementation of the ReLU6 module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ReflectionPad1d:
-    """Stub."""
+    """Implementation of the ReflectionPad1d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ReflectionPad2d:
-    """Stub."""
+    """Implementation of the ReflectionPad2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ReflectionPad3d:
-    """Stub."""
+    """Implementation of the ReflectionPad3d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ReplicationPad1d:
-    """Stub."""
+    """Implementation of the ReplicationPad1d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ReplicationPad2d:
-    """Stub."""
+    """Implementation of the ReplicationPad2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ReplicationPad3d:
-    """Stub."""
+    """Implementation of the ReplicationPad3d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class SELU:
-    """Stub."""
+    """Implementation of the SELU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class SiLU:
-    """Stub."""
+    """Implementation of the SiLU module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Sigmoid:
-    """Stub."""
+    """Implementation of the Sigmoid module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Softmax:
-    """Stub."""
+    """Implementation of the Softmax module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Softmax2d:
-    """Stub."""
+    """Implementation of the Softmax2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Softmin:
-    """Stub."""
+    """Implementation of the Softmin module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Softplus:
-    """Stub."""
+    """Implementation of the Softplus module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Softshrink:
-    """Stub."""
+    """Implementation of the Softshrink module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Softsign:
-    """Stub."""
+    """Implementation of the Softsign module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class SyncBatchNorm:
-    """Stub."""
+    """Applies SyncBatchNorm over a mini-batch of inputs."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Tanh:
-    """Stub."""
+    """Implementation of the Tanh module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Tanhshrink:
-    """Stub."""
+    """Implementation of the Tanhshrink module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Threshold:
-    """Stub."""
+    """Implementation of the Threshold module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Transformer:
-    """Stub."""
+    """Implementation of the Transformer module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class TransformerDecoder:
-    """Stub."""
+    """Implementation of the TransformerDecoder module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class TransformerDecoderLayer:
-    """Stub."""
+    """Implementation of the TransformerDecoderLayer module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class TransformerEncoder:
-    """Stub."""
+    """Implementation of the TransformerEncoder module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class TransformerEncoderLayer:
-    """Stub."""
+    """Implementation of the TransformerEncoderLayer module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Unflatten:
-    """Stub."""
+    """Implementation of the Unflatten module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Unfold:
-    """Stub."""
+    """Implementation of the Unfold module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class Upsample:
-    """Stub."""
+    """Implementation of the Upsample module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class UpsamplingBilinear2d:
-    """Stub."""
+    """Implementation of the UpsamplingBilinear2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class UpsamplingNearest2d:
-    """Stub."""
+    """Implementation of the UpsamplingNearest2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ZeroPad1d:
-    """Stub."""
+    """Implementation of the ZeroPad1d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ZeroPad2d:
-    """Stub."""
+    """Implementation of the ZeroPad2d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass
 
 
 class ZeroPad3d:
-    """Stub."""
+    """Implementation of the ZeroPad3d module."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Stub."""
+        """Initializes the module.
+
+        Args:
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None: This function does not return a value.
+        """
         pass

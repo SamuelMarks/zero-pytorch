@@ -13,6 +13,7 @@ import ml_switcheroo
 
 @pytest.fixture(autouse=True)
 def switcheroo_config():
+    """Tests for switcheroo_config."""
     # Unified pytest configuration that imports switcheroo config contexts
     with ml_switcheroo.EagerMode():
         yield

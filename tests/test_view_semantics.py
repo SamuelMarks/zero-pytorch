@@ -6,6 +6,7 @@ from ml_switcheroo.tracing import _tracer
 
 
 def test_view():
+    """Tests for test_view."""
     t = Tensor(np.ones((2, 3)))
     t2 = t.view(6)
     assert t2.shape == (6,)
@@ -20,17 +21,20 @@ def test_view():
 
 
 def test_reshape():
+    """Tests for test_reshape."""
     t = Tensor(np.ones((2, 3)))
     t2 = t.reshape(6)
     assert t2.shape == (6,)
 
 
 def test_contiguous():
+    """Tests for test_contiguous."""
     t = Tensor(np.ones((2, 3)))
     assert t.contiguous() is t
 
 
 def test_squeeze():
+    """Tests for test_squeeze."""
     t = Tensor(np.ones((1, 2, 1, 3)))
     t2 = t.squeeze()
     assert t2.shape == (2, 3)
@@ -47,6 +51,7 @@ def test_squeeze():
 
 
 def test_view_traced_with_id():
+    """Tests for test_view_traced_with_id."""
     t = Tensor(np.ones((2, 3)))
     _tracer.start_tracing()
     t2 = t + t
