@@ -4,6 +4,12 @@ from typing import Any
 from .module import Module
 from zero_torch.tensor import Tensor
 
+from .functional_pooling import (
+    adaptive_avg_pool1d,
+    adaptive_avg_pool2d,
+    adaptive_avg_pool3d,
+)
+
 
 class AdaptiveAvgPool1d(Module):
     """Applies a 1D adaptive average pooling over an input signal composed of several input planes."""
@@ -16,7 +22,8 @@ class AdaptiveAvgPool1d(Module):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.output_size = output_size
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -27,7 +34,7 @@ class AdaptiveAvgPool1d(Module):
         Returns:
             Tensor: The pooled tensor.
         """
-        pass
+        return adaptive_avg_pool1d(input, output_size=self.output_size)
 
 
 class AdaptiveAvgPool2d(Module):
@@ -41,7 +48,8 @@ class AdaptiveAvgPool2d(Module):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.output_size = output_size
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -52,7 +60,7 @@ class AdaptiveAvgPool2d(Module):
         Returns:
             Tensor: The pooled tensor.
         """
-        pass
+        return adaptive_avg_pool2d(input, output_size=self.output_size)
 
 
 class AdaptiveAvgPool3d(Module):
@@ -66,7 +74,8 @@ class AdaptiveAvgPool3d(Module):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.output_size = output_size
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -77,11 +86,11 @@ class AdaptiveAvgPool3d(Module):
         Returns:
             Tensor: The pooled tensor.
         """
-        pass
+        return adaptive_avg_pool3d(input, output_size=self.output_size)
 
 
 class AdaptiveMaxPool1d(Module):
-    """Applies a 1D adaptive max pooling over an input signal composed of several input planes."""
+    """Applies a adaptive max pooling over an input signal."""
 
     def __init__(
         self, output_size: Any, return_indices: bool = False, *args: Any, **kwargs: Any
@@ -90,26 +99,32 @@ class AdaptiveMaxPool1d(Module):
 
         Args:
             output_size (Any): The target output size.
-            return_indices (bool, optional): If True, will return the indices along with the outputs. Defaults to False.
+            return_indices (bool, optional): Whether to return indices.
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.output_size = output_size
+        self.return_indices = return_indices
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor) -> Any:
         """Forward pass.
 
         Args:
             input (Tensor): The input tensor.
 
         Returns:
-            Tensor: The pooled tensor.
+            Any: The pooled tensor or a tuple of (tensor, indices).
         """
-        pass
+        from .functional_pooling import adaptive_max_pool1d
+
+        return adaptive_max_pool1d(
+            input, output_size=self.output_size, return_indices=self.return_indices
+        )
 
 
 class AdaptiveMaxPool2d(Module):
-    """Applies a 2D adaptive max pooling over an input signal composed of several input planes."""
+    """Applies a adaptive max pooling over an input signal."""
 
     def __init__(
         self, output_size: Any, return_indices: bool = False, *args: Any, **kwargs: Any
@@ -118,26 +133,32 @@ class AdaptiveMaxPool2d(Module):
 
         Args:
             output_size (Any): The target output size.
-            return_indices (bool, optional): If True, will return the indices along with the outputs. Defaults to False.
+            return_indices (bool, optional): Whether to return indices.
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.output_size = output_size
+        self.return_indices = return_indices
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor) -> Any:
         """Forward pass.
 
         Args:
             input (Tensor): The input tensor.
 
         Returns:
-            Tensor: The pooled tensor.
+            Any: The pooled tensor or a tuple of (tensor, indices).
         """
-        pass
+        from .functional_pooling import adaptive_max_pool2d
+
+        return adaptive_max_pool2d(
+            input, output_size=self.output_size, return_indices=self.return_indices
+        )
 
 
 class AdaptiveMaxPool3d(Module):
-    """Applies a 3D adaptive max pooling over an input signal composed of several input planes."""
+    """Applies a adaptive max pooling over an input signal."""
 
     def __init__(
         self, output_size: Any, return_indices: bool = False, *args: Any, **kwargs: Any
@@ -146,22 +167,28 @@ class AdaptiveMaxPool3d(Module):
 
         Args:
             output_size (Any): The target output size.
-            return_indices (bool, optional): If True, will return the indices along with the outputs. Defaults to False.
+            return_indices (bool, optional): Whether to return indices.
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.output_size = output_size
+        self.return_indices = return_indices
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor) -> Any:
         """Forward pass.
 
         Args:
             input (Tensor): The input tensor.
 
         Returns:
-            Tensor: The pooled tensor.
+            Any: The pooled tensor or a tuple of (tensor, indices).
         """
-        pass
+        from .functional_pooling import adaptive_max_pool3d
+
+        return adaptive_max_pool3d(
+            input, output_size=self.output_size, return_indices=self.return_indices
+        )
 
 
 class AvgPool1d(Module):
@@ -180,15 +207,20 @@ class AvgPool1d(Module):
         """Initialize the module.
 
         Args:
-            kernel_size (Any): Size of the window to take an average over.
-            stride (Any, optional): Stride of the window. Defaults to None.
-            padding (Any, optional): Implicit zero padding to be added on both sides. Defaults to 0.
-            ceil_mode (bool, optional): If True, will use ceil instead of floor to compute the output shape. Defaults to False.
-            count_include_pad (bool, optional): If True, will include the zero-padding in the averaging calculation. Defaults to True.
+            kernel_size: The size of the window.
+            stride: The stride of the window.
+            padding: Implicit zero padding to be added on both sides.
+            ceil_mode: When True, will use ceil instead of floor to compute the output shape.
+            count_include_pad: When True, will include the zero-padding in the averaging calculation.
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        self.padding = padding
+        self.ceil_mode = ceil_mode
+        self.count_include_pad = count_include_pad
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -199,7 +231,16 @@ class AvgPool1d(Module):
         Returns:
             Tensor: The pooled tensor.
         """
-        pass
+        from .functional_pooling import avg_pool1d
+
+        return avg_pool1d(
+            input,
+            self.kernel_size,
+            self.stride,
+            self.padding,
+            self.ceil_mode,
+            self.count_include_pad,
+        )
 
 
 class AvgPool2d(Module):
@@ -219,16 +260,22 @@ class AvgPool2d(Module):
         """Initialize the module.
 
         Args:
-            kernel_size (Any): Size of the window to take an average over.
-            stride (Any, optional): Stride of the window. Defaults to None.
-            padding (Any, optional): Implicit zero padding to be added on both sides. Defaults to 0.
-            ceil_mode (bool, optional): If True, will use ceil instead of floor. Defaults to False.
-            count_include_pad (bool, optional): If True, will include the zero-padding in the averaging. Defaults to True.
-            divisor_override (Any, optional): If specified, it will be used as divisor. Defaults to None.
+            kernel_size: The size of the window.
+            stride: The stride of the window.
+            padding: Implicit zero padding to be added on both sides.
+            ceil_mode: When True, will use ceil instead of floor to compute the output shape.
+            count_include_pad: When True, will include the zero-padding in the averaging calculation.
+            divisor_override: If specified, it will be used as divisor.
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        self.padding = padding
+        self.ceil_mode = ceil_mode
+        self.count_include_pad = count_include_pad
+        self.divisor_override = divisor_override
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -239,7 +286,17 @@ class AvgPool2d(Module):
         Returns:
             Tensor: The pooled tensor.
         """
-        pass
+        from .functional_pooling import avg_pool2d
+
+        return avg_pool2d(
+            input,
+            self.kernel_size,
+            self.stride,
+            self.padding,
+            self.ceil_mode,
+            self.count_include_pad,
+            self.divisor_override,
+        )
 
 
 class AvgPool3d(Module):
@@ -259,16 +316,22 @@ class AvgPool3d(Module):
         """Initialize the module.
 
         Args:
-            kernel_size (Any): Size of the window to take an average over.
-            stride (Any, optional): Stride of the window. Defaults to None.
-            padding (Any, optional): Implicit zero padding to be added on both sides. Defaults to 0.
-            ceil_mode (bool, optional): If True, will use ceil instead of floor. Defaults to False.
-            count_include_pad (bool, optional): If True, will include the zero-padding in the averaging. Defaults to True.
-            divisor_override (Any, optional): If specified, it will be used as divisor. Defaults to None.
+            kernel_size: The size of the window.
+            stride: The stride of the window.
+            padding: Implicit zero padding to be added on both sides.
+            ceil_mode: When True, will use ceil instead of floor to compute the output shape.
+            count_include_pad: When True, will include the zero-padding in the averaging calculation.
+            divisor_override: If specified, it will be used as divisor.
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride if stride is not None else kernel_size
+        self.padding = padding
+        self.ceil_mode = ceil_mode
+        self.count_include_pad = count_include_pad
+        self.divisor_override = divisor_override
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -279,21 +342,27 @@ class AvgPool3d(Module):
         Returns:
             Tensor: The pooled tensor.
         """
-        pass
+        from .functional_pooling import avg_pool3d
+
+        return avg_pool3d(
+            input,
+            self.kernel_size,
+            self.stride,
+            self.padding,
+            self.ceil_mode,
+            self.count_include_pad,
+            self.divisor_override,
+        )
 
 
 class MaxPool1d(Module):
     """Applies a 1D max pooling over an input signal composed of several input planes."""
 
     def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
-        """Initialize MaxPool1d.
-
-        Args:
-            kernel_size (int): Size of the pooling window.
-            stride (int, optional): Stride of the pooling window. Defaults to None.
-            padding (int, optional): Implicit zero padding. Defaults to 0.
-        """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -304,7 +373,9 @@ class MaxPool1d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class FractionalMaxPool2d(Module):
@@ -317,7 +388,9 @@ class FractionalMaxPool2d(Module):
             kernel_size (int): Size of the pooling window.
             output_size (int, optional): Target output size. Defaults to None.
         """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.output_size = output_size
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -328,21 +401,19 @@ class FractionalMaxPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class MaxPool2d(Module):
     """Applies a 2D max pooling."""
 
     def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
-        """Initialize MaxPool2d.
-
-        Args:
-            kernel_size (int): Size of the pooling window.
-            stride (int, optional): Stride of the pooling window. Defaults to None.
-            padding (int, optional): Implicit zero padding. Defaults to 0.
-        """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -353,7 +424,9 @@ class MaxPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class FractionalMaxPool3d(Module):
@@ -366,7 +439,9 @@ class FractionalMaxPool3d(Module):
             kernel_size (int): Size of the pooling window.
             output_size (int, optional): Target output size. Defaults to None.
         """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.output_size = output_size
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -377,21 +452,19 @@ class FractionalMaxPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class MaxPool3d(Module):
     """Applies a 3D max pooling."""
 
     def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
-        """Initialize MaxPool3d.
-
-        Args:
-            kernel_size (int): Size of the pooling window.
-            stride (int, optional): Stride of the pooling window. Defaults to None.
-            padding (int, optional): Implicit zero padding. Defaults to 0.
-        """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -402,7 +475,9 @@ class MaxPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class LPPool1d(Module):
@@ -416,7 +491,10 @@ class LPPool1d(Module):
             kernel_size (int): Size of the pooling window.
             stride (int, optional): Stride of the pooling window. Defaults to None.
         """
-        pass
+        super().__init__()
+        self.norm_type = norm_type
+        self.kernel_size = kernel_size
+        self.stride = stride
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -427,7 +505,9 @@ class LPPool1d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class LPPool2d(Module):
@@ -441,7 +521,10 @@ class LPPool2d(Module):
             kernel_size (int): Size of the pooling window.
             stride (int, optional): Stride of the pooling window. Defaults to None.
         """
-        pass
+        super().__init__()
+        self.norm_type = norm_type
+        self.kernel_size = kernel_size
+        self.stride = stride
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -452,7 +535,9 @@ class LPPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class LPPool3d(Module):
@@ -466,7 +551,10 @@ class LPPool3d(Module):
             kernel_size (int): Size of the pooling window.
             stride (int, optional): Stride of the pooling window. Defaults to None.
         """
-        pass
+        super().__init__()
+        self.norm_type = norm_type
+        self.kernel_size = kernel_size
+        self.stride = stride
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass.
@@ -477,7 +565,9 @@ class LPPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class MaxUnpool1d(Module):
@@ -491,9 +581,12 @@ class MaxUnpool1d(Module):
             stride (int, optional): Stride of the window. Defaults to None.
             padding (int, optional): Implicit zero padding. Defaults to 0.
         """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor, indices: Tensor, output_size=None) -> Tensor:
         """Forward pass.
 
         Args:
@@ -502,7 +595,9 @@ class MaxUnpool1d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class MaxUnpool2d(Module):
@@ -516,9 +611,12 @@ class MaxUnpool2d(Module):
             stride (int, optional): Stride of the window. Defaults to None.
             padding (int, optional): Implicit zero padding. Defaults to 0.
         """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor, indices: Tensor, output_size=None) -> Tensor:
         """Forward pass.
 
         Args:
@@ -527,7 +625,9 @@ class MaxUnpool2d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class MaxUnpool3d(Module):
@@ -541,9 +641,12 @@ class MaxUnpool3d(Module):
             stride (int, optional): Stride of the window. Defaults to None.
             padding (int, optional): Implicit zero padding. Defaults to 0.
         """
-        pass
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor, indices: Tensor, output_size=None) -> Tensor:
         """Forward pass.
 
         Args:
@@ -552,4 +655,6 @@ class MaxUnpool3d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError

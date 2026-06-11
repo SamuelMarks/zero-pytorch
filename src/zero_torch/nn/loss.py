@@ -37,7 +37,9 @@ class _Loss(Module):
         Returns:
             Tensor: The computed loss.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class _WeightedLoss(_Loss):
@@ -240,23 +242,6 @@ class HingeEmbeddingLoss(_Loss):
         pass
 
 
-class HuberLoss(_Loss):
-    """Creates a criterion that uses a squared term if the absolute element-wise error falls below delta and a delta-scaled L1 term otherwise."""
-
-    def __init__(
-        self, reduction: str = "mean", delta: float = 1.0, *args: Any, **kwargs: Any
-    ) -> None:
-        """Initializes the HuberLoss module.
-
-        Args:
-            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
-            delta (float, optional): Specifies the threshold at which to change between L1 and L2 loss. Defaults to 1.0.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-
 class KLDivLoss(_Loss):
     """The Kullback-Leibler divergence loss measure."""
 
@@ -304,72 +289,6 @@ class MSELoss(_Loss):
         from zero_torch.tensor import Tensor
 
         return Tensor(0.0)
-
-
-class MarginRankingLoss(_Loss):
-    """Creates a criterion that measures the loss given inputs x1, x2, two 1D mini-batch Tensors, and a label 1D mini-batch tensor y."""
-
-    def __init__(
-        self,
-        margin: float = 0.0,
-        size_average=None,
-        reduce=None,
-        reduction: str = "mean",
-        *args: Any,
-        **kwargs: Any,
-    ) -> None:
-        """Initializes the MarginRankingLoss module.
-
-        Args:
-            margin (float, optional): Has a default value of 0. Defaults to 0.0.
-            size_average (Any, optional): Deprecated. Defaults to None.
-            reduce (Any, optional): Deprecated. Defaults to None.
-            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-        """
-        pass
-
-
-class MultiLabelMarginLoss(_Loss):
-    """Creates a criterion that optimizes a multi-class multi-classification hinge loss (margin-based loss)."""
-
-    pass
-
-
-class MultiLabelSoftMarginLoss(_WeightedLoss):
-    """Creates a criterion that optimizes a multi-label one-versus-all loss based on max-entropy."""
-
-    pass
-
-
-class MultiMarginLoss(_WeightedLoss):
-    """Creates a criterion that optimizes a multi-class classification hinge loss (margin-based loss)."""
-
-    def __init__(
-        self,
-        p: int = 1,
-        margin: float = 1.0,
-        weight=None,
-        size_average=None,
-        reduce=None,
-        reduction: str = "mean",
-        *args: Any,
-        **kwargs: Any,
-    ) -> None:
-        """Initializes the MultiMarginLoss module.
-
-        Args:
-            p (int, optional): Has a default value of 1. 1 and 2 are the only supported values. Defaults to 1.
-            margin (float, optional): Has a default value of 1. Defaults to 1.0.
-            weight (Tensor, optional): A manual rescaling weight given to each class. Defaults to None.
-            size_average (Any, optional): Deprecated. Defaults to None.
-            reduce (Any, optional): Deprecated. Defaults to None.
-            reduction (str, optional): Specifies the reduction to apply to the output. Defaults to "mean".
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-        """
-        pass
 
 
 class NLLLoss(_WeightedLoss):
@@ -521,7 +440,121 @@ class TripletMarginWithDistanceLoss(_Loss):
         pass
 
 
-class AdaptiveLogSoftmaxWithLoss:
-    """Efficient softmax approximation for predicting classes with a large number of possible classes."""
+class AdaptiveLogSoftmaxWithLoss(Module):
+    """AdaptiveLogSoftmaxWithLoss."""
 
-    pass
+    def __init__(
+        self,
+        in_features: int,
+        n_classes: int,
+        cutoffs: list[int],
+        div_value: float = 4.0,
+        head_bias: bool = False,
+        head: Any = None,
+        tail: Any = None,
+        device: Any = None,
+        dtype: Any = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize."""
+        super().__init__()
+        self.in_features = in_features
+        self.n_classes = n_classes
+        self.cutoffs = cutoffs
+        self.div_value = div_value
+        self.head_bias = head_bias
+
+    def forward(self, input: Tensor, target: Tensor) -> tuple[Tensor, Tensor]:
+        """Forward."""
+        from .functional_utils import adaptive_log_softmax_with_loss
+
+        return adaptive_log_softmax_with_loss(
+            input,
+            target,
+            self.in_features,
+            self.n_classes,
+            self.cutoffs,
+            self.div_value,
+            self.head_bias,
+        )
+
+
+class HuberLoss(_Loss):
+    """Applies HuberLoss."""
+
+    def __init__(self, reduction: str = "mean", delta: float = 1.0) -> None:
+        super().__init__(reduction=reduction)
+        self.delta = delta
+
+    def forward(self, input, target):
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
+
+
+class MarginRankingLoss(_Loss):
+    """Applies MarginRankingLoss."""
+
+    def __init__(
+        self,
+        margin: float = 0.0,
+        size_average=None,
+        reduce=None,
+        reduction: str = "mean",
+    ) -> None:
+        super().__init__(size_average, reduce, reduction)
+        self.margin = margin
+
+    def forward(self, input1, input2, target):
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
+
+
+class MultiLabelMarginLoss(_Loss):
+    """Applies MultiLabelMarginLoss."""
+
+    def __init__(self, size_average=None, reduce=None, reduction: str = "mean") -> None:
+        super().__init__(size_average, reduce, reduction)
+
+    def forward(self, input, target):
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
+
+
+class MultiLabelSoftMarginLoss(_WeightedLoss):
+    """Applies MultiLabelSoftMarginLoss."""
+
+    def __init__(
+        self, weight=None, size_average=None, reduce=None, reduction: str = "mean"
+    ) -> None:
+        super().__init__(weight, size_average, reduce, reduction)
+
+    def forward(self, input, target):
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
+
+
+class MultiMarginLoss(_WeightedLoss):
+    """Applies MultiMarginLoss."""
+
+    def __init__(
+        self,
+        p: int = 1,
+        margin: float = 1.0,
+        weight=None,
+        size_average=None,
+        reduce=None,
+        reduction: str = "mean",
+    ) -> None:
+        super().__init__(weight, size_average, reduce, reduction)
+        self.p = p
+        self.margin = margin
+
+    def forward(self, input, target):
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError

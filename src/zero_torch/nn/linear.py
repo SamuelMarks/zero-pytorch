@@ -48,3 +48,46 @@ class Linear(Module):
         import zero_torch.nn.functional as F
 
         return F.linear(input, self.weight, self.bias)
+
+
+class Bilinear(Module):
+    """Applies a bilinear transformation to the incoming data."""
+
+    def __init__(
+        self,
+        in1_features: int,
+        in2_features: int,
+        out_features: int,
+        bias: bool = True,
+        device=None,
+        dtype=None,
+    ) -> None:
+        """Initializes the Bilinear module.
+
+        Args:
+            in1_features (int): size of each first input sample
+            in2_features (int): size of each second input sample
+            out_features (int): size of each output sample
+            bias (bool, optional): If set to False, the layer will not learn an additive bias. Default: True
+            device: device.
+            dtype: dtype.
+        """
+        super().__init__()
+        self.in1_features = in1_features
+        self.in2_features = in2_features
+        self.out_features = out_features
+        self.bias = bias
+
+    def forward(self, input1, input2):
+        """Forward pass.
+
+        Args:
+            input1 (Tensor): input tensor 1.
+            input2 (Tensor): input tensor 2.
+
+        Returns:
+            Tensor: output.
+        """
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError

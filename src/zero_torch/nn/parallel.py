@@ -30,7 +30,11 @@ class DataParallel(Module):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        super().__init__()
+        self.module = module
+        self.device_ids = device_ids
+        self.output_device = output_device
+        self.dim = dim
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
         """Forward pass parallelized across multiple devices.
@@ -42,4 +46,6 @@ class DataParallel(Module):
         Returns:
             Any: The combined output of the module replicas.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError

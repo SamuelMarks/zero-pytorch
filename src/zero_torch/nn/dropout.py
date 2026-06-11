@@ -19,7 +19,9 @@ class Dropout(Module):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        super().__init__()
+        self.p = p
+        self.inplace = inplace
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass for dropout.
@@ -30,7 +32,9 @@ class Dropout(Module):
         Returns:
             Tensor: The output tensor with elements randomly zeroed out.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class Dropout1d(Module):
@@ -47,7 +51,9 @@ class Dropout1d(Module):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        super().__init__()
+        self.p = p
+        self.inplace = inplace
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass for 1D dropout.
@@ -58,7 +64,9 @@ class Dropout1d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class Dropout2d(Module):
@@ -75,7 +83,9 @@ class Dropout2d(Module):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        super().__init__()
+        self.p = p
+        self.inplace = inplace
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass for 2D dropout.
@@ -86,7 +96,9 @@ class Dropout2d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class Dropout3d(Module):
@@ -103,7 +115,9 @@ class Dropout3d(Module):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        super().__init__()
+        self.p = p
+        self.inplace = inplace
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass for 3D dropout.
@@ -114,24 +128,28 @@ class Dropout3d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
 
 
 class AlphaDropout(Module):
     """Applies Alpha Dropout over the input. Alpha Dropout is a type of Dropout that maintains the self-normalizing property."""
 
     def __init__(
-        self, p: float = 0.5, inplace: Any = None, *args: Any, **kwargs: Any
+        self, p: float = 0.5, inplace: Any = False, *args: Any, **kwargs: Any
     ) -> None:
         """Initialize the alpha dropout layer.
 
         Args:
             p (float, optional): Probability of an element to be dropped. Defaults to 0.5.
-            inplace (Any, optional): If set to True, will do this operation in-place. Defaults to None.
+            inplace (Any, optional): If set to True, will do this operation in-place. Defaults to False.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        super().__init__()
+        self.p = p
+        self.inplace = inplace
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass for alpha dropout.
@@ -142,7 +160,11 @@ class AlphaDropout(Module):
         Returns:
             Tensor: The output tensor with alpha dropout applied.
         """
-        pass
+        from .functional_dropout import alpha_dropout
+
+        return alpha_dropout(
+            input, p=self.p, training=self.training, inplace=self.inplace
+        )
 
 
 class FeatureAlphaDropout(Module):
@@ -159,7 +181,9 @@ class FeatureAlphaDropout(Module):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        super().__init__()
+        self.p = p
+        self.inplace = inplace
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass for feature alpha dropout.
@@ -170,4 +194,6 @@ class FeatureAlphaDropout(Module):
         Returns:
             Tensor: The output tensor with feature alpha dropout applied.
         """
-        pass
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError

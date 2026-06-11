@@ -250,3 +250,48 @@ class ParameterList(Module):
         """
         self._params_list.append(param)
         self._parameters[str(len(self._params_list) - 1)] = param
+
+
+class Container(Module):
+    """Base class for all neural network modules.
+
+    Deprecated in PyTorch, but provided for compatibility.
+    """
+
+    def __init__(self, **kwargs):
+        """Initializes the Container."""
+        super().__init__()
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+class ModuleDict(Module):
+    """Holds submodules in a dictionary."""
+
+    def __init__(self, modules=None) -> None:
+        super().__init__()
+        self.update(modules)
+
+    def update(self, modules):
+        pass
+
+    def forward(self, input):
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError
+
+
+class ParameterDict(Module):
+    """Holds parameters in a dictionary."""
+
+    def __init__(self, parameters=None) -> None:
+        super().__init__()
+        self.update(parameters)
+
+    def update(self, parameters):
+        pass
+
+    def forward(self, input):
+        import ml_switcheroo.core.errors
+
+        raise ml_switcheroo.core.errors.UnimplementedMathError

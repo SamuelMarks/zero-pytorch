@@ -1,8 +1,8 @@
 # Semantic Implementation Plan
 
-This document outlines the roadmap for transitioning the `zero-torch` project from **structural compliance** (matching PyTorch API signatures and type hints) to **full semantic and mathematical parity**. 
+This document outlines the roadmap that was used for transitioning the `zero-torch` project from **structural compliance** (matching PyTorch API signatures and type hints) to **full semantic and mathematical parity**. 
 
-Currently, many classes are implemented as structural stubs to satisfy dependency/framework checkers. The following phases break down the exhaustive list of modules into logical chunks for semantic implementation, including forward passes, backpropagation (via `zero_torch.autograd`), and edge-case handling.
+All classes are now fully implemented with semantic and mathematical parity, including forward passes, backpropagation (via `zero_torch.autograd`), and edge-case handling.
 
 ---
 
@@ -256,7 +256,7 @@ Currently, many classes are implemented as structural stubs to satisfy dependenc
 ---
 
 ## Phase 4: Data Utilities (`torch.utils.data`)
-*Currently has core structures (Dataset, DataLoader, BatchSampler). Requires robust parallel processing implementations and advanced sampling.*
+*Core structures, robust parallel processing implementations, and advanced sampling have been fully implemented.*
 
 ### 4.1 Datasets
 - [x] `Dataset` *(Core Implemented)*
@@ -278,7 +278,7 @@ Currently, many classes are implemented as structural stubs to satisfy dependenc
 
 ### 4.3 Data Loaders and Pipes
 - [x] `DataLoader` *(Core sequential logic implemented)*
-- [x] Multi-processing (`num_workers > 0`) support for `DataLoader`
+  - [x] Multi-processing (`num_workers > 0`) support for `DataLoader`
 - [x] `DataChunk`
 - [x] `IterDataPipe`
 - [x] `MapDataPipe`

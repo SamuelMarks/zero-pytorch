@@ -3,7 +3,7 @@
 from typing import Any, Optional, Union
 
 import ml_switcheroo
-import ml_switcheroo.core.tensor_utils
+import numpy as np
 import ml_switcheroo.ops as ops
 from ml_switcheroo.core.config import config
 from ml_switcheroo.tracing import _tracer, ProxyTensor
@@ -30,9 +30,7 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
             node = LogicalNode(
                 id=out_id,
                 op_type="Constant",
-                attributes={
-                    "value": ml_switcheroo.core.tensor_utils.to_array(x.data).tolist()
-                },
+                attributes={"value": np.array(x.data).tolist()},
                 shape_metadata=x.shape,
             )
             _tracer.add_node(node)
@@ -59,7 +57,7 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
         )
 
     # Otherwise it's an array-like
-    arr = ml_switcheroo.core.tensor_utils.to_array(x)
+    arr = np.array(x)
     if dtype is not None:
         arr = arr.astype(dtype)
 
@@ -155,14 +153,9 @@ class Tensor:
         """Gets the data type of the tensor elements.
 
         Returns:
-            Any: The NumPy compatible data type of the tensor.
+            Any: The data type of the tensor.
         """
-        # Maps DType enum to numpy dtype for tests
-        return (
-            ml_switcheroo.core.tensor_utils.to_numpy_dtype(self._tensor.dtype.value)
-            if self._tensor is not None
-            else None
-        )
+        return self._tensor.dtype if self._tensor is not None else None
 
     def view(self, *shape) -> "Tensor":
         """Returns a new tensor with the same data but of a different shape.
@@ -202,7 +195,7 @@ class Tensor:
         Returns:
             Any: A NumPy ndarray containing the tensor's data.
         """
-        return ml_switcheroo.core.tensor_utils.to_array(self._tensor.data)
+        return np.array(self._tensor.data)
 
     def backward(self, *args, **kwargs) -> None:
         """Computes the gradient of current tensor w.r.t. graph leaves.
@@ -236,7 +229,7 @@ class Tensor:
         if config.eager_mode:
             arr = self._tensor.data
             if hasattr(arr, "flags") and not arr.flags["C_CONTIGUOUS"]:
-                return _wrap(ml_switcheroo.core.tensor_utils.ascontiguousarray(arr))
+                return _wrap(np.ascontiguousarray(arr))
         return self
 
     def squeeze(self, dim=None) -> "Tensor":
@@ -435,4 +428,4 @@ class Tensor:
         Returns:
             int | float | bool: The scalar value of the tensor.
         """
-        return ml_switcheroo.core.tensor_utils.to_array(self._tensor.data).item()
+        return np.array(self._tensor.data).item()

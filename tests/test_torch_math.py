@@ -1,6 +1,7 @@
 """Tests for zero_torch math functions."""
 
 import numpy as np
+import zero_torch
 from zero_torch import Tensor
 from ml_switcheroo.tracing import _tracer
 
@@ -74,7 +75,7 @@ def test_dtype_and_contiguous():
     import numpy as np
 
     t = Tensor(np.array([[1, 2], [3, 4]], dtype=np.float32))
-    assert t.dtype == np.float32
+    assert t.dtype == zero_torch.float32
     # Create non-contiguous tensor
     t2 = Tensor(np.array([[1, 2], [3, 4]], dtype=np.float32).T)
     assert t2.contiguous()._data.flags["C_CONTIGUOUS"]
