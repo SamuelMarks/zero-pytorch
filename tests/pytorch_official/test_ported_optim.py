@@ -1,5 +1,5 @@
 import numpy as np
-import ml_switcheroo
+import ml_switcheroo_compiler as ml_switcheroo
 import zero_torch as torch
 import zero_torch.optim as optim
 import zero_torch.nn as nn

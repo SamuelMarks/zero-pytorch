@@ -1,6 +1,6 @@
 """Optimizers module."""
 
-import ml_switcheroo
+import ml_switcheroo_compiler as ml_switcheroo
 from typing import Any, Iterable, Optional, Tuple, Union
 from zero_torch.tensor import Tensor
 

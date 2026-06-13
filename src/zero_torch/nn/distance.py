@@ -14,9 +14,9 @@ class CosineSimilarity(Module):
 
     def forward(self, x1, x2):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class PairwiseDistance(Module):
@@ -33,6 +33,6 @@ class PairwiseDistance(Module):
 
     def forward(self, x1, x2):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

@@ -30,9 +30,9 @@ class RNNBase(Module):
         self.proj_size = proj_size
 
     def forward(self, input, hx=None):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class RNN(RNNBase):
@@ -127,9 +127,9 @@ class RNNCellBase(Module):
         self.num_chunks = num_chunks
 
     def forward(self, input, hx=None):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class RNNCell(RNNCellBase):

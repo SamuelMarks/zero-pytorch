@@ -2,7 +2,7 @@
 
 import numpy as np
 from zero_torch import Tensor
-from ml_switcheroo.tracing import _tracer
+from zero_torch.tracing import _tracer
 
 
 def test_view():

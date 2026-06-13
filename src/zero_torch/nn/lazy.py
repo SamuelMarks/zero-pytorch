@@ -20,9 +20,9 @@ class LazyBatchNorm1d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyBatchNorm2d(Module):
@@ -42,9 +42,9 @@ class LazyBatchNorm2d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyBatchNorm3d(Module):
@@ -64,9 +64,9 @@ class LazyBatchNorm3d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyConv1d(Module):
@@ -94,9 +94,9 @@ class LazyConv1d(Module):
         self.padding_mode = padding_mode
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyConv2d(Module):
@@ -124,9 +124,9 @@ class LazyConv2d(Module):
         self.padding_mode = padding_mode
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyConv3d(Module):
@@ -154,9 +154,9 @@ class LazyConv3d(Module):
         self.padding_mode = padding_mode
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyConvTranspose1d(Module):
@@ -186,9 +186,9 @@ class LazyConvTranspose1d(Module):
         self.padding_mode = padding_mode
 
     def forward(self, input, output_size=None):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyConvTranspose2d(Module):
@@ -218,9 +218,9 @@ class LazyConvTranspose2d(Module):
         self.padding_mode = padding_mode
 
     def forward(self, input, output_size=None):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyConvTranspose3d(Module):
@@ -250,9 +250,9 @@ class LazyConvTranspose3d(Module):
         self.padding_mode = padding_mode
 
     def forward(self, input, output_size=None):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyInstanceNorm1d(Module):
@@ -272,9 +272,9 @@ class LazyInstanceNorm1d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyInstanceNorm2d(Module):
@@ -294,9 +294,9 @@ class LazyInstanceNorm2d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyInstanceNorm3d(Module):
@@ -316,9 +316,9 @@ class LazyInstanceNorm3d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LazyLinear(Module):
@@ -330,6 +330,6 @@ class LazyLinear(Module):
         self.bias = bias
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

@@ -17,9 +17,9 @@ class Upsample(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class UpsamplingBilinear2d(Module):
@@ -29,9 +29,9 @@ class UpsamplingBilinear2d(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class UpsamplingNearest2d(Module):
@@ -41,6 +41,6 @@ class UpsamplingNearest2d(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

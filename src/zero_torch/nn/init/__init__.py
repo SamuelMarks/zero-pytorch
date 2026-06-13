@@ -1,6 +1,6 @@
 """Initialization functions."""
 
-import ml_switcheroo
+import ml_switcheroo_compiler as ml_switcheroo
 from typing import Any, Optional, Tuple
 import math
 from zero_torch.tensor import Tensor

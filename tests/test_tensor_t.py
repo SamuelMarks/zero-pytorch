@@ -1,6 +1,6 @@
 from zero_torch.tensor import Tensor
 import numpy as np
-from ml_switcheroo.tracing import _tracer
+from zero_torch.tracing import _tracer
 
 
 def test_tensor_t():

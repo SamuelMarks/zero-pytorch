@@ -34,9 +34,9 @@ class Conv1d(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Conv2d(Module):
@@ -70,9 +70,9 @@ class Conv2d(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Conv3d(Module):
@@ -106,9 +106,9 @@ class Conv3d(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class ConvTranspose1d(Module):
@@ -144,9 +144,9 @@ class ConvTranspose1d(Module):
 
     def forward(self, input, output_size=None):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class ConvTranspose2d(Module):
@@ -182,9 +182,9 @@ class ConvTranspose2d(Module):
 
     def forward(self, input, output_size=None):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class ConvTranspose3d(Module):
@@ -220,9 +220,9 @@ class ConvTranspose3d(Module):
 
     def forward(self, input, output_size=None):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Unfold(Module):
@@ -238,9 +238,9 @@ class Unfold(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Fold(Module):
@@ -259,6 +259,6 @@ class Fold(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

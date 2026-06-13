@@ -373,9 +373,9 @@ class MaxPool1d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class FractionalMaxPool2d(Module):
@@ -401,9 +401,9 @@ class FractionalMaxPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MaxPool2d(Module):
@@ -424,9 +424,9 @@ class MaxPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class FractionalMaxPool3d(Module):
@@ -452,9 +452,9 @@ class FractionalMaxPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MaxPool3d(Module):
@@ -475,9 +475,9 @@ class MaxPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LPPool1d(Module):
@@ -505,9 +505,9 @@ class LPPool1d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LPPool2d(Module):
@@ -535,9 +535,9 @@ class LPPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LPPool3d(Module):
@@ -565,9 +565,9 @@ class LPPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MaxUnpool1d(Module):
@@ -595,9 +595,9 @@ class MaxUnpool1d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MaxUnpool2d(Module):
@@ -625,9 +625,9 @@ class MaxUnpool2d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MaxUnpool3d(Module):
@@ -655,6 +655,6 @@ class MaxUnpool3d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

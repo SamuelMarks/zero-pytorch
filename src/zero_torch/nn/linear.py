@@ -88,6 +88,6 @@ class Bilinear(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

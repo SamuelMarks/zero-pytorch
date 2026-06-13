@@ -5,7 +5,7 @@ import zero_torch
 import inspect
 
 # We'll run eagerly so that zero_torch behaves like PyTorch
-import ml_switcheroo
+import ml_switcheroo_compiler as ml_switcheroo
 
 # Categorize APIs to provide sensible default inputs
 UNARY_MATH = [
@@ -559,7 +559,7 @@ def test_api_complex_shape_ops():
         assert zero_torch.broadcast_to(t, (2, 3)) is not None
 
         idx = zero_torch.Tensor([[0]])
-        from ml_switcheroo.core.errors import UnimplementedMathError
+        from ml_switcheroo_compiler.core.errors import UnimplementedMathError
 
         with pytest.raises(UnimplementedMathError):
             zero_torch.gather_nd(t, idx)
@@ -591,7 +591,7 @@ def test_api_unimplemented_math():
     """Tests for test_api_unimplemented_math."""
     with ml_switcheroo.EagerMode():
         t = zero_torch.Tensor([0.5])
-        from ml_switcheroo.core.errors import UnimplementedMathError
+        from ml_switcheroo_compiler.core.errors import UnimplementedMathError
 
         with pytest.raises(UnimplementedMathError):
             zero_torch.digamma(t)

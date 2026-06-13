@@ -31,9 +31,9 @@ class Embedding(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class EmbeddingBag(Module):
@@ -68,6 +68,6 @@ class EmbeddingBag(Module):
 
     def forward(self, input, offsets=None, per_sample_weights=None):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

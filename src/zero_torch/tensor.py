@@ -2,13 +2,11 @@
 
 from typing import Any, Optional, Union
 
-import ml_switcheroo
-import numpy as np
-import ml_switcheroo.ops as ops
-from ml_switcheroo.core.config import config
-from ml_switcheroo.tracing import _tracer, ProxyTensor
-from ml_switcheroo.ir.core import LogicalNode
-import uuid
+import ml_switcheroo_compiler as ml_switcheroo
+import ml_switcheroo_compiler.ops as ops
+from ml_switcheroo_compiler.core.config import config
+from zero_torch.tracing import _tracer, ProxyTensor
+from ml_switcheroo_compiler.ir.core import IRNode as LogicalNode
 
 
 def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
@@ -26,11 +24,18 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
     if isinstance(x, ml_switcheroo.Tensor):
         if _tracer.is_tracing and not hasattr(x.data, "id"):
             # lift eager tensor as constant
+            import uuid
+
             out_id = str(uuid.uuid4())
+            val = x.data
+            if hasattr(val, "tolist"):
+                val = val.tolist()
+            elif hasattr(val, "data") and hasattr(val.data, "tolist"):
+                val = val.data.tolist()
             node = LogicalNode(
                 id=out_id,
                 op_type="Constant",
-                attributes={"value": np.array(x.data).tolist()},
+                attributes={"value": val},
                 shape_metadata=x.shape,
             )
             _tracer.add_node(node)
@@ -40,7 +45,7 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
             )
         return x
     if isinstance(x, ProxyTensor):
-        from ml_switcheroo.core.dtype import DType
+        from ml_switcheroo_compiler.core.dtype import DType
 
         # Determine dtype roughly or default to Float32
         dt = config.default_float_dtype
@@ -57,47 +62,95 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
         )
 
     # Otherwise it's an array-like
-    arr = np.array(x)
-    if dtype is not None:
-        arr = arr.astype(dtype)
+    def _get_shape_and_dt(v: Any) -> tuple[tuple[int, ...], str]:
+        if isinstance(v, (int, float, bool)):
+            if isinstance(v, bool):
+                return (), "bool"
+            if isinstance(v, int):
+                return (), "int64"
+            return (), "float32"
+        if isinstance(v, (list, tuple)):
+            if len(v) == 0:
+                return (0,), "float32"
+            inner_shape, inner_dt = _get_shape_and_dt(v[0])
+            return (len(v),) + inner_shape, inner_dt
+        if hasattr(v, "shape"):
+            dt_str = str(getattr(v, "dtype", "float32"))
+            return tuple(int(s) for s in v.shape), dt_str
+        return (), "float32"
 
-    from ml_switcheroo.core.dtype import DType
+    shape, dt_str = _get_shape_and_dt(x)
 
-    dt_str = str(arr.dtype)
+    from ml_switcheroo_compiler.core.dtype import DType
+
     dt = config.default_float_dtype
     try:
         if "float" in dt_str or "int" in dt_str or "bool" in dt_str:
-            if dt_str == "float64":
+            if "float64" in dt_str:
                 dt = DType.Float64
-            elif dt_str == "float32":
+            elif "float32" in dt_str:
                 dt = DType.Float32
-            elif dt_str == "int64":
+            elif "int64" in dt_str:
                 dt = DType.Int64
-            elif dt_str == "int32":
+            elif "int32" in dt_str:
                 dt = DType.Int32
-            elif dt_str == "bool":
+            elif "bool" in dt_str:
                 dt = DType.Bool
             else:
                 dt = DType(dt_str)
     except Exception:
         dt = config.default_float_dtype
 
-    return ml_switcheroo.Tensor(
-        data=arr, shape=arr.shape, dtype=dt, device=config.default_device
+    if dtype is not None:
+        try:
+            dt = DType(dtype)
+        except Exception:
+            pass
+
+    if not config.eager_mode and _tracer.is_tracing:
+        import uuid
+        from ml_switcheroo_compiler.ir.core import IRNode
+
+        out_id = str(uuid.uuid4())
+        val = x
+        node = IRNode(
+            id=out_id,
+            op_type="Constant",
+            attributes={"value": val},
+            shape_metadata=shape,
+        )
+        _tracer.add_node(node)
+        pt = ProxyTensor(id=out_id, shape=shape, dtype=dt.value)
+        return ml_switcheroo.Tensor(
+            data=pt, shape=shape, dtype=dt, device=config.default_device
+        )
+
+    t = ml_switcheroo.Tensor(
+        data=x, shape=shape, dtype=dt, device=config.default_device
     )
+    if config.eager_mode and not hasattr(t.data, "shape"):
+        try:
+            t._data = t.__array__(dtype=dt)
+        except Exception:
+            pass
+    return t
 
 
-def _wrap(x: Any) -> "Tensor":
+def _wrap(x: Any) -> Any:
     """Wraps an ml_switcheroo Tensor into a zero_torch Tensor.
 
     Args:
         x (Any): The tensor or value to wrap.
 
     Returns:
-        Tensor: The wrapped zero_torch Tensor.
+        Tensor | tuple | list: The wrapped zero_torch Tensor(s).
     """
     if isinstance(x, Tensor):
         return x
+    if isinstance(x, tuple):
+        return tuple(_wrap(i) for i in x)
+    if isinstance(x, list):
+        return list(_wrap(i) for i in x)
     return Tensor(x)
 
 
@@ -189,12 +242,21 @@ class Tensor:
         shape = tuple(s for s in shape if s is not None)
         return _wrap(ops.reshape(_to_tensor(self), shape=shape))
 
+    def detach(self) -> "Tensor":
+        """Returns a new Tensor, detached from the current graph."""
+        if self._tensor is None:
+            return self
+        res = self._tensor.detach()
+        return _wrap(res)
+
     def numpy(self) -> Any:
         """Returns the tensor as a NumPy array.
 
         Returns:
             Any: A NumPy ndarray containing the tensor's data.
         """
+        import numpy as np
+
         return np.array(self._tensor.data)
 
     def backward(self, *args, **kwargs) -> None:
@@ -229,6 +291,8 @@ class Tensor:
         if config.eager_mode:
             arr = self._tensor.data
             if hasattr(arr, "flags") and not arr.flags["C_CONTIGUOUS"]:
+                import numpy as np
+
                 return _wrap(np.ascontiguousarray(arr))
         return self
 
@@ -401,6 +465,24 @@ class Tensor:
         """
         return _wrap(ops.negative(_to_tensor(self)))
 
+    def __lt__(self, other) -> "Tensor":
+        return _wrap(ops.less(_to_tensor(self), _to_tensor(other)))
+
+    def __gt__(self, other) -> "Tensor":
+        return _wrap(ops.greater(_to_tensor(self), _to_tensor(other)))
+
+    def __le__(self, other) -> "Tensor":
+        return _wrap(ops.less_equal(_to_tensor(self), _to_tensor(other)))
+
+    def __ge__(self, other) -> "Tensor":
+        return _wrap(ops.greater_equal(_to_tensor(self), _to_tensor(other)))
+
+    def __eq__(self, other) -> "Tensor":
+        return _wrap(ops.equal(_to_tensor(self), _to_tensor(other)))
+
+    def __ne__(self, other) -> "Tensor":
+        return _wrap(ops.not_equal(_to_tensor(self), _to_tensor(other)))
+
     def __len__(self) -> int:
         """Returns the length of the tensor's first dimension.
 
@@ -428,4 +510,4 @@ class Tensor:
         Returns:
             int | float | bool: The scalar value of the tensor.
         """
-        return np.array(self._tensor.data).item()
+        return self._tensor.item()

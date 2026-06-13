@@ -45,9 +45,9 @@ class BatchNorm1d(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class BatchNorm2d(Module):
@@ -90,9 +90,9 @@ class BatchNorm2d(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class BatchNorm3d(Module):
@@ -135,9 +135,9 @@ class BatchNorm3d(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class CrossMapLRN2d(Module):
@@ -155,9 +155,9 @@ class CrossMapLRN2d(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class GroupNorm(Module):
@@ -173,9 +173,9 @@ class GroupNorm(Module):
         self.affine = affine
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class InstanceNorm1d(Module):
@@ -197,9 +197,9 @@ class InstanceNorm1d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class InstanceNorm2d(Module):
@@ -221,9 +221,9 @@ class InstanceNorm2d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class InstanceNorm3d(Module):
@@ -245,9 +245,9 @@ class InstanceNorm3d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LayerNorm(Module):
@@ -262,9 +262,9 @@ class LayerNorm(Module):
         self.elementwise_affine = elementwise_affine
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LocalResponseNorm(Module):
@@ -280,9 +280,9 @@ class LocalResponseNorm(Module):
         self.k = k
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class RMSNorm(Module):
@@ -297,9 +297,9 @@ class RMSNorm(Module):
         self.elementwise_affine = elementwise_affine
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class SyncBatchNorm(Module):
@@ -323,6 +323,6 @@ class SyncBatchNorm(Module):
         self.process_group = process_group
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

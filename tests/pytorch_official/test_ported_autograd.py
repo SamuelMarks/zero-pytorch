@@ -1,5 +1,5 @@
 import pytest
-import ml_switcheroo
+import ml_switcheroo_compiler as ml_switcheroo
 import zero_torch as torch
 
 

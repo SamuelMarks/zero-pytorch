@@ -1,7 +1,15 @@
 "API Frontend backed by ml-switcheroo-compiler."
 
 from zero_torch.tensor import Tensor
-import ml_switcheroo.nn as _nn
+import ml_switcheroo_compiler.nn as _nn
+
+
+def _get_nn_op(name):
+    import ml_switcheroo_compiler.core.errors
+
+    if not hasattr(_nn, name):
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+    return getattr(_nn, name)
 
 
 def alpha_dropout(
@@ -19,7 +27,7 @@ def alpha_dropout(
         Tensor: The result.
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = getattr(_nn, "alpha_dropout")(input._tensor, p=p, training=training)
+    res = _get_nn_op("alpha_dropout")(input._tensor, p=p, training=training)
     if inplace:
         if res is not None:
             input._tensor = res

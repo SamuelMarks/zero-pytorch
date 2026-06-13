@@ -1,9 +1,12 @@
+from ml_switcheroo_compiler.core.config import config
+
+config.eager_mode = True
 """Tests for zero_torch math functions."""
 
-import numpy as np
-import zero_torch
-from zero_torch import Tensor
-from ml_switcheroo.tracing import _tracer
+import numpy as np  # noqa: E402
+import zero_torch  # noqa: E402
+from zero_torch import Tensor  # noqa: E402
+from zero_torch.tracing import _tracer  # noqa: E402
 
 
 def test_torch_add():
@@ -11,7 +14,7 @@ def test_torch_add():
     t1 = Tensor([1, 2])
     t2 = Tensor([3, 4])
     t3 = t1 + t2
-    np.testing.assert_allclose(t3._data, [4, 6])
+    np.testing.assert_allclose(t3.numpy(), [4, 6])
 
     _tracer.start_tracing()
     t4 = t1 + t2
@@ -24,7 +27,7 @@ def test_torch_sub():
     t1 = Tensor([3, 4])
     t2 = Tensor([1, 2])
     t3 = t1 - t2
-    np.testing.assert_allclose(t3._data, [2, 2])
+    np.testing.assert_allclose(t3.numpy(), [2, 2])
 
 
 def test_torch_mul():
@@ -32,7 +35,7 @@ def test_torch_mul():
     t1 = Tensor([1, 2])
     t2 = Tensor([3, 4])
     t3 = t1 * t2
-    np.testing.assert_allclose(t3._data, [3, 8])
+    np.testing.assert_allclose(t3.numpy(), [3, 8])
 
 
 def test_torch_div():
@@ -40,7 +43,7 @@ def test_torch_div():
     t1 = Tensor([6, 8])
     t2 = Tensor([2, 2])
     t3 = t1 / t2
-    np.testing.assert_allclose(t3._data, [3, 4])
+    np.testing.assert_allclose(t3.numpy(), [3, 4])
 
 
 def test_torch_matmul():
@@ -48,10 +51,11 @@ def test_torch_matmul():
     t1 = Tensor([[1, 2]])
     t2 = Tensor([[3], [4]])
     t3 = t1 @ t2
-    np.testing.assert_allclose(t3._data, [[11]])
+    np.testing.assert_allclose(t3.numpy(), [[11]])
 
 
 def test_torch_math_tracing():
+    config.eager_mode = False
     """Tests for test_torch_math_tracing."""
     _tracer.start_tracing()
     t1 = Tensor([[1, 2]])

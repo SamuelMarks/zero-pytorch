@@ -13,6 +13,6 @@ class ChannelShuffle(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

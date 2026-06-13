@@ -11,9 +11,9 @@ class PixelShuffle(Module):
         self.upscale_factor = upscale_factor
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class PixelUnshuffle(Module):
@@ -24,6 +24,6 @@ class PixelUnshuffle(Module):
         self.downscale_factor = downscale_factor
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

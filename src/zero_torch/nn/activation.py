@@ -30,9 +30,9 @@ class CELU(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class ELU(Module):
@@ -46,9 +46,9 @@ class ELU(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class GELU(Module):
@@ -60,9 +60,9 @@ class GELU(Module):
         self.approximate = approximate
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class GLU(Module):
@@ -74,9 +74,9 @@ class GLU(Module):
         self.dim = dim
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Hardshrink(Module):
@@ -88,9 +88,9 @@ class Hardshrink(Module):
         self.lambd = lambd
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Hardsigmoid(Module):
@@ -102,9 +102,9 @@ class Hardsigmoid(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Hardswish(Module):
@@ -116,9 +116,9 @@ class Hardswish(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Hardtanh(Module):
@@ -134,9 +134,9 @@ class Hardtanh(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LeakyReLU(Module):
@@ -149,9 +149,9 @@ class LeakyReLU(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LogSigmoid(Module):
@@ -162,9 +162,9 @@ class LogSigmoid(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Mish(Module):
@@ -176,9 +176,9 @@ class Mish(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class PReLU(Module):
@@ -191,9 +191,9 @@ class PReLU(Module):
         self.init = init
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class RReLU(Module):
@@ -209,9 +209,9 @@ class RReLU(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class ReLU6(Module):
@@ -223,9 +223,9 @@ class ReLU6(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class SELU(Module):
@@ -237,9 +237,9 @@ class SELU(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class SiLU(Module):
@@ -251,9 +251,9 @@ class SiLU(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Sigmoid(Module):
@@ -264,9 +264,9 @@ class Sigmoid(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Softplus(Module):
@@ -279,9 +279,9 @@ class Softplus(Module):
         self.threshold = threshold
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Softshrink(Module):
@@ -293,9 +293,9 @@ class Softshrink(Module):
         self.lambd = lambd
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Softsign(Module):
@@ -306,9 +306,9 @@ class Softsign(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Tanh(Module):
@@ -319,9 +319,9 @@ class Tanh(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Tanhshrink(Module):
@@ -332,9 +332,9 @@ class Tanhshrink(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Threshold(Module):
@@ -348,9 +348,9 @@ class Threshold(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Softmax(Module):
@@ -362,9 +362,9 @@ class Softmax(Module):
         self.dim = dim
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Softmax2d(Module):
@@ -375,9 +375,9 @@ class Softmax2d(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Softmin(Module):
@@ -389,9 +389,9 @@ class Softmin(Module):
         self.dim = dim
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class LogSoftmax(Module):
@@ -403,6 +403,6 @@ class LogSoftmax(Module):
         self.dim = dim
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

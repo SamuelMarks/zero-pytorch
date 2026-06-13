@@ -27,9 +27,9 @@ class Transformer(Module):
         self.nhead = nhead
 
     def forward(self, src, tgt):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class TransformerEncoder(Module):
@@ -46,9 +46,9 @@ class TransformerEncoder(Module):
         super().__init__()
 
     def forward(self, src):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class TransformerDecoder(Module):
@@ -58,9 +58,9 @@ class TransformerDecoder(Module):
         super().__init__()
 
     def forward(self, tgt, memory):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class TransformerEncoderLayer(Module):
@@ -81,9 +81,9 @@ class TransformerEncoderLayer(Module):
         super().__init__()
 
     def forward(self, src):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class TransformerDecoderLayer(Module):
@@ -104,9 +104,9 @@ class TransformerDecoderLayer(Module):
         super().__init__()
 
     def forward(self, tgt, memory):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MultiheadAttention(Module):
@@ -127,6 +127,6 @@ class MultiheadAttention(Module):
         super().__init__()
 
     def forward(self, query, key, value):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

@@ -4,7 +4,7 @@ import zero_torch
 def test_coverage_init():
     """Tests for test_coverage_init."""
     import unittest.mock as mock
-    import ml_switcheroo.ops as _ops
+    import ml_switcheroo_compiler.ops as _ops
     import zero_torch as zt
 
     t = zero_torch.Tensor([1.0])
@@ -114,7 +114,7 @@ def test_coverage_other():
 
     # hit C_CONTIGUOUS branch
     try:
-        from ml_switcheroo.core.config import config
+        from ml_switcheroo_compiler.core.config import config
 
         config.eager_mode = False
         t_contig = zero_torch.Tensor([1])
@@ -159,7 +159,7 @@ def test_coverage_other():
 def test_functional_and_tensor():
     """Tests for test_functional_and_tensor."""
     import zero_torch.nn.functional as F
-    import ml_switcheroo.nn as _nn
+    import ml_switcheroo_compiler.nn as _nn
     import unittest.mock as mock
 
     t = zero_torch.Tensor([1.0])
@@ -210,7 +210,7 @@ def test_functional_and_tensor():
         pass
 
     # Hit missing lines in tensor.py related to tracing/ProxyTensor
-    from ml_switcheroo.tracing import ProxyTensor
+    from zero_torch.tracing import ProxyTensor
 
     pt = ProxyTensor(id="foo", shape=(1,), dtype="float32")
     _ = zero_torch.Tensor(pt)
@@ -264,7 +264,7 @@ def test_functional_and_tensor():
 
     # Hit missing lines in tensor.py related to trace parsing exceptions
     try:
-        from ml_switcheroo.tracing import ProxyTensor
+        from zero_torch.tracing import ProxyTensor
 
         # A dtype that DType doesn't know about to hit Exception
         pt = ProxyTensor(id="foo3", shape=(1,), dtype="unknown_dtype")
@@ -367,7 +367,7 @@ def test_functional_and_tensor():
 def test_parameter_tracing():
     """Tests for test_parameter_tracing."""
     import zero_torch.nn as nn
-    from ml_switcheroo.tracing import _tracer
+    from zero_torch.tracing import _tracer
     import zero_torch
 
     t = zero_torch.Tensor([1.0])

@@ -1,12 +1,12 @@
 """Module."""
 
-import ml_switcheroo
+import ml_switcheroo_compiler as ml_switcheroo
 
 from .tensor import Tensor
 from . import nn
 from .autograd import no_grad, set_grad_enabled
 
-import ml_switcheroo.ops as _ops
+import ml_switcheroo_compiler.ops as _ops
 from typing import Any
 
 
@@ -324,9 +324,14 @@ def bitcast(*args, **kwargs):
     """
     if "dim" in kwargs:
         pass
-    res = getattr(_ops, "bitcast")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    op = getattr(_ops, "bitcast")
+    if isinstance(op, type):
+        op = op()
+    _args = [a._tensor if isinstance(a, Tensor) else a for a in args]
+    if len(_args) == 2:
+        kwargs["dtype"] = _args[1]
+        _args = [_args[0]]
+    res = op(*_args, **kwargs)
     return _wrap(res)
 
 
@@ -432,9 +437,14 @@ def cast(*args, **kwargs):
     """
     if "dim" in kwargs:
         pass
-    res = getattr(_ops, "cast")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    op = getattr(_ops, "cast")
+    if isinstance(op, type):
+        op = op()
+    _args = [a._tensor if isinstance(a, Tensor) else a for a in args]
+    if len(_args) == 2:
+        kwargs["dtype"] = _args[1]
+        _args = [_args[0]]
+    res = op(*_args, **kwargs)
     return _wrap(res)
 
 
@@ -723,6 +733,13 @@ def divmod(*args, **kwargs):
     res = getattr(_ops, "divmod")(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
+    if isinstance(getattr(res, "data", None), tuple):
+        import ml_switcheroo_compiler as ml_switcheroo
+
+        return tuple(
+            _wrap(ml_switcheroo.Tensor(d, res.shape, res.dtype, res.device))
+            for d in res.data
+        )
     return _wrap(res)
 
 
@@ -1152,9 +1169,17 @@ def frexp(*args, **kwargs):
     """
     if "dim" in kwargs:
         pass
-    res = getattr(_ops, "frexp")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    op = getattr(_ops, "frexp")
+    if isinstance(op, type):
+        op = op()
+    res = op(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    if isinstance(getattr(res, "data", None), tuple):
+        import ml_switcheroo_compiler as ml_switcheroo
+
+        return tuple(
+            _wrap(ml_switcheroo.Tensor(d, res.shape, res.dtype, res.device))
+            for d in res.data
+        )
     return _wrap(res)
 
 
@@ -3180,7 +3205,234 @@ def tensor(data: Any, *args: Any, **kwargs: Any) -> Tensor:
     return Tensor(data, *args, **kwargs)
 
 
-from ml_switcheroo.core.dtype import DType
+from ml_switcheroo_compiler.core.dtype import DType
 
 float32 = DType.Float32
 int32 = DType.Int32
+
+
+def logit(input, eps=None, **kwargs):
+    from zero_torch.tensor import _to_tensor
+
+    input = _to_tensor(input)
+    if eps is not None:
+        input = getattr(_ops, "clamp")(input, eps, 1.0 - eps)
+    return _wrap(getattr(_ops, "log")(input / (1.0 - input)))
+
+
+def signbit(input, **kwargs):
+    return input < 0
+
+
+def true_divide(dividend, divisor, **kwargs):
+    res = getattr(_ops, "true_divide")(
+        *[a._tensor if isinstance(a, Tensor) else a for a in (dividend, divisor)],
+        **kwargs,
+    )
+    return _wrap(res)
+
+
+from zero_torch.tensor import _to_tensor, _wrap
+
+
+def xlogy(x, y, **kwargs):
+    x_t = _to_tensor(x)
+    y_t = _to_tensor(y)
+    res = getattr(_ops, "where")(
+        x_t == 0, _to_tensor(0.0), x_t * getattr(_ops, "log")(y_t)
+    )
+    return _wrap(res)
+
+
+def mvlgamma(input, p, **kwargs):
+    # Multivariate log-gamma
+    import math
+
+    res = input * 0.0
+    for i in range(1, p + 1):
+        res = res + getattr(_ops, "lgamma")(input + (1 - i) / 2.0)
+    res = res + (p * (p - 1) / 4.0) * math.log(math.pi)
+    return _wrap(res)
+
+
+def nan_to_num(input, nan=0.0, posinf=None, neginf=None, **kwargs):
+    import math
+
+    input_t = _to_tensor(input)
+    res = input_t
+
+    if nan is not None:
+        res = getattr(_ops, "where")(getattr(_ops, "isnan")(res), _to_tensor(nan), res)
+
+    # Actually, for posinf/neginf, ML Switcheroo compiler doesn't have isinf with sign easily exposed except isinf & >0
+    if posinf is not None:
+        res = getattr(_ops, "where")(
+            getattr(_ops, "logical_and")(getattr(_ops, "isinf")(res), res > 0),
+            _to_tensor(posinf),
+            res,
+        )
+    else:
+        # Default posinf in PyTorch is max of dtype
+        res = getattr(_ops, "where")(
+            getattr(_ops, "logical_and")(getattr(_ops, "isinf")(res), res > 0),
+            _to_tensor(3.402823466e38),
+            res,
+        )
+
+    if neginf is not None:
+        res = getattr(_ops, "where")(
+            getattr(_ops, "logical_and")(getattr(_ops, "isinf")(res), res < 0),
+            _to_tensor(neginf),
+            res,
+        )
+    else:
+        res = getattr(_ops, "where")(
+            getattr(_ops, "logical_and")(getattr(_ops, "isinf")(res), res < 0),
+            _to_tensor(-3.402823466e38),
+            res,
+        )
+
+    return _wrap(res)
+
+
+import random
+
+_RANDOM_SEED = None
+
+
+def manual_seed(seed):
+    global _RANDOM_SEED
+    _RANDOM_SEED = seed
+    random.seed(seed)
+    return seed
+
+
+def _gen_random_list(shape, gen_fn):
+    if len(shape) == 0:
+        return gen_fn()
+    return [_gen_random_list(shape[1:], gen_fn) for _ in range(shape[0])]
+
+
+def rand(*size, **kwargs):
+    if len(size) == 1 and isinstance(size[0], (tuple, list)):
+        size = size[0]
+    shape = tuple(int(s) for s in size)
+    from zero_torch.tensor import _to_tensor, _wrap
+    from zero_torch.tracing import _tracer
+
+    if ml_switcheroo.core.config.eager_mode:
+        data = _gen_random_list(shape, random.random)
+        return _wrap(_to_tensor(data))
+    else:
+        import uuid
+        from ml_switcheroo_compiler.ir.core import IRNode
+
+        out_id = str(uuid.uuid4())
+        node = IRNode(
+            id=out_id,
+            op_type="RandomUniform",
+            attributes={"shape": list(shape), "high": 1.0, "low": 0.0},
+            shape_metadata=shape,
+        )
+        _tracer.add_node(node)
+        from zero_torch.tracing import ProxyTensor
+
+        pt = ProxyTensor(id=out_id, shape=shape, dtype="float32")
+        from ml_switcheroo_compiler.core.device import Device, DeviceType
+
+        t = ml_switcheroo.Tensor(
+            data=pt,
+            shape=shape,
+            dtype=ml_switcheroo.core.dtype.DType.Float32,
+            device=Device(DeviceType.CPU, 0),
+        )
+        return _wrap(t)
+
+
+def randn(*size, **kwargs):
+    if len(size) == 1 and isinstance(size[0], (tuple, list)):
+        size = size[0]
+    shape = tuple(int(s) for s in size)
+    from zero_torch.tensor import _to_tensor, _wrap
+    from zero_torch.tracing import _tracer
+
+    if ml_switcheroo.core.config.eager_mode:
+        data = _gen_random_list(shape, random.gauss)
+        return _wrap(_to_tensor(data))
+    else:
+        import uuid
+        from ml_switcheroo_compiler.ir.core import IRNode
+
+        out_id = str(uuid.uuid4())
+        node = IRNode(
+            id=out_id,
+            op_type="RandomNormal",
+            attributes={"shape": list(shape), "mean": 0.0, "scale": 1.0},
+            shape_metadata=shape,
+        )
+        _tracer.add_node(node)
+        from zero_torch.tracing import ProxyTensor
+
+        pt = ProxyTensor(id=out_id, shape=shape, dtype="float32")
+        from ml_switcheroo_compiler.core.device import Device, DeviceType
+
+        t = ml_switcheroo.Tensor(
+            data=pt,
+            shape=shape,
+            dtype=ml_switcheroo.core.dtype.DType.Float32,
+            device=Device(DeviceType.CPU, 0),
+        )
+        return _wrap(t)
+
+
+def randint(low, high=None, size=None, **kwargs):
+    if size is None:
+        if isinstance(high, (tuple, list)):
+            size = high
+            high = low
+            low = 0
+        else:
+            size = ()
+    else:
+        if isinstance(size, int):
+            size = (size,)
+    if high is None:
+        high = low
+        low = 0
+    shape = tuple(int(s) for s in size)
+
+    from zero_torch.tensor import _to_tensor, _wrap
+    from zero_torch.tracing import _tracer
+
+    if ml_switcheroo.core.config.eager_mode:
+        data = _gen_random_list(shape, lambda: random.randint(low, high - 1))
+        return _wrap(_to_tensor(data, dtype=ml_switcheroo.core.dtype.DType.Int64))
+    else:
+        import uuid
+        from ml_switcheroo_compiler.ir.core import IRNode
+
+        out_id = str(uuid.uuid4())
+        node = IRNode(
+            id=out_id,
+            op_type="RandomUniform",
+            attributes={
+                "shape": list(shape),
+                "high": float(high),
+                "low": float(low),
+                "dtype": 7,
+            },  # 7 = int64 in ONNX usually, or just trust dtype
+            shape_metadata=shape,
+        )
+        _tracer.add_node(node)
+        from zero_torch.tracing import ProxyTensor
+
+        pt = ProxyTensor(id=out_id, shape=shape, dtype="int64")
+        from ml_switcheroo_compiler.core.device import Device, DeviceType
+
+        t = ml_switcheroo.Tensor(
+            data=pt,
+            shape=shape,
+            dtype=ml_switcheroo.core.dtype.DType.Int64,
+            device=Device(DeviceType.CPU, 0),
+        )
+        return _wrap(t)

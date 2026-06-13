@@ -37,9 +37,9 @@ class _Loss(Module):
         Returns:
             Tensor: The computed loss.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class _WeightedLoss(_Loss):
@@ -164,9 +164,9 @@ class CrossEntropyLoss(_WeightedLoss):
         Raises:
             UnimplementedMathError: If the math operations are not implemented.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
     def __init__(
         self,
@@ -488,9 +488,9 @@ class HuberLoss(_Loss):
         self.delta = delta
 
     def forward(self, input, target):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MarginRankingLoss(_Loss):
@@ -507,9 +507,9 @@ class MarginRankingLoss(_Loss):
         self.margin = margin
 
     def forward(self, input1, input2, target):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MultiLabelMarginLoss(_Loss):
@@ -519,9 +519,9 @@ class MultiLabelMarginLoss(_Loss):
         super().__init__(size_average, reduce, reduction)
 
     def forward(self, input, target):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MultiLabelSoftMarginLoss(_WeightedLoss):
@@ -533,9 +533,9 @@ class MultiLabelSoftMarginLoss(_WeightedLoss):
         super().__init__(weight, size_average, reduce, reduction)
 
     def forward(self, input, target):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class MultiMarginLoss(_WeightedLoss):
@@ -555,6 +555,6 @@ class MultiMarginLoss(_WeightedLoss):
         self.margin = margin
 
     def forward(self, input, target):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

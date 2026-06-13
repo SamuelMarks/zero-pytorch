@@ -2,7 +2,15 @@
 
 from typing import Union, Optional
 from zero_torch.tensor import Tensor
-import ml_switcheroo.nn as _nn
+import ml_switcheroo_compiler.nn as _nn
+
+
+def _get_nn_op(name):
+    import ml_switcheroo_compiler.core.errors
+
+    if not hasattr(_nn, name):
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+    return getattr(_nn, name)
 
 
 def adaptive_avg_pool1d(input: Tensor, output_size: Union[int, tuple]):
@@ -16,7 +24,7 @@ def adaptive_avg_pool1d(input: Tensor, output_size: Union[int, tuple]):
         Tensor: The result of the adaptive_avg_pool1d operation.
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = getattr(_nn, "adaptive_avg_pool1d")(input._tensor, output_size=output_size)
+    res = _get_nn_op("adaptive_avg_pool1d")(input._tensor, output_size=output_size)
     return Tensor(res) if res is not None else None
 
 
@@ -31,7 +39,7 @@ def adaptive_avg_pool2d(input: Tensor, output_size: Union[int, tuple]):
         Tensor: The result of the adaptive_avg_pool2d operation.
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = getattr(_nn, "adaptive_avg_pool2d")(input._tensor, output_size=output_size)
+    res = _get_nn_op("adaptive_avg_pool2d")(input._tensor, output_size=output_size)
     return Tensor(res) if res is not None else None
 
 
@@ -46,7 +54,7 @@ def adaptive_avg_pool3d(input: Tensor, output_size: Union[int, tuple]):
         Tensor: The result of the adaptive_avg_pool3d operation.
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = getattr(_nn, "adaptive_avg_pool3d")(input._tensor, output_size=output_size)
+    res = _get_nn_op("adaptive_avg_pool3d")(input._tensor, output_size=output_size)
     return Tensor(res) if res is not None else None
 
 
@@ -64,7 +72,7 @@ def adaptive_max_pool1d(
         Union[Tensor, tuple[Tensor, Tensor]]: The result of the adaptive_max_pool1d operation.
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = getattr(_nn, "adaptive_max_pool1d")(
+    res = _get_nn_op("adaptive_max_pool1d")(
         input._tensor, output_size=output_size, return_indices=return_indices
     )
     if return_indices:
@@ -88,7 +96,7 @@ def adaptive_max_pool2d(
         Union[Tensor, tuple[Tensor, Tensor]]: The result of the adaptive_max_pool2d operation.
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = getattr(_nn, "adaptive_max_pool2d")(
+    res = _get_nn_op("adaptive_max_pool2d")(
         input._tensor, output_size=output_size, return_indices=return_indices
     )
     if return_indices:
@@ -112,7 +120,7 @@ def adaptive_max_pool3d(
         Union[Tensor, tuple[Tensor, Tensor]]: The result of the adaptive_max_pool3d operation.
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = getattr(_nn, "adaptive_max_pool3d")(
+    res = _get_nn_op("adaptive_max_pool3d")(
         input._tensor, output_size=output_size, return_indices=return_indices
     )
     if return_indices:
@@ -132,7 +140,9 @@ def fractional_max_pool2d(*args, **kwargs):
     Returns:
         Any: The result of the fractional_max_pool2d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def avg_pool1d(
@@ -160,7 +170,7 @@ def avg_pool1d(
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
     # Ignore count_include_pad and divisor_override for ML Switcheroo basic support
-    res = getattr(_nn, "avg_pool1d")(
+    res = _get_nn_op("avg_pool1d")(
         input._tensor,
         kernel_size=kernel_size,
         stride=stride,
@@ -180,7 +190,9 @@ def fractional_max_pool3d(*args, **kwargs):
     Returns:
         Any: The result of the fractional_max_pool3d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def avg_pool2d(
@@ -208,7 +220,7 @@ def avg_pool2d(
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
     # Ignore count_include_pad and divisor_override for ML Switcheroo basic support
-    res = getattr(_nn, "avg_pool2d")(
+    res = _get_nn_op("avg_pool2d")(
         input._tensor,
         kernel_size=kernel_size,
         stride=stride,
@@ -228,7 +240,9 @@ def lp_pool1d(*args, **kwargs):
     Returns:
         Any: The result of the lp_pool1d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def avg_pool3d(
@@ -256,7 +270,7 @@ def avg_pool3d(
     """
     input = Tensor(input) if not isinstance(input, Tensor) else input
     # Ignore count_include_pad and divisor_override for ML Switcheroo basic support
-    res = getattr(_nn, "avg_pool3d")(
+    res = _get_nn_op("avg_pool3d")(
         input._tensor,
         kernel_size=kernel_size,
         stride=stride,
@@ -276,7 +290,9 @@ def lp_pool2d(*args, **kwargs):
     Returns:
         Any: The result of the lp_pool2d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def max_pool1d(*args, **kwargs):
@@ -289,7 +305,9 @@ def max_pool1d(*args, **kwargs):
     Returns:
         Any: The result of the max_pool1d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def lp_pool3d(*args, **kwargs):
@@ -302,7 +320,9 @@ def lp_pool3d(*args, **kwargs):
     Returns:
         Any: The result of the lp_pool3d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def max_pool2d(*args, **kwargs):
@@ -315,7 +335,9 @@ def max_pool2d(*args, **kwargs):
     Returns:
         Any: The result of the max_pool2d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def max_unpool1d(*args, **kwargs):
@@ -328,7 +350,9 @@ def max_unpool1d(*args, **kwargs):
     Returns:
         Any: The result of the max_unpool1d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def max_pool3d(*args, **kwargs):
@@ -341,7 +365,9 @@ def max_pool3d(*args, **kwargs):
     Returns:
         Any: The result of the max_pool3d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def max_unpool2d(*args, **kwargs):
@@ -354,7 +380,9 @@ def max_unpool2d(*args, **kwargs):
     Returns:
         Any: The result of the max_unpool2d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def max_unpool3d(*args, **kwargs):
@@ -367,4 +395,6 @@ def max_unpool3d(*args, **kwargs):
     Returns:
         Any: The result of the max_unpool3d operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()

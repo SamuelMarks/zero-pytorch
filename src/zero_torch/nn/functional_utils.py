@@ -2,7 +2,15 @@
 
 from typing import Optional
 from zero_torch.tensor import Tensor
-import ml_switcheroo.nn as _nn
+import ml_switcheroo_compiler.nn as _nn
+
+
+def _get_nn_op(name):
+    import ml_switcheroo_compiler.core.errors
+
+    if not hasattr(_nn, name):
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+    return getattr(_nn, name)
 
 
 def adaptive_log_softmax_with_loss(
@@ -39,7 +47,7 @@ def adaptive_log_softmax_with_loss(
         else None
     )
 
-    res = getattr(_nn, "adaptive_log_softmax_with_loss")(
+    res = _get_nn_op("adaptive_log_softmax_with_loss")(
         input._tensor,
         target._tensor,
         in_features=in_features,

@@ -32,9 +32,9 @@ class Dropout(Module):
         Returns:
             Tensor: The output tensor with elements randomly zeroed out.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Dropout1d(Module):
@@ -64,9 +64,9 @@ class Dropout1d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Dropout2d(Module):
@@ -96,9 +96,9 @@ class Dropout2d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class Dropout3d(Module):
@@ -128,9 +128,9 @@ class Dropout3d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class AlphaDropout(Module):
@@ -194,6 +194,6 @@ class FeatureAlphaDropout(Module):
         Returns:
             Tensor: The output tensor with feature alpha dropout applied.
         """
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError

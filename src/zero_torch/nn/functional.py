@@ -1,7 +1,7 @@
 "Functional NN API."
 
 from zero_torch.tensor import Tensor, _wrap
-import ml_switcheroo.nn as _nn
+import ml_switcheroo_compiler.nn as _nn
 
 
 def conv2d(*args, **kwargs):

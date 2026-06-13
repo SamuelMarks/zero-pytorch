@@ -11,7 +11,9 @@ def batch_norm(*args, **kwargs):
     Returns:
         Any: The result of the batch_norm operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def layer_norm(*args, **kwargs):
@@ -24,7 +26,9 @@ def layer_norm(*args, **kwargs):
     Returns:
         Any: The result of the layer_norm operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def instance_norm(*args, **kwargs):
@@ -37,7 +41,9 @@ def instance_norm(*args, **kwargs):
     Returns:
         Any: The result of the instance_norm operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def normalize(*args, **kwargs):
@@ -50,7 +56,9 @@ def normalize(*args, **kwargs):
     Returns:
         Any: The result of the normalize operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def rms_norm(*args, **kwargs):
@@ -63,4 +71,6 @@ def rms_norm(*args, **kwargs):
     Returns:
         Any: The result of the rms_norm operation.
     """
-    pass
+    import ml_switcheroo_compiler.core.errors
+
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()

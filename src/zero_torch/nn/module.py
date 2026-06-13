@@ -2,8 +2,8 @@
 
 from typing import Iterator, Tuple, Any
 from zero_torch.tensor import Tensor
-from ml_switcheroo.tracing import _tracer
-from ml_switcheroo.ir.core import LogicalNode
+from zero_torch.tracing import _tracer
+from ml_switcheroo_compiler.ir.core import LogicalNode
 import uuid
 
 
@@ -42,8 +42,8 @@ class Parameter(Tensor):
                 shape_metadata=self.shape,
             )
             _tracer.add_node(node)
-            from ml_switcheroo.tracing import ProxyTensor
-            from ml_switcheroo import Tensor as SwitcherooTensor
+            from zero_torch.tracing import ProxyTensor
+            from ml_switcheroo_compiler import Tensor as SwitcherooTensor
 
             pt = ProxyTensor(id=out_id, shape=self.shape, dtype=str(self.dtype))
             return SwitcherooTensor(
@@ -276,9 +276,9 @@ class ModuleDict(Module):
         pass
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
 
 
 class ParameterDict(Module):
@@ -292,6 +292,6 @@ class ParameterDict(Module):
         pass
 
     def forward(self, input):
-        import ml_switcheroo.core.errors
+        import ml_switcheroo_compiler.core.errors
 
-        raise ml_switcheroo.core.errors.UnimplementedMathError
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
