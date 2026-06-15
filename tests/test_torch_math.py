@@ -1,12 +1,12 @@
+"""Tests for zero_torch math functions."""
+
+import numpy as np
+import zero_torch
+from zero_torch import Tensor
+from zero_torch.tracing import _tracer
 from ml_switcheroo_compiler.core.config import config
 
 config.eager_mode = True
-"""Tests for zero_torch math functions."""
-
-import numpy as np  # noqa: E402
-import zero_torch  # noqa: E402
-from zero_torch import Tensor  # noqa: E402
-from zero_torch.tracing import _tracer  # noqa: E402
 
 
 def test_torch_add():

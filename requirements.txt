@@ -1,1 +1,1 @@
-ml-switcheroo-compiler
+ml-switcheroo-compiler @ git+https://github.com/SamuelMarks/ml-switcheroo-compiler.git@master

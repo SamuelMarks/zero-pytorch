@@ -27,7 +27,7 @@ class Dataset(Generic[_T_co]):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        self._dummy = None
 
     def __len__(self) -> int:
         """Returns the size of the dataset.
@@ -35,7 +35,7 @@ class Dataset(Generic[_T_co]):
         Returns:
             int: Size of the dataset.
         """
-        pass
+        return 0
 
     def __getitem__(self, idx: int) -> _T_co:
         """Fetches a data sample for a given key.
@@ -46,7 +46,7 @@ class Dataset(Generic[_T_co]):
         Returns:
             _T_co: The data sample.
         """
-        pass
+        return None
 
 
 class Sampler(Generic[_T_co]):
@@ -61,7 +61,7 @@ class Sampler(Generic[_T_co]):
         Args:
             data_source (Dataset, optional): Dataset to sample from. Defaults to None.
         """
-        pass
+        self._dummy = None
 
 
 class BatchSampler(Sampler[List[int]]):
@@ -77,7 +77,7 @@ class BatchSampler(Sampler[List[int]]):
             batch_size (int): Size of mini-batch.
             drop_last (bool): If True, the sampler will drop the last batch if its size would be less than batch_size.
         """
-        pass
+        self._dummy = None
 
     def __iter__(self) -> Iterator[List[int]]:
         """Iterates over batches of indices.
@@ -85,7 +85,7 @@ class BatchSampler(Sampler[List[int]]):
         Yields:
             Iterator[List[int]]: An iterator containing lists of indices.
         """
-        pass
+        return iter([])
 
     def __len__(self) -> int:
         """Returns the number of batches.
@@ -93,7 +93,7 @@ class BatchSampler(Sampler[List[int]]):
         Returns:
             int: The number of batches.
         """
-        pass
+        return 0
 
 
 def default_collate(batch: List[Any]) -> Any:
@@ -105,7 +105,7 @@ def default_collate(batch: List[Any]) -> Any:
     Returns:
         Any: Collated data batch.
     """
-    pass
+    return None
 
 
 class DataLoader(Generic[_T_co]):
@@ -153,7 +153,7 @@ class DataLoader(Generic[_T_co]):
             pin_memory_device (str, optional): The device to pin memory to if pin_memory is True. Defaults to "".
             in_order (bool, optional): Yield samples in order. Defaults to True.
         """
-        pass
+        self._dummy = None
 
     def __iter__(self) -> Iterator[Any]:
         """Returns an iterator for the data loader.
@@ -161,4 +161,4 @@ class DataLoader(Generic[_T_co]):
         Returns:
             Iterator[Any]: An iterator that yields batches of data.
         """
-        pass
+        return iter([])

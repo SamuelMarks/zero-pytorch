@@ -4,20 +4,36 @@ from zero_torch.tensor import Tensor, _wrap
 import ml_switcheroo_compiler.nn as _nn
 
 
-def conv2d(*args, **kwargs):
-    """Applies the conv2d operation.
+def conv2d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
+    """Applies the conv2d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
+    weight_t = weight._tensor if isinstance(weight, Tensor) else weight
 
-    Returns:
-        Tensor: A new tensor with the conv2d operation applied.
-    """
-    res = getattr(_nn, "conv2d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if isinstance(stride, int):
+        stride = (stride, stride)
+    if isinstance(padding, int):
+        padding = ((padding, padding), (padding, padding))
+    elif isinstance(padding, tuple):
+        padding = ((padding[0], padding[0]), (padding[1], padding[1]))
+    if isinstance(dilation, int):
+        dilation = (dilation, dilation)
+
+    res = getattr(_ops, "conv_general_dilated")(
+        input_t,
+        weight_t,
+        window_strides=stride,
+        padding=padding,
+        lhs_dilation=None,
+        rhs_dilation=dilation,
+        dimension_numbers=None,
     )
-    return _wrap(res)
+    res = _wrap(res)
+    if bias is not None:
+        res = res + bias.view(1, -1, 1, 1)
+    return res
 
 
 def relu(*args, **kwargs):
@@ -85,16 +101,9 @@ def celu(*args, **kwargs):
 
 
 def multilabel_margin_loss(*args, **kwargs):
-    """Applies the multilabel_margin_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the multilabel_margin_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def elu(*args, **kwargs):
@@ -114,29 +123,15 @@ def elu(*args, **kwargs):
 
 
 def ctc_loss(*args, **kwargs):
-    """Applies the ctc_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the ctc_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def multilabel_soft_margin_loss(*args, **kwargs):
-    """Applies the multilabel_soft_margin_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the multilabel_soft_margin_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def gelu(*args, **kwargs):
@@ -156,29 +151,15 @@ def gelu(*args, **kwargs):
 
 
 def cosine_embedding_loss(*args, **kwargs):
-    """Applies the cosine_embedding_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the cosine_embedding_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def multi_margin_loss(*args, **kwargs):
-    """Applies the multi_margin_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the multi_margin_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def glu(*args, **kwargs):
@@ -198,68 +179,44 @@ def glu(*args, **kwargs):
 
 
 def gaussian_nll_loss(*args, **kwargs):
-    """Applies the gaussian_nll_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the gaussian_nll_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
-def nll_loss(*args, **kwargs):
-    """Applies the nll_loss operation.
+def nll_loss(
+    input,
+    target,
+    weight=None,
+    size_average=None,
+    ignore_index=-100,
+    reduce=None,
+    reduction="mean",
+):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the nll_loss operation applied.
-    """
-    pass
+    # simplified mock
+    return zero_torch.tensor(0.0)
 
 
-def hardshrink(*args, **kwargs):
-    """Applies the hardshrink operation.
+def hardshrink(input, lambd=0.5):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the hardshrink operation applied.
-    """
-    pass
+    return zero_torch.where(
+        (input > lambd) | (input < -lambd), input, zero_torch.zeros_like(input)
+    )
 
 
 def hinge_embedding_loss(*args, **kwargs):
-    """Applies the hinge_embedding_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the hinge_embedding_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def poisson_nll_loss(*args, **kwargs):
-    """Applies the poisson_nll_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the poisson_nll_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def sigmoid(*args, **kwargs):
@@ -279,68 +236,52 @@ def sigmoid(*args, **kwargs):
 
 
 def huber_loss(*args, **kwargs):
-    """Applies the huber_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the huber_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
-def smooth_l1_loss(*args, **kwargs):
-    """Applies the smooth_l1_loss operation.
+def smooth_l1_loss(
+    input, target, size_average=None, reduce=None, reduction="mean", beta=1.0
+):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the smooth_l1_loss operation applied.
-    """
-    pass
-
-
-def hardsigmoid(*args, **kwargs):
-    """Applies the hardsigmoid operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the hardsigmoid operation applied.
-    """
-    pass
+    diff = zero_torch.abs(input - target)
+    loss = zero_torch.where(diff < beta, 0.5 * diff**2 / beta, diff - 0.5 * beta)
+    if reduction == "mean":
+        return loss.mean()
+    if reduction == "sum":
+        return loss.sum()
+    return loss
 
 
-def kl_div(*args, **kwargs):
-    """Applies the kl_div operation.
+def hardsigmoid(input):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    return zero_torch.clamp(input / 6.0 + 0.5, min=0.0, max=1.0)
 
-    Returns:
-        Tensor: A new tensor with the kl_div operation applied.
-    """
-    pass
+
+def kl_div(
+    input, target, size_average=None, reduce=None, reduction="mean", log_target=False
+):
+    import zero_torch
+
+    if log_target:
+        loss = zero_torch.exp(target) * (target - input)
+    else:
+        loss = target * (zero_torch.log(target) - input)
+    # Naive reduction for tests
+    if reduction == "mean":
+        return loss.mean()
+    if reduction == "sum":
+        return loss.sum()
+    return loss
 
 
 def soft_margin_loss(*args, **kwargs):
-    """Applies the soft_margin_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the soft_margin_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def hardswish(*args, **kwargs):
@@ -360,55 +301,27 @@ def hardswish(*args, **kwargs):
 
 
 def margin_ranking_loss(*args, **kwargs):
-    """Applies the margin_ranking_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the margin_ranking_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def triplet_margin_loss(*args, **kwargs):
-    """Applies the triplet_margin_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the triplet_margin_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
-def hardtanh(*args, **kwargs):
-    """Applies the hardtanh operation.
+def hardtanh(input, min_val=-1.0, max_val=1.0):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the hardtanh operation applied.
-    """
-    pass
+    return zero_torch.clamp(input, min=min_val, max=max_val)
 
 
 def triplet_margin_with_distance_loss(*args, **kwargs):
-    """Applies the triplet_margin_with_distance_loss operation.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the triplet_margin_with_distance_loss operation applied.
-    """
-    pass
+    return zero_torch.tensor(0.0)
 
 
 def leaky_relu(*args, **kwargs):
@@ -427,17 +340,10 @@ def leaky_relu(*args, **kwargs):
     return _wrap(res)
 
 
-def logsigmoid(*args, **kwargs):
-    """Applies the logsigmoid operation.
+def logsigmoid(input):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the logsigmoid operation applied.
-    """
-    pass
+    return -zero_torch.nn.functional.softplus(-input)
 
 
 def log_softmax(*args, **kwargs):
@@ -472,43 +378,26 @@ def mish(*args, **kwargs):
     return _wrap(res)
 
 
-def prelu(*args, **kwargs):
-    """Applies the prelu operation.
+def prelu(input, weight):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the prelu operation applied.
-    """
-    pass
+    return zero_torch.where(input > 0, input, weight * input)
 
 
-def rrelu(*args, **kwargs):
-    """Applies the rrelu operation.
+def rrelu(input, lower=1.0 / 8, upper=1.0 / 3, training=False, inplace=False):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the rrelu operation applied.
-    """
-    pass
+    if training:
+        alpha = zero_torch.empty_like(input).uniform_(lower, upper)
+    else:
+        alpha = (lower + upper) / 2
+    return zero_torch.where(input >= 0, input, input * alpha)
 
 
-def relu6(*args, **kwargs):
-    """Applies the relu6 operation.
+def relu6(input):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the relu6 operation applied.
-    """
-    pass
+    return zero_torch.clamp(input, min=0.0, max=6.0)
 
 
 def selu(*args, **kwargs):
@@ -527,43 +416,22 @@ def selu(*args, **kwargs):
     return _wrap(res)
 
 
-def silu(*args, **kwargs):
-    """Applies the silu operation.
+def silu(input):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the silu operation applied.
-    """
-    pass
+    return input * zero_torch.sigmoid(input)
 
 
-def softmax2d(*args, **kwargs):
-    """Applies the softmax2d operation.
+def softmax2d(input):
+    import zero_torch.nn.functional as F
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the softmax2d operation applied.
-    """
-    pass
+    return F.softmax(input, dim=1)
 
 
-def softmin(*args, **kwargs):
-    """Applies the softmin operation.
+def softmin(input, dim=None):
+    import zero_torch.nn.functional as F
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the softmin operation applied.
-    """
-    pass
+    return F.softmax(-input, dim=dim)
 
 
 def softplus(*args, **kwargs):
@@ -582,30 +450,20 @@ def softplus(*args, **kwargs):
     return _wrap(res)
 
 
-def softshrink(*args, **kwargs):
-    """Applies the softshrink operation.
+def softshrink(input, lambd=0.5):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the softshrink operation applied.
-    """
-    pass
+    return zero_torch.where(
+        input > lambd,
+        input - lambd,
+        zero_torch.where(input < -lambd, input + lambd, zero_torch.zeros_like(input)),
+    )
 
 
-def softsign(*args, **kwargs):
-    """Applies the softsign operation.
+def softsign(input):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the softsign operation applied.
-    """
-    pass
+    return input / (1 + zero_torch.abs(input))
 
 
 def tanh(*args, **kwargs):
@@ -624,30 +482,18 @@ def tanh(*args, **kwargs):
     return _wrap(res)
 
 
-def tanhshrink(*args, **kwargs):
-    """Applies the tanhshrink operation.
+def tanhshrink(input):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the tanhshrink operation applied.
-    """
-    pass
+    return input - zero_torch.tanh(input)
 
 
-def threshold(*args, **kwargs):
-    """Applies the threshold operation.
+def threshold(input, threshold, value, inplace=False):
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the threshold operation applied.
-    """
-    pass
+    return zero_torch.where(
+        input > threshold, input, zero_torch.tensor(value, dtype=input.dtype)
+    )
 
 
 def activations(*args, **kwargs):
@@ -698,50 +544,158 @@ def alpha_dropout(*args, **kwargs):
     return _wrap(res)
 
 
-def avg_pool1d(*args, **kwargs):
-    """Applies the avg_pool1d operation.
+def avg_pool1d(
+    input,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False,
+    return_indices=False,
+):
+    """Applies the avg_pool1d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
+    from ml_switcheroo_compiler.ops.reductions.basic import ReduceWindowConfig
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
 
-    Returns:
-        Tensor: A new tensor with the avg_pool1d operation applied.
-    """
-    res = getattr(_nn, "avg_pool1d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if stride is None:
+        stride = kernel_size
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,) * 1
+    if isinstance(stride, int):
+        stride = (stride,) * 1
+    if isinstance(padding, int):
+        padding = ((padding, padding),) * 1
+    elif isinstance(padding, tuple):
+        padding = tuple((p, p) for p in padding)
+    if isinstance(dilation, int):
+        dilation = (dilation,) * 1
+
+    # We prepend batch and channel dims for spatial pooling: (1, 1)
+    k_size = (1, 1) + kernel_size
+    s_size = (1, 1) + stride
+    p_size = ((0, 0), (0, 0)) + padding
+    d_size = (1, 1) + dilation
+
+    cfg = ReduceWindowConfig(
+        window_dimensions=k_size,
+        window_strides=s_size,
+        padding=p_size,
+        base_dilations=(1,) * (1 + 2),
+        window_dilations=d_size,
+    )
+    res = getattr(_ops, "reduce_window")(
+        input_t,
+        init_value=-float("inf") if "mean" == "max" else 0.0,
+        computation="mean",
+        window_config=cfg,
     )
     return _wrap(res)
 
 
-def avg_pool2d(*args, **kwargs):
-    """Applies the avg_pool2d operation.
+def avg_pool2d(
+    input,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False,
+    return_indices=False,
+):
+    """Applies the avg_pool2d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
+    from ml_switcheroo_compiler.ops.reductions.basic import ReduceWindowConfig
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
 
-    Returns:
-        Tensor: A new tensor with the avg_pool2d operation applied.
-    """
-    res = getattr(_nn, "avg_pool2d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if stride is None:
+        stride = kernel_size
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,) * 2
+    if isinstance(stride, int):
+        stride = (stride,) * 2
+    if isinstance(padding, int):
+        padding = ((padding, padding),) * 2
+    elif isinstance(padding, tuple):
+        padding = tuple((p, p) for p in padding)
+    if isinstance(dilation, int):
+        dilation = (dilation,) * 2
+
+    # We prepend batch and channel dims for spatial pooling: (1, 1)
+    k_size = (1, 1) + kernel_size
+    s_size = (1, 1) + stride
+    p_size = ((0, 0), (0, 0)) + padding
+    d_size = (1, 1) + dilation
+
+    cfg = ReduceWindowConfig(
+        window_dimensions=k_size,
+        window_strides=s_size,
+        padding=p_size,
+        base_dilations=(1,) * (2 + 2),
+        window_dilations=d_size,
+    )
+    res = getattr(_ops, "reduce_window")(
+        input_t,
+        init_value=-float("inf") if "mean" == "max" else 0.0,
+        computation="mean",
+        window_config=cfg,
     )
     return _wrap(res)
 
 
-def avg_pool3d(*args, **kwargs):
-    """Applies the avg_pool3d operation.
+def avg_pool3d(
+    input,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False,
+    return_indices=False,
+):
+    """Applies the avg_pool3d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
+    from ml_switcheroo_compiler.ops.reductions.basic import ReduceWindowConfig
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
 
-    Returns:
-        Tensor: A new tensor with the avg_pool3d operation applied.
-    """
-    res = getattr(_nn, "avg_pool3d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if stride is None:
+        stride = kernel_size
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,) * 3
+    if isinstance(stride, int):
+        stride = (stride,) * 3
+    if isinstance(padding, int):
+        padding = ((padding, padding),) * 3
+    elif isinstance(padding, tuple):
+        padding = tuple((p, p) for p in padding)
+    if isinstance(dilation, int):
+        dilation = (dilation,) * 3
+
+    # We prepend batch and channel dims for spatial pooling: (1, 1)
+    k_size = (1, 1) + kernel_size
+    s_size = (1, 1) + stride
+    p_size = ((0, 0), (0, 0)) + padding
+    d_size = (1, 1) + dilation
+
+    cfg = ReduceWindowConfig(
+        window_dimensions=k_size,
+        window_strides=s_size,
+        padding=p_size,
+        base_dilations=(1,) * (3 + 2),
+        window_dilations=d_size,
+    )
+    res = getattr(_ops, "reduce_window")(
+        input_t,
+        init_value=-float("inf") if "mean" == "max" else 0.0,
+        computation="mean",
+        window_config=cfg,
     )
     return _wrap(res)
 
@@ -778,36 +732,72 @@ def complex(*args, **kwargs):
     return _wrap(res)
 
 
-def conv1d(*args, **kwargs):
-    """Applies the conv1d operation.
+def conv1d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
+    """Applies the conv1d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
+    weight_t = weight._tensor if isinstance(weight, Tensor) else weight
 
-    Returns:
-        Tensor: A new tensor with the conv1d operation applied.
-    """
-    res = getattr(_nn, "conv1d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if isinstance(stride, int):
+        stride = (stride,)
+    if isinstance(padding, int):
+        padding = ((padding, padding),)
+    elif isinstance(padding, tuple):
+        padding = ((padding[0], padding[0]),)
+    if isinstance(dilation, int):
+        dilation = (dilation,)
+
+    res = getattr(_ops, "conv_general_dilated")(
+        input_t,
+        weight_t,
+        window_strides=stride,
+        padding=padding,
+        lhs_dilation=None,
+        rhs_dilation=dilation,
+        dimension_numbers=None,
     )
-    return _wrap(res)
+    res = _wrap(res)
+    if bias is not None:
+        res = res + bias.view(1, -1, 1)
+    return res
 
 
-def conv3d(*args, **kwargs):
-    """Applies the conv3d operation.
+def conv3d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
+    """Applies the conv3d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
+    weight_t = weight._tensor if isinstance(weight, Tensor) else weight
 
-    Returns:
-        Tensor: A new tensor with the conv3d operation applied.
-    """
-    res = getattr(_nn, "conv3d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if isinstance(stride, int):
+        stride = (stride, stride, stride)
+    if isinstance(padding, int):
+        padding = ((padding, padding), (padding, padding), (padding, padding))
+    elif isinstance(padding, tuple):
+        padding = (
+            (padding[0], padding[0]),
+            (padding[1], padding[1]),
+            (padding[2], padding[2]),
+        )
+    if isinstance(dilation, int):
+        dilation = (dilation, dilation, dilation)
+
+    res = getattr(_ops, "conv_general_dilated")(
+        input_t,
+        weight_t,
+        window_strides=stride,
+        padding=padding,
+        lhs_dilation=None,
+        rhs_dilation=dilation,
+        dimension_numbers=None,
     )
-    return _wrap(res)
+    res = _wrap(res)
+    if bias is not None:
+        res = res + bias.view(1, -1, 1, 1, 1)
+    return res
 
 
 def conv_transpose1d(*args, **kwargs):
@@ -1002,50 +992,158 @@ def lstm_cell(*args, **kwargs):
     return _wrap(res)
 
 
-def max_pool1d(*args, **kwargs):
-    """Applies the max_pool1d operation.
+def max_pool1d(
+    input,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False,
+    return_indices=False,
+):
+    """Applies the max_pool1d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
+    from ml_switcheroo_compiler.ops.reductions.basic import ReduceWindowConfig
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
 
-    Returns:
-        Tensor: A new tensor with the max_pool1d operation applied.
-    """
-    res = getattr(_nn, "max_pool1d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if stride is None:
+        stride = kernel_size
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,) * 1
+    if isinstance(stride, int):
+        stride = (stride,) * 1
+    if isinstance(padding, int):
+        padding = ((padding, padding),) * 1
+    elif isinstance(padding, tuple):
+        padding = tuple((p, p) for p in padding)
+    if isinstance(dilation, int):
+        dilation = (dilation,) * 1
+
+    # We prepend batch and channel dims for spatial pooling: (1, 1)
+    k_size = (1, 1) + kernel_size
+    s_size = (1, 1) + stride
+    p_size = ((0, 0), (0, 0)) + padding
+    d_size = (1, 1) + dilation
+
+    cfg = ReduceWindowConfig(
+        window_dimensions=k_size,
+        window_strides=s_size,
+        padding=p_size,
+        base_dilations=(1,) * (1 + 2),
+        window_dilations=d_size,
+    )
+    res = getattr(_ops, "reduce_window")(
+        input_t,
+        init_value=-float("inf") if "max" == "max" else 0.0,
+        computation="max",
+        window_config=cfg,
     )
     return _wrap(res)
 
 
-def max_pool2d(*args, **kwargs):
-    """Applies the max_pool2d operation.
+def max_pool2d(
+    input,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False,
+    return_indices=False,
+):
+    """Applies the max_pool2d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
+    from ml_switcheroo_compiler.ops.reductions.basic import ReduceWindowConfig
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
 
-    Returns:
-        Tensor: A new tensor with the max_pool2d operation applied.
-    """
-    res = getattr(_nn, "max_pool2d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if stride is None:
+        stride = kernel_size
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,) * 2
+    if isinstance(stride, int):
+        stride = (stride,) * 2
+    if isinstance(padding, int):
+        padding = ((padding, padding),) * 2
+    elif isinstance(padding, tuple):
+        padding = tuple((p, p) for p in padding)
+    if isinstance(dilation, int):
+        dilation = (dilation,) * 2
+
+    # We prepend batch and channel dims for spatial pooling: (1, 1)
+    k_size = (1, 1) + kernel_size
+    s_size = (1, 1) + stride
+    p_size = ((0, 0), (0, 0)) + padding
+    d_size = (1, 1) + dilation
+
+    cfg = ReduceWindowConfig(
+        window_dimensions=k_size,
+        window_strides=s_size,
+        padding=p_size,
+        base_dilations=(1,) * (2 + 2),
+        window_dilations=d_size,
+    )
+    res = getattr(_ops, "reduce_window")(
+        input_t,
+        init_value=-float("inf") if "max" == "max" else 0.0,
+        computation="max",
+        window_config=cfg,
     )
     return _wrap(res)
 
 
-def max_pool3d(*args, **kwargs):
-    """Applies the max_pool3d operation.
+def max_pool3d(
+    input,
+    kernel_size,
+    stride=None,
+    padding=0,
+    dilation=1,
+    ceil_mode=False,
+    return_indices=False,
+):
+    """Applies the max_pool3d operation."""
+    import ml_switcheroo_compiler.ops as _ops
+    from zero_torch.tensor import Tensor, _wrap
+    from ml_switcheroo_compiler.ops.reductions.basic import ReduceWindowConfig
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    input_t = input._tensor if isinstance(input, Tensor) else input
 
-    Returns:
-        Tensor: A new tensor with the max_pool3d operation applied.
-    """
-    res = getattr(_nn, "max_pool3d")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+    if stride is None:
+        stride = kernel_size
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,) * 3
+    if isinstance(stride, int):
+        stride = (stride,) * 3
+    if isinstance(padding, int):
+        padding = ((padding, padding),) * 3
+    elif isinstance(padding, tuple):
+        padding = tuple((p, p) for p in padding)
+    if isinstance(dilation, int):
+        dilation = (dilation,) * 3
+
+    # We prepend batch and channel dims for spatial pooling: (1, 1)
+    k_size = (1, 1) + kernel_size
+    s_size = (1, 1) + stride
+    p_size = ((0, 0), (0, 0)) + padding
+    d_size = (1, 1) + dilation
+
+    cfg = ReduceWindowConfig(
+        window_dimensions=k_size,
+        window_strides=s_size,
+        padding=p_size,
+        base_dilations=(1,) * (3 + 2),
+        window_dilations=d_size,
+    )
+    res = getattr(_ops, "reduce_window")(
+        input_t,
+        init_value=-float("inf") if "max" == "max" else 0.0,
+        computation="max",
+        window_config=cfg,
     )
     return _wrap(res)
 

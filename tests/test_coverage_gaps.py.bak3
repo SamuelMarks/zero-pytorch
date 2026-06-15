@@ -1,7 +1,5 @@
 """Tests for coverage gaps."""
 
-import sys
-
 from zero_torch import Tensor
 from zero_torch.nn import Module, Linear
 from zero_torch.optim import SGD
@@ -110,23 +108,19 @@ def test_adaptive_avg_pool_tracing():
         ProxyTensor(id="m_t2", shape=(1, 3, 5, 5), dtype=DType.DType.Float32.value)
     )
     pool2d = AdaptiveAvgPool2d(output_size=(2, 2))
-    out2 = None
     ml_switcheroo.tracing._tracer.start_tracing()
     out2 = pool2d(t2)
     ml_switcheroo.tracing._tracer.stop_tracing()
-    if out2 is not None:
-        assert out2.shape == (1, 3, 2, 2)
+    assert out2.shape == (1, 3, 2, 2)
 
     t3 = Tensor(
         ProxyTensor(id="m_t3", shape=(1, 3, 5, 5, 5), dtype=DType.DType.Float32.value)
     )
     pool3d = AdaptiveAvgPool3d(output_size=(2, 2, 2))
-    out3 = None
     ml_switcheroo.tracing._tracer.start_tracing()
     out3 = pool3d(t3)
     ml_switcheroo.tracing._tracer.stop_tracing()
-    if out3 is not None:
-        assert out3.shape == (1, 3, 2, 2, 2)
+    assert out3.shape == (1, 3, 2, 2, 2)
 
 
 def test_adaptive_max_pool_tracing():
@@ -174,62 +168,47 @@ def test_adaptive_max_pool_tracing():
         pass
 
     pool1d_idx = AdaptiveMaxPool1d(output_size=2, return_indices=True)
-    out1_idx = None
     ml_switcheroo.tracing._tracer.start_tracing()
     out1_idx, idx1 = pool1d_idx(t1)
     ml_switcheroo.tracing._tracer.stop_tracing()
-    if out1_idx is not None:
-        assert out1_idx.shape == (1, 3, 2)
-    if "idx1" in locals() and idx1 is not None:
-        assert idx1.shape == (1, 3, 2)
+    assert out1_idx.shape == (1, 3, 2)
+    assert idx1.shape == (1, 3, 2)
 
     # Test 2D
     t2 = Tensor(
         ProxyTensor(id="m_t2", shape=(1, 3, 5, 5), dtype=DType.DType.Float32.value)
     )
     pool2d = AdaptiveMaxPool2d(output_size=(2, 2))
-    out2 = None
     ml_switcheroo.tracing._tracer.start_tracing()
     out2 = pool2d(t2)
     ml_switcheroo.tracing._tracer.stop_tracing()
-    if out2 is not None:
-        assert out2.shape == (1, 3, 2, 2)
+    assert out2.shape == (1, 3, 2, 2)
 
     # Test 2D with indices
     pool2d_idx = AdaptiveMaxPool2d(output_size=(2, 2), return_indices=True)
-    out2_idx = None
-    idx2 = None
     ml_switcheroo.tracing._tracer.start_tracing()
     out2_idx, idx2 = pool2d_idx(t2)
     ml_switcheroo.tracing._tracer.stop_tracing()
-    if out2_idx is not None:
-        assert out2_idx.shape == (1, 3, 2, 2)
-    if "idx2" in locals() and idx2 is not None:
-        assert idx2.shape == (1, 3, 2, 2)
+    assert out2_idx.shape == (1, 3, 2, 2)
+    assert idx2.shape == (1, 3, 2, 2)
 
     # Test 3D
     t3 = Tensor(
         ProxyTensor(id="m_t3", shape=(1, 3, 5, 5, 5), dtype=DType.DType.Float32.value)
     )
     pool3d = AdaptiveMaxPool3d(output_size=(2, 2, 2))
-    out3 = None
     ml_switcheroo.tracing._tracer.start_tracing()
     out3 = pool3d(t3)
     ml_switcheroo.tracing._tracer.stop_tracing()
-    if out3 is not None:
-        assert out3.shape == (1, 3, 2, 2, 2)
+    assert out3.shape == (1, 3, 2, 2, 2)
 
     # Test 3D with indices
     pool3d_idx = AdaptiveMaxPool3d(output_size=(2, 2, 2), return_indices=True)
-    out3_idx = None
-    idx3 = None
     ml_switcheroo.tracing._tracer.start_tracing()
     out3_idx, idx3 = pool3d_idx(t3)
     ml_switcheroo.tracing._tracer.stop_tracing()
-    if out3_idx is not None:
-        assert out3_idx.shape == (1, 3, 2, 2, 2)
-    if "idx3" in locals() and idx3 is not None:
-        assert idx3.shape == (1, 3, 2, 2, 2)
+    assert out3_idx.shape == (1, 3, 2, 2, 2)
+    assert idx3.shape == (1, 3, 2, 2, 2)
 
 
 def test_adaptive_log_softmax_with_loss_tracing():
@@ -247,8 +226,6 @@ def test_adaptive_log_softmax_with_loss_tracing():
     )
     t2 = Tensor(ProxyTensor(id="asm_t2", shape=(10,), dtype=DType.DType.Int64.value))
 
-    out = None
-    loss = None
     layer = AdaptiveLogSoftmaxWithLoss(
         in_features=50, n_classes=100, cutoffs=[10, 50, 100]
     )
@@ -258,10 +235,8 @@ def test_adaptive_log_softmax_with_loss_tracing():
     except UnimplementedMathError:
         return
     ml_switcheroo.tracing._tracer.stop_tracing()
-    if out is not None:
-        assert out.shape == (10, 50)
-    if loss is not None:
-        assert loss.shape == (10,)
+    assert out.shape == (10, 50)
+    assert loss.shape == (10,)
 
 
 def test_alpha_dropout_tracing():
@@ -831,20 +806,19 @@ def test_all_apis_with_mock():
     import unittest.mock as mock
 
     t = Tensor([1.0])
-
+    
     def dummy_op(*args, **kwargs):
         return t._tensor
-
+        
     class MockOps:
         def __getattr__(self, name):
             return dummy_op
 
-    with (
-        mock.patch("zero_torch._ops", MockOps()),
-        mock.patch.object(sys.modules["zero_torch.tensor"], "ops", MockOps()),
-        mock.patch("zero_torch.nn.functional_dropout._nn", MockOps()),
-        mock.patch("zero_torch.nn.functional_pooling._nn", MockOps()),
-    ):
+    with mock.patch("zero_torch._ops", MockOps()), \
+         mock.patch.object(sys.modules["zero_torch.tensor"], "ops", MockOps()), \
+         mock.patch("zero_torch.nn.functional_dropout._nn", MockOps()), \
+         mock.patch("zero_torch.nn.functional_pooling._nn", MockOps()):
+        
         # zero_torch apis
         for name in dir(zero_torch):
             if not name.startswith("_"):
@@ -853,19 +827,18 @@ def test_all_apis_with_mock():
                     try:
                         obj(t, t, out=t)
                     except Exception:
-                        pass
+    pass
                     try:
                         obj(t, out=t)
                     except Exception:
-                        pass
+    pass
                     try:
                         obj(t, t, t, out=t)
                     except Exception:
-                        pass
+    pass
 
         # Pooling apis
         import zero_torch.nn.functional_pooling as FP
-
         for name in dir(FP):
             if not name.startswith("_"):
                 obj = getattr(FP, name)
@@ -873,15 +846,14 @@ def test_all_apis_with_mock():
                     try:
                         obj(t, 1, return_indices=True)
                     except Exception:
-                        pass
+    pass
                     try:
                         obj(t, 1, out=t)
                     except Exception:
-                        pass
+    pass
 
         # Dropout apis
         import zero_torch.nn.functional_dropout as FD
-
         for name in dir(FD):
             if not name.startswith("_"):
                 obj = getattr(FD, name)
@@ -889,8 +861,8 @@ def test_all_apis_with_mock():
                     try:
                         obj(t, 0.5, inplace=True)
                     except Exception:
-                        pass
-
+    pass
+                    
         # Tensor apis
         for name in dir(t):
             if not name.startswith("_"):
@@ -899,22 +871,20 @@ def test_all_apis_with_mock():
                     try:
                         obj(t)
                     except Exception:
-                        pass
+    pass
                     try:
                         obj(1)
                     except Exception:
-                        pass
-
+    pass
+                    
     # test _get_nn_op raise UnimplementedMathError
     try:
         import zero_torch.nn.functional_dropout as FD
-
         FD._get_nn_op("nonexistent_op_123")
     except Exception:
-        pass
+    pass
     try:
         import zero_torch.nn.functional_pooling as FP
-
         FP._get_nn_op("nonexistent_op_123")
     except Exception:
-        pass
+    pass

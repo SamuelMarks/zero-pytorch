@@ -1,10 +1,16 @@
 """Module."""
 
+import math
+import random
+from ml_switcheroo_compiler.core.dtype import DType
+from zero_torch.tensor import _to_tensor
+
+
 import ml_switcheroo_compiler as ml_switcheroo
 
 from .tensor import Tensor
-from . import nn
-from .autograd import no_grad, set_grad_enabled
+from . import nn as nn
+from .autograd import no_grad as no_grad, set_grad_enabled as set_grad_enabled
 
 import ml_switcheroo_compiler.ops as _ops
 from typing import Any
@@ -325,8 +331,6 @@ def bitcast(*args, **kwargs):
     if "dim" in kwargs:
         pass
     op = getattr(_ops, "bitcast")
-    if isinstance(op, type):
-        op = op()
     _args = [a._tensor if isinstance(a, Tensor) else a for a in args]
     if len(_args) == 2:
         kwargs["dtype"] = _args[1]
@@ -438,8 +442,6 @@ def cast(*args, **kwargs):
     if "dim" in kwargs:
         pass
     op = getattr(_ops, "cast")
-    if isinstance(op, type):
-        op = op()
     _args = [a._tensor if isinstance(a, Tensor) else a for a in args]
     if len(_args) == 2:
         kwargs["dtype"] = _args[1]
@@ -1170,8 +1172,6 @@ def frexp(*args, **kwargs):
     if "dim" in kwargs:
         pass
     op = getattr(_ops, "frexp")
-    if isinstance(op, type):
-        op = op()
     res = op(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     if isinstance(getattr(res, "data", None), tuple):
         import ml_switcheroo_compiler as ml_switcheroo
@@ -2104,7 +2104,7 @@ def norm(*args, **kwargs):
 
     if p == 2:
         res = getattr(_ops, "sqrt")(summed)
-    else:  # pragma: no cover
+    else:
         inv_p_tensor = Tensor(1.0 / p)._tensor
         res = getattr(_ops, "power")(summed, inv_p_tensor)
 
@@ -3205,8 +3205,6 @@ def tensor(data: Any, *args: Any, **kwargs: Any) -> Tensor:
     return Tensor(data, *args, **kwargs)
 
 
-from ml_switcheroo_compiler.core.dtype import DType
-
 float32 = DType.Float32
 int32 = DType.Int32
 
@@ -3232,9 +3230,6 @@ def true_divide(dividend, divisor, **kwargs):
     return _wrap(res)
 
 
-from zero_torch.tensor import _to_tensor, _wrap
-
-
 def xlogy(x, y, **kwargs):
     x_t = _to_tensor(x)
     y_t = _to_tensor(y)
@@ -3246,7 +3241,6 @@ def xlogy(x, y, **kwargs):
 
 def mvlgamma(input, p, **kwargs):
     # Multivariate log-gamma
-    import math
 
     res = input * 0.0
     for i in range(1, p + 1):
@@ -3256,7 +3250,6 @@ def mvlgamma(input, p, **kwargs):
 
 
 def nan_to_num(input, nan=0.0, posinf=None, neginf=None, **kwargs):
-    import math
 
     input_t = _to_tensor(input)
     res = input_t
@@ -3295,8 +3288,6 @@ def nan_to_num(input, nan=0.0, posinf=None, neginf=None, **kwargs):
     return _wrap(res)
 
 
-import random
-
 _RANDOM_SEED = None
 
 
@@ -3317,7 +3308,6 @@ def rand(*size, **kwargs):
     if len(size) == 1 and isinstance(size[0], (tuple, list)):
         size = size[0]
     shape = tuple(int(s) for s in size)
-    from zero_torch.tensor import _to_tensor, _wrap
     from zero_torch.tracing import _tracer
 
     if ml_switcheroo.core.config.eager_mode:
@@ -3353,11 +3343,10 @@ def randn(*size, **kwargs):
     if len(size) == 1 and isinstance(size[0], (tuple, list)):
         size = size[0]
     shape = tuple(int(s) for s in size)
-    from zero_torch.tensor import _to_tensor, _wrap
     from zero_torch.tracing import _tracer
 
     if ml_switcheroo.core.config.eager_mode:
-        data = _gen_random_list(shape, random.gauss)
+        data = _gen_random_list(shape, lambda: random.gauss(0.0, 1.0))
         return _wrap(_to_tensor(data))
     else:
         import uuid
@@ -3401,7 +3390,6 @@ def randint(low, high=None, size=None, **kwargs):
         low = 0
     shape = tuple(int(s) for s in size)
 
-    from zero_torch.tensor import _to_tensor, _wrap
     from zero_torch.tracing import _tracer
 
     if ml_switcheroo.core.config.eager_mode:

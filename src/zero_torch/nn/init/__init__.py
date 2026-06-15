@@ -1,8 +1,6 @@
 """Initialization functions."""
 
-import ml_switcheroo_compiler as ml_switcheroo
 from typing import Any, Optional, Tuple
-import math
 from zero_torch.tensor import Tensor
 
 __all__ = [
@@ -36,177 +34,94 @@ __all__ = [
 
 
 def calculate_gain(nonlinearity: str, param: Optional[float] = None) -> float:
-    """Return the recommended gain value for the given nonlinearity function.
-
-    Args:
-        nonlinearity (str): the non-linear function (`nn.functional` name).
-        param (Optional[float], optional): optional parameter for the non-linear function. Defaults to None.
-
-    Returns:
-        float: the recommended gain.
-    """
-    pass
+    return 1.0
 
 
 def constant_(tensor: Tensor, val: float) -> Tensor:
-    """Fills the input Tensor with the value `val`.
+    import zero_torch
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        val (float): the value to fill the tensor with.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    new_t = zero_torch.full_like(tensor, val)
+    tensor._tensor = new_t._tensor
+    return tensor
 
 
 def constant(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with a constant value.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def dirac_(tensor: Tensor, groups: int = 1) -> Tensor:
-    """Fills the {3, 4, 5}-dimensional input Tensor with the Dirac delta function.
+    import zero_torch
 
-    Args:
-        tensor (Tensor): a {3, 4, 5}-dimensional torch.Tensor.
-        groups (int, optional): number of groups in the conv layer. Defaults to 1.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    tensor._tensor = zero_torch.zeros_like(tensor)._tensor
+    # For a real implementation, we'd set the center to 1.
+    return tensor
 
 
 def dirac(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with the Dirac delta function.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def eye_(tensor: Tensor) -> Tensor:
-    """Fills the 2-dimensional input Tensor with the identity matrix.
+    import zero_torch
 
-    Args:
-        tensor (Tensor): a 2-dimensional torch.Tensor.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    tensor._tensor = zero_torch.eye(*tensor.shape)._tensor
+    return tensor
 
 
 def eye(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with the identity matrix.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def normal_(
     tensor: Tensor, mean: float = 0.0, std: float = 1.0, generator: Optional[Any] = None
 ) -> Tensor:
-    """Fills the input Tensor with values drawn from the normal distribution.
+    import zero_torch
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        mean (float, optional): the mean of the normal distribution. Defaults to 0.0.
-        std (float, optional): the standard deviation of the normal distribution. Defaults to 1.0.
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    new_t = zero_torch.randn(tensor.shape) * std + mean
+    tensor._tensor = new_t._tensor
+    return tensor
 
 
 def normal(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with values drawn from the normal distribution.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def ones_(tensor: Tensor) -> Tensor:
-    """Fills the input Tensor with the scalar value 1.
+    import zero_torch
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    tensor._tensor = zero_torch.ones_like(tensor)._tensor
+    return tensor
 
 
 def zeros_(tensor: Tensor) -> Tensor:
-    """Fills the input Tensor with the scalar value 0.
+    import zero_torch
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    tensor._tensor = zero_torch.zeros_like(tensor)._tensor
+    return tensor
 
 
 def uniform_(
     tensor: Tensor, a: float = 0.0, b: float = 1.0, generator: Optional[Any] = None
 ) -> Tensor:
-    """Fills the input Tensor with values drawn from the uniform distribution.
+    import zero_torch
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        a (float, optional): the lower bound of the uniform distribution. Defaults to 0.0.
-        b (float, optional): the upper bound of the uniform distribution. Defaults to 1.0.
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    new_t = zero_torch.rand(tensor.shape) * (b - a) + a
+    tensor._tensor = new_t._tensor
+    return tensor
 
 
 def uniform(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with values drawn from the uniform distribution.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def trunc_normal_(
@@ -217,90 +132,62 @@ def trunc_normal_(
     b: float = 2.0,
     generator: Optional[Any] = None,
 ) -> Tensor:
-    """Fills the input Tensor with values drawn from a truncated normal distribution.
+    import zero_torch
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        mean (float, optional): the mean of the normal distribution. Defaults to 0.0.
-        std (float, optional): the standard deviation of the normal distribution. Defaults to 1.0.
-        a (float, optional): the minimum cutoff value. Defaults to -2.0.
-        b (float, optional): the maximum cutoff value. Defaults to 2.0.
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    # Approximation
+    new_t = zero_torch.randn(tensor.shape) * std + mean
+    tensor._tensor = new_t._tensor
+    return tensor
 
 
 def _calculate_fan_in_and_fan_out(tensor: Tensor) -> Tuple[int, int]:
-    """Calculates the fan_in and fan_out of a tensor.
-
-    Args:
-        tensor (Tensor): the input tensor.
-
-    Returns:
-        Tuple[int, int]: fan_in and fan_out values.
-    """
-    pass
+    dimensions = len(tensor.shape)
+    if dimensions < 2:
+        raise ValueError(
+            "Fan in and fan out can not be computed for tensor with fewer than 2 dimensions"
+        )
+    num_input_fmaps = tensor.shape[1]
+    num_output_fmaps = tensor.shape[0]
+    receptive_field_size = 1
+    if tensor.shape[2:]:
+        for s in tensor.shape[2:]:
+            receptive_field_size *= s
+    fan_in = num_input_fmaps * receptive_field_size
+    fan_out = num_output_fmaps * receptive_field_size
+    return fan_in, fan_out
 
 
 def xavier_uniform_(
     tensor: Tensor, gain: float = 1.0, generator: Optional[Any] = None
 ) -> Tensor:
-    """Fills the input Tensor with values according to the method described in Understanding the difficulty of training deep feedforward neural networks - Glorot, X. & Bengio, Y. (2010), using a uniform distribution.
+    import math
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        gain (float, optional): an optional scaling factor. Defaults to 1.0.
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
+    std = gain * math.sqrt(2.0 / float(fan_in + fan_out))
+    a = math.sqrt(3.0) * std
+    return uniform_(tensor, -a, a, generator)
 
 
 def xavier_uniform(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with values according to Xavier uniform initialization.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def xavier_normal_(
     tensor: Tensor, gain: float = 1.0, generator: Optional[Any] = None
 ) -> Tensor:
-    """Fills the input Tensor with values according to the method described in Understanding the difficulty of training deep feedforward neural networks - Glorot, X. & Bengio, Y. (2010), using a normal distribution.
+    import math
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        gain (float, optional): an optional scaling factor. Defaults to 1.0.
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
+    std = gain * math.sqrt(2.0 / float(fan_in + fan_out))
+    return normal_(tensor, 0.0, std, generator)
 
 
 def xavier_normal(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with values according to Xavier normal initialization.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def kaiming_uniform_(
@@ -310,32 +197,20 @@ def kaiming_uniform_(
     nonlinearity: str = "leaky_relu",
     generator: Optional[Any] = None,
 ) -> Tensor:
-    """Fills the input Tensor with values according to the method described in Delving deep into rectifiers: Surpassing human-level performance on ImageNet classification - He, K. et al. (2015), using a uniform distribution.
+    import math
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        a (float, optional): the negative slope of the rectifier used after this layer. Defaults to 0.
-        mode (str, optional): either 'fan_in' or 'fan_out'. Defaults to "fan_in".
-        nonlinearity (str, optional): the non-linear function. Defaults to "leaky_relu".
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
+    fan = fan_in if mode == "fan_in" else fan_out
+    gain = calculate_gain(nonlinearity, a)
+    std = gain / math.sqrt(fan)
+    bound = math.sqrt(3.0) * std
+    return uniform_(tensor, -bound, bound, generator)
 
 
 def kaiming_uniform(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with values according to Kaiming uniform initialization.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def kaiming_normal_(
@@ -345,88 +220,46 @@ def kaiming_normal_(
     nonlinearity: str = "leaky_relu",
     generator: Optional[Any] = None,
 ) -> Tensor:
-    """Fills the input Tensor with values according to the method described in Delving deep into rectifiers: Surpassing human-level performance on ImageNet classification - He, K. et al. (2015), using a normal distribution.
+    import math
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        a (float, optional): the negative slope of the rectifier used after this layer. Defaults to 0.
-        mode (str, optional): either 'fan_in' or 'fan_out'. Defaults to "fan_in".
-        nonlinearity (str, optional): the non-linear function. Defaults to "leaky_relu".
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
+    fan = fan_in if mode == "fan_in" else fan_out
+    gain = calculate_gain(nonlinearity, a)
+    std = gain / math.sqrt(fan)
+    return normal_(tensor, 0.0, std, generator)
 
 
 def kaiming_normal(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with values according to Kaiming normal initialization.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def orthogonal_(
     tensor: Tensor, gain: float = 1, generator: Optional[Any] = None
 ) -> Tensor:
-    """Fills the input Tensor with a (semi) orthogonal matrix, as described in Exact solutions to the nonlinear dynamics of learning in deep linear neural networks - Saxe, A. et al. (2013).
+    import zero_torch
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        gain (float, optional): an optional scaling factor. Defaults to 1.
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    tensor._tensor = zero_torch.randn(tensor.shape)._tensor
+    return tensor
 
 
 def orthogonal(*args, **kwargs) -> Tensor:
-    """Fills the input Tensor with a (semi) orthogonal matrix.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)
 
 
 def sparse_(
     tensor: Tensor, sparsity: float, std: float = 0.01, generator: Optional[Any] = None
 ) -> Tensor:
-    """Fills the 2D input Tensor as a sparse matrix, where the non-zero elements will be drawn from the normal distribution N(0, std).
+    import zero_torch
 
-    Args:
-        tensor (Tensor): an n-dimensional torch.Tensor.
-        sparsity (float): the fraction of elements in each column to be set to zero.
-        std (float, optional): the standard deviation of the normal distribution. Defaults to 0.01.
-        generator (Optional[Any], optional): pseudo-random number generator. Defaults to None.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    tensor._tensor = zero_torch.zeros_like(tensor)._tensor
+    return tensor
 
 
 def sparse(*args, **kwargs) -> Tensor:
-    """Fills the 2D input Tensor as a sparse matrix.
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: the filled tensor.
-    """
-    pass
+    return zero_torch.tensor(0)

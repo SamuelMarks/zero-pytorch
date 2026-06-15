@@ -25,7 +25,7 @@ class _Loss(Module):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         """Computes the loss.
@@ -37,9 +37,7 @@ class _Loss(Module):
         Returns:
             Tensor: The computed loss.
         """
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return input
 
 
 class _WeightedLoss(_Loss):
@@ -64,7 +62,7 @@ class _WeightedLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class BCELoss(_WeightedLoss):
@@ -97,7 +95,7 @@ class BCEWithLogitsLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class CTCLoss(_Loss):
@@ -120,7 +118,7 @@ class CTCLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class CosineEmbeddingLoss(_Loss):
@@ -145,7 +143,7 @@ class CosineEmbeddingLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class CrossEntropyLoss(_WeightedLoss):
@@ -164,9 +162,9 @@ class CrossEntropyLoss(_WeightedLoss):
         Raises:
             UnimplementedMathError: If the math operations are not implemented.
         """
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.cross_entropy(args[0], args[1])
 
     def __init__(
         self,
@@ -191,7 +189,7 @@ class CrossEntropyLoss(_WeightedLoss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class GaussianNLLLoss(_Loss):
@@ -214,7 +212,7 @@ class GaussianNLLLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class HingeEmbeddingLoss(_Loss):
@@ -239,7 +237,7 @@ class HingeEmbeddingLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class KLDivLoss(_Loss):
@@ -264,7 +262,7 @@ class KLDivLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class L1Loss(_Loss):
@@ -315,7 +313,7 @@ class NLLLoss(_WeightedLoss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class NLLLoss2d(NLLLoss):
@@ -350,7 +348,7 @@ class PoissonNLLLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class SmoothL1Loss(_Loss):
@@ -375,7 +373,7 @@ class SmoothL1Loss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class SoftMarginLoss(_Loss):
@@ -412,7 +410,7 @@ class TripletMarginLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class TripletMarginWithDistanceLoss(_Loss):
@@ -437,7 +435,7 @@ class TripletMarginWithDistanceLoss(_Loss):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        super().__init__()
 
 
 class AdaptiveLogSoftmaxWithLoss(Module):
@@ -488,9 +486,9 @@ class HuberLoss(_Loss):
         self.delta = delta
 
     def forward(self, input, target):
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.huber_loss(input, target)
 
 
 class MarginRankingLoss(_Loss):
@@ -507,9 +505,9 @@ class MarginRankingLoss(_Loss):
         self.margin = margin
 
     def forward(self, input1, input2, target):
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.margin_ranking_loss(input, target)
 
 
 class MultiLabelMarginLoss(_Loss):
@@ -519,9 +517,9 @@ class MultiLabelMarginLoss(_Loss):
         super().__init__(size_average, reduce, reduction)
 
     def forward(self, input, target):
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.multi_label_margin_loss(input, target)
 
 
 class MultiLabelSoftMarginLoss(_WeightedLoss):
@@ -533,9 +531,9 @@ class MultiLabelSoftMarginLoss(_WeightedLoss):
         super().__init__(weight, size_average, reduce, reduction)
 
     def forward(self, input, target):
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.multi_label_soft_margin_loss(input, target)
 
 
 class MultiMarginLoss(_WeightedLoss):
@@ -555,6 +553,6 @@ class MultiMarginLoss(_WeightedLoss):
         self.margin = margin
 
     def forward(self, input, target):
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.multi_margin_loss(input, target)

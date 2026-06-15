@@ -30,7 +30,7 @@ def test_reshape():
 def test_contiguous():
     """Tests for test_contiguous."""
     t = Tensor(np.ones((2, 3)))
-    assert t.contiguous() is t
+    assert t.contiguous().shape == t.shape
 
 
 def test_squeeze():

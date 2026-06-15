@@ -9,6 +9,9 @@ from typing import TypeVar
 
 from ml_switcheroo_ir import LogicalGraph
 from ml_switcheroo_compiler.ir.core import IRNode
+
+# We use simple broadcast_shapes from numpy since we can't import numpy in source!
+# Wait! We can import from ml_switcheroo_compiler.ir.shape_system
 from ml_switcheroo_compiler.ir.shape_system import broadcast_shapes
 
 T = TypeVar("T", bound="ProxyTensor")
@@ -45,6 +48,8 @@ class TracerTape(threading.local):
             from ml_switcheroo_compiler.backends.linker import get_source_ast_ref
 
             node.source_ast_ref = get_source_ast_ref(back_frames=2)
+
+        from ml_switcheroo_compiler.core.config import config
 
         self.active_graph.nodes[node.id] = node
 

@@ -1,56 +1,31 @@
 [build-system]
-requires = [
-    "hatchling",
-    "hatch-requirements-txt",
-]
+requires = ["hatchling", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
 
 [project]
 name = "zero-pytorch"
 version = "2.10.0"
 description = "Zero-dependency pure Python implementation of the PyTorch API surface."
-authors = [
-    { name = "Samuel Marks" },
-]
+authors = [{ name = "Samuel Marks" }]
 requires-python = ">=3.9"
-dynamic = [
-    "dependencies",
-]
+dynamic = ["dependencies"]
 
 [project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-cov",
-]
+test = ["pytest", "pytest-cov"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.metadata.hooks.requirements_txt]
-files = [
-    "requirements.txt",
-]
+files = ["requirements.txt"]
 
 [tool.hatch.build.targets.wheel]
-packages = [
-    "src/zero_torch",
-]
+packages = ["src/zero_torch"]
 
 [tool.ruff]
-exclude = [
-    "stubs",
-]
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = [
-    "F401",
-    "E402",
-]
 
 [tool.coverage.run]
-source = [
-    "src/zero_torch",
-]
+source = ["src/zero_torch"]
 omit = [
     "tests/*",
     "scripts/*",
@@ -64,4 +39,11 @@ omit = [
 [tool.mypy]
 overrides = [
     { module = "ml_switcheroo.*", ignore_missing_imports = true },
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::FutureWarning",
+    "ignore::DeprecationWarning",
+    "ignore::RuntimeWarning",
 ]

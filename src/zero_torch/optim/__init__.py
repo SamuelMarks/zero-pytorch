@@ -1,6 +1,5 @@
 """Optimizers module."""
 
-import ml_switcheroo_compiler as ml_switcheroo
 from typing import Any, Iterable, Optional, Tuple, Union
 from zero_torch.tensor import Tensor
 
@@ -44,6 +43,7 @@ class Optimizer:
             Optional[Any]: The loss if closure is provided, else None.
         """
         pass
+        self.defaults = {}
 
     def zero_grad(self, set_to_none: bool = False) -> None:
         """Sets the gradients of all optimized parameters to zero.
@@ -51,7 +51,14 @@ class Optimizer:
         Args:
             set_to_none (bool, optional): Instead of setting to zero, set the grads to None. Defaults to False.
         """
-        pass
+        import zero_torch
+
+        for p in self.params:
+            if hasattr(p, "grad") and p.grad is not None:
+                if set_to_none:
+                    p.grad = None
+                else:
+                    p.grad = zero_torch.zeros_like(p.grad)
 
 
 class ASGD(Optimizer):
@@ -85,6 +92,7 @@ class ASGD(Optimizer):
             capturable (bool, optional): Whether this instance is safe to capture in a CUDA graph. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class Adadelta(Optimizer):
@@ -116,6 +124,7 @@ class Adadelta(Optimizer):
             differentiable (bool, optional): Track optimizer step in autograd. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class Adafactor(Optimizer):
@@ -145,6 +154,7 @@ class Adafactor(Optimizer):
             maximize (bool, optional): Maximize the objective. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class Adagrad(Optimizer):
@@ -178,6 +188,7 @@ class Adagrad(Optimizer):
             fused (Optional[bool], optional): Fused implementation. Defaults to None.
         """
         pass
+        self.defaults = {}
 
 
 class Adam(Optimizer):
@@ -215,6 +226,7 @@ class Adam(Optimizer):
             decoupled_weight_decay (bool, optional): Decoupled weight decay. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class AdamW(Optimizer):
@@ -250,6 +262,7 @@ class AdamW(Optimizer):
             fused (Optional[bool], optional): Fused implementation. Defaults to None.
         """
         pass
+        self.defaults = {}
 
 
 class Adamax(Optimizer):
@@ -281,6 +294,7 @@ class Adamax(Optimizer):
             capturable (bool, optional): Safe to capture in CUDA graph. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class LBFGS(Optimizer):
@@ -310,6 +324,7 @@ class LBFGS(Optimizer):
             line_search_fn (Optional[str], optional): Either 'strong_wolfe' or None. Defaults to None.
         """
         pass
+        self.defaults = {}
 
 
 class NAdam(Optimizer):
@@ -345,6 +360,7 @@ class NAdam(Optimizer):
             differentiable (bool, optional): Differentiable step. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class RAdam(Optimizer):
@@ -378,6 +394,7 @@ class RAdam(Optimizer):
             differentiable (bool, optional): Differentiable step. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class RMSprop(Optimizer):
@@ -413,6 +430,7 @@ class RMSprop(Optimizer):
             differentiable (bool, optional): Differentiable step. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class Rprop(Optimizer):
@@ -442,6 +460,7 @@ class Rprop(Optimizer):
             differentiable (bool, optional): Differentiable step. Defaults to False.
         """
         pass
+        self.defaults = {}
 
 
 class SGD(Optimizer):
@@ -514,3 +533,4 @@ class SparseAdam(Optimizer):
             maximize (bool, optional): Maximize objective. Defaults to False.
         """
         pass
+        self.defaults = {}

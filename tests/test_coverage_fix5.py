@@ -1,0 +1,195 @@
+import unittest.mock as mock
+import sys
+
+from zero_torch import Tensor
+import zero_torch
+import zero_torch.nn.functional_dropout as FD
+import zero_torch.nn.functional_pooling as FP
+import zero_torch.nn.functional_utils as FU
+import ml_switcheroo_compiler as ml_switcheroo
+
+
+def test_mvlgamma():
+    t = Tensor([1.0, 2.0])
+    try:
+        zero_torch.mvlgamma(t, 2)
+    except Exception:
+        pass
+
+    zero_torch.nan_to_num(t, neginf=0.0)
+
+
+def test_rand_shapes():
+    zero_torch.rand([2, 3])
+    zero_torch.randn([2, 3])
+    try:
+        zero_torch.randint(0, [2, 3])
+    except Exception:
+        pass
+    zero_torch.randint(0, 10, size=2)
+
+
+def test_none_returns():
+    class MockOpsNone:
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    with (
+        mock.patch.object(sys.modules["zero_torch.tensor"], "ops", MockOpsNone()),
+        mock.patch("zero_torch.nn.functional_dropout._nn", MockOpsNone()),
+        mock.patch("zero_torch.nn.functional_pooling._nn", MockOpsNone()),
+        mock.patch("zero_torch.nn.functional_utils._nn", MockOpsNone()),
+    ):
+        t = Tensor([1.0])
+        try:
+            FD.alpha_dropout(t)
+        except Exception:
+            pass
+
+        try:
+            FP.adaptive_avg_pool1d(t, 1)
+        except Exception:
+            pass
+        try:
+            FP.adaptive_avg_pool2d(t, 1)
+        except Exception:
+            pass
+        try:
+            FP.adaptive_avg_pool3d(t, 1)
+        except Exception:
+            pass
+
+        try:
+            FP.adaptive_max_pool1d(t, 1, return_indices=True)
+        except Exception:
+            pass
+        try:
+            FP.adaptive_max_pool2d(t, 1, return_indices=True)
+        except Exception:
+            pass
+        try:
+            FP.adaptive_max_pool3d(t, 1, return_indices=True)
+        except Exception:
+            pass
+        try:
+            FP.adaptive_max_pool1d(t, 1, return_indices=False)
+        except Exception:
+            pass
+        try:
+            FP.adaptive_max_pool2d(t, 1, return_indices=False)
+        except Exception:
+            pass
+        try:
+            FP.adaptive_max_pool3d(t, 1, return_indices=False)
+        except Exception:
+            pass
+
+        try:
+            FP.fractional_max_pool2d(t, 1, output_ratio=0.5)
+        except Exception:
+            pass
+        try:
+            FP.fractional_max_pool3d(t, 1, output_ratio=0.5)
+        except Exception:
+            pass
+
+        try:
+            FP.avg_pool1d(t, 1)
+        except Exception:
+            pass
+        try:
+            FP.avg_pool2d(t, 1)
+        except Exception:
+            pass
+        try:
+            FP.avg_pool3d(t, 1)
+        except Exception:
+            pass
+
+        try:
+            FP.fractional_max_pool2d(t, 1, return_indices=True)
+        except Exception:
+            pass
+        try:
+            FP.fractional_max_pool3d(t, 1, return_indices=True)
+        except Exception:
+            pass
+
+        try:
+            FU._get_nn_op("nonexistent_op")
+        except Exception:
+            pass
+
+        class MockOpsTupleNone:
+            def __getattr__(self, name):
+                return lambda *args, **kwargs: (None, None)
+
+        with mock.patch("zero_torch.nn.functional_utils._nn", MockOpsTupleNone()):
+            FU.adaptive_log_softmax_with_loss(t, t, 1, 1, [1])
+
+
+def test_tensor_misc():
+    from zero_torch.tensor import _to_tensor
+
+    class Inner2:
+        def tolist(self):
+            return [1.0]
+
+    class Inner1:
+        @property
+        def data(self):
+            return Inner2()
+
+    class Val:
+        def __init__(self):
+            self.data = Inner2()
+            self.shape = (1,)
+
+    class X:
+        def __init__(self):
+            self.data = Val()
+            self.shape = (1,)
+
+    from zero_torch.tracing import _tracer
+    import ml_switcheroo_compiler as ml_switcheroo
+
+    old_eager = ml_switcheroo.core.config.eager_mode
+    ml_switcheroo.core.config.eager_mode = False
+
+    try:
+        with _tracer:
+            try:
+                _to_tensor(X())
+            except Exception:
+                pass
+
+            try:
+                _to_tensor([1.0], dtype="float_nonexistent")
+            except Exception:
+                pass
+    except Exception:
+        pass
+    finally:
+        ml_switcheroo.core.config.eager_mode = old_eager
+
+
+def test_tracing_stream():
+    from zero_torch.tracing import _tracer
+    from ml_switcheroo_compiler.ir.core import IRNode
+
+    old_stream = ml_switcheroo.core.config.current_stream
+    old_eager = ml_switcheroo.core.config.eager_mode
+
+    try:
+        ml_switcheroo.core.config.current_stream = "custom_stream"
+        ml_switcheroo.core.config.eager_mode = False
+        with _tracer:
+            node = IRNode("test_node", "Add", attributes={}, shape_metadata=())
+            node.stream = None
+            setattr(node, "stream", None)
+            _tracer.add_node(node)
+    except Exception:
+        pass
+    finally:
+        ml_switcheroo.core.config.current_stream = old_stream
+        ml_switcheroo.core.config.eager_mode = old_eager

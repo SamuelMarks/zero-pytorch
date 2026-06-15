@@ -31,12 +31,34 @@ class Conv1d(Module):
         self.groups = groups
         self.bias = bias
         self.padding_mode = padding_mode
+        from .module import Parameter
+        import zero_torch
+
+        if isinstance(kernel_size, int):
+            k = (kernel_size,)
+        else:
+            k = kernel_size
+        self.weight = Parameter(
+            zero_torch.zeros((out_channels, in_channels // groups, k[0]))
+        )
+        if bias:
+            self.bias = Parameter(zero_torch.zeros((out_channels,)))
+        else:
+            self.bias = None
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.conv1d(
+            input,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
+        )
 
 
 class Conv2d(Module):
@@ -67,12 +89,34 @@ class Conv2d(Module):
         self.groups = groups
         self.bias = bias
         self.padding_mode = padding_mode
+        from .module import Parameter
+        import zero_torch
+
+        if isinstance(kernel_size, int):
+            k = (kernel_size, kernel_size)
+        else:
+            k = kernel_size
+        self.weight = Parameter(
+            zero_torch.zeros((out_channels, in_channels // groups, k[0], k[1]))
+        )
+        if bias:
+            self.bias = Parameter(zero_torch.zeros((out_channels,)))
+        else:
+            self.bias = None
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.conv2d(
+            input,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
+        )
 
 
 class Conv3d(Module):
@@ -103,12 +147,34 @@ class Conv3d(Module):
         self.groups = groups
         self.bias = bias
         self.padding_mode = padding_mode
+        from .module import Parameter
+        import zero_torch
+
+        if isinstance(kernel_size, int):
+            k = (kernel_size, kernel_size, kernel_size)
+        else:
+            k = kernel_size
+        self.weight = Parameter(
+            zero_torch.zeros((out_channels, in_channels // groups, k[0], k[1], k[2]))
+        )
+        if bias:
+            self.bias = Parameter(zero_torch.zeros((out_channels,)))
+        else:
+            self.bias = None
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.conv3d(
+            input,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
+        )
 
 
 class ConvTranspose1d(Module):
@@ -144,9 +210,18 @@ class ConvTranspose1d(Module):
 
     def forward(self, input, output_size=None):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.conv_transpose1d(
+            input,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.output_padding,
+            self.groups,
+            self.dilation,
+        )
 
 
 class ConvTranspose2d(Module):
@@ -182,9 +257,18 @@ class ConvTranspose2d(Module):
 
     def forward(self, input, output_size=None):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.conv_transpose2d(
+            input,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.output_padding,
+            self.groups,
+            self.dilation,
+        )
 
 
 class ConvTranspose3d(Module):
@@ -220,9 +304,18 @@ class ConvTranspose3d(Module):
 
     def forward(self, input, output_size=None):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.conv_transpose3d(
+            input,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.output_padding,
+            self.groups,
+            self.dilation,
+        )
 
 
 class Unfold(Module):

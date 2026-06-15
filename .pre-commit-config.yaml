@@ -37,6 +37,13 @@ repos:
         files: ^(SEMANTIC_PLAN\.md|src/.*\.py)$
         pass_filenames: false
 
+      - id: check-api-snapshots
+        name: Check API Snapshots
+        entry: env PYTHONPATH=src:../ml-switcheroo-compiler/src python3 scripts/check_api_snapshots.py
+        language: system
+        files: ^(src/.*\.py|ml_snapshots\.txt)$
+        pass_filenames: false
+
       - id: build
         name: Build Package
         entry: python3 -m build

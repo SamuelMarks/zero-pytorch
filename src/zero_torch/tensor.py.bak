@@ -30,6 +30,8 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
             val = x.data
             if hasattr(val, "tolist"):
                 val = val.tolist()
+            elif hasattr(val, "data") and hasattr(val.data, "tolist"):
+                val = val.data.tolist()
             node = LogicalNode(
                 id=out_id,
                 op_type="Constant",
@@ -82,17 +84,22 @@ def _to_tensor(x: Any, dtype: Optional[Any] = None) -> ml_switcheroo.Tensor:
     from ml_switcheroo_compiler.core.dtype import DType
 
     dt = config.default_float_dtype
-    if "float" in dt_str or "int" in dt_str or "bool" in dt_str:
-        if "float64" in dt_str:
-            dt = DType.Float64
-        elif "float32" in dt_str:
-            dt = DType.Float32
-        elif "int64" in dt_str:
-            dt = DType.Int64
-        elif "int32" in dt_str:
-            dt = DType.Int32
-        elif "bool" in dt_str:
-            dt = DType.Bool
+    try:
+        if "float" in dt_str or "int" in dt_str or "bool" in dt_str:
+            if "float64" in dt_str:
+                dt = DType.Float64
+            elif "float32" in dt_str:
+                dt = DType.Float32
+            elif "int64" in dt_str:
+                dt = DType.Int64
+            elif "int32" in dt_str:
+                dt = DType.Int32
+            elif "bool" in dt_str:
+                dt = DType.Bool
+            else:
+                dt = DType(dt_str)
+    except Exception:
+        dt = config.default_float_dtype
 
     if dtype is not None:
         try:
@@ -248,7 +255,9 @@ class Tensor:
         Returns:
             Any: A NumPy ndarray containing the tensor's data.
         """
-        return self._tensor.__array__()
+        import numpy as np
+
+        return np.array(self._tensor.data)
 
     def backward(self, *args, **kwargs) -> None:
         """Computes the gradient of current tensor w.r.t. graph leaves.
@@ -272,20 +281,20 @@ class Tensor:
         return "cpu"
 
     def contiguous(self) -> "Tensor":
-        """Returns a contiguous tensor.
+        """Returns a contiguous in memory tensor containing the same data as self tensor.
 
         Returns:
-            Tensor: A new contiguous tensor.
+            Tensor: A contiguous tensor.
         """
         if self._tensor is None:
             return self
-        from ml_switcheroo_compiler.core.config import config
-
         if config.eager_mode:
-            arr = self._tensor.__array__()
+            arr = self._tensor.data
             if hasattr(arr, "flags") and not arr.flags["C_CONTIGUOUS"]:
-                return _wrap(arr.copy(order="C"))
-        return _wrap(self._tensor.contiguous())
+                import numpy as np
+
+                return _wrap(np.ascontiguousarray(arr))
+        return self
 
     def squeeze(self, dim=None) -> "Tensor":
         """Returns a tensor with all specified dimensions of input of size 1 removed.

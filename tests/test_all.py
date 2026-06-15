@@ -20,7 +20,9 @@ def get_dummy_args(sig):
     kwargs = {}
     for name, param in sig.parameters.items():
         if param.default == inspect.Parameter.empty:
-            if param.kind in (
+            if name == "seed":
+                args.append(42)
+            elif param.kind in (
                 inspect.Parameter.POSITIONAL_ONLY,
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
             ):

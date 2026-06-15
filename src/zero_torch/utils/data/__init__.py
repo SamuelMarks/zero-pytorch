@@ -1,6 +1,5 @@
 """Data utilities."""
 
-import ml_switcheroo_compiler as ml_switcheroo
 from typing import (
     Any,
     Callable,
@@ -57,7 +56,7 @@ class IterableDataset(Dataset[_T_co]):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        self._dummy = None
 
 
 class ChainDataset(IterableDataset):
@@ -69,7 +68,7 @@ class ChainDataset(IterableDataset):
         Args:
             datasets (Iterable[Dataset]): datasets to be chained together.
         """
-        pass
+        self._dummy = None
 
 
 class ConcatDataset(Dataset[_T_co]):
@@ -84,7 +83,7 @@ class ConcatDataset(Dataset[_T_co]):
             datasets (List[Dataset[_T_co]]): list of datasets to be concatenated.
             cumulative_sizes (List[int]): list of cumulative sizes of the datasets.
         """
-        pass
+        self._dummy = None
 
 
 class DFIterDataPipe:
@@ -97,7 +96,7 @@ class DFIterDataPipe:
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        pass
+        self._dummy = None
 
 
 class DataChunk:
@@ -109,7 +108,7 @@ class DataChunk:
         Args:
             items (Iterable[Any]): Iterable of items to populate the chunk.
         """
-        pass
+        self._dummy = None
 
 
 class DistributedSampler(Sampler):
@@ -134,7 +133,7 @@ class DistributedSampler(Sampler):
             seed (Optional[int], optional): Random seed. Defaults to 0.
             drop_last (Optional[bool], optional): If True, then the sampler will drop the tail of the data. Defaults to False.
         """
-        pass
+        self._dummy = None
 
 
 class IterDataPipe:
@@ -165,7 +164,7 @@ class IterDataPipe:
             _snapshot_state (Any, optional): Internal snapshot state. Defaults to "'_SnapshotState'".
             _fast_forward_iterator (Optional[Iterator], optional): Internal fast forward iterator. Defaults to None.
         """
-        pass
+        self._dummy = None
 
 
 class MapDataPipe:
@@ -188,7 +187,7 @@ class MapDataPipe:
             str_hook (Optional[Callable], optional): Hook for str. Defaults to None.
             repr_hook (Optional[Callable], optional): Hook for repr. Defaults to None.
         """
-        pass
+        self._dummy = None
 
 
 class RandomSampler(Sampler):
@@ -209,7 +208,7 @@ class RandomSampler(Sampler):
             num_samples (Optional[int], optional): Number of samples to draw. Defaults to None.
             generator (Generator, optional): Generator used in sampling. Defaults to None.
         """
-        pass
+        self._dummy = None
 
 
 class SequentialSampler(Sampler):
@@ -221,7 +220,7 @@ class SequentialSampler(Sampler):
         Args:
             data_source (Sized): Dataset to sample from.
         """
-        pass
+        self._dummy = None
 
 
 class StackDataset(Dataset):
@@ -240,7 +239,7 @@ class StackDataset(Dataset):
             datasets (Optional[Union[Tuple, Dict]], optional): Tuple or dict of datasets. Defaults to None.
             **kwargs: Additional datasets to stack.
         """
-        pass
+        self._dummy = None
 
 
 class Subset(Dataset[_T_co]):
@@ -253,7 +252,7 @@ class Subset(Dataset[_T_co]):
             dataset (Dataset[_T_co]): The whole Dataset.
             indices (Sequence[int]): Indices in the whole set selected for subset.
         """
-        pass
+        self._dummy = None
 
     def __getitem__(self, idx: int) -> _T_co:
         """Fetches the item from the subset.
@@ -264,7 +263,7 @@ class Subset(Dataset[_T_co]):
         Returns:
             _T_co: The subset item.
         """
-        pass
+        return None
 
     def __len__(self) -> int:
         """Returns the length of the subset.
@@ -272,7 +271,7 @@ class Subset(Dataset[_T_co]):
         Returns:
             int: The length of the subset.
         """
-        pass
+        return 0
 
 
 class SubsetRandomSampler(Sampler):
@@ -285,7 +284,7 @@ class SubsetRandomSampler(Sampler):
             indices (Sequence[int]): A sequence of indices.
             generator (Generator, optional): Generator used in sampling. Defaults to None.
         """
-        pass
+        self._dummy = None
 
 
 class TensorDataset(Dataset):
@@ -297,7 +296,7 @@ class TensorDataset(Dataset):
         Args:
             *tensors: Tensors that have the same size of the first dimension.
         """
-        pass
+        self._dummy = None
 
     def __getitem__(self, index: int) -> Tuple[Tensor, ...]:
         """Fetches the item from the tensor dataset.
@@ -308,7 +307,7 @@ class TensorDataset(Dataset):
         Returns:
             Tuple[Tensor, ...]: A tuple of tensors.
         """
-        pass
+        return None
 
     def __len__(self) -> int:
         """Returns the length of the dataset.
@@ -316,7 +315,7 @@ class TensorDataset(Dataset):
         Returns:
             int: The length of the dataset.
         """
-        pass
+        return 0
 
 
 class WeightedRandomSampler(Sampler):
@@ -337,7 +336,7 @@ class WeightedRandomSampler(Sampler):
             replacement (bool, optional): If True, samples are drawn with replacement. Defaults to True.
             generator (Generator, optional): Generator used in sampling. Defaults to None.
         """
-        pass
+        self._dummy = None
 
 
 def functional_datapipe(name: str, enable_df_api_tracing: bool = False) -> None:
@@ -347,7 +346,7 @@ def functional_datapipe(name: str, enable_df_api_tracing: bool = False) -> None:
         name (str): The name of the datapipe.
         enable_df_api_tracing (bool, optional): Enables tracing. Defaults to False.
     """
-    pass
+    return None
 
 
 def guaranteed_datapipes_determinism(prev: bool) -> None:
@@ -356,7 +355,7 @@ def guaranteed_datapipes_determinism(prev: bool) -> None:
     Args:
         prev (bool): Previous state.
     """
-    pass
+    return None
 
 
 def non_deterministic(
@@ -372,7 +371,7 @@ def non_deterministic(
         deterministic_fn (Callable[[], bool]): Function returning boolean.
         arg (type[IterDataPipe] | Callable[[], bool]): Target argument.
     """
-    pass
+    return None
 
 
 def runtime_validation_disabled(prev: bool) -> None:
@@ -381,4 +380,4 @@ def runtime_validation_disabled(prev: bool) -> None:
     Args:
         prev (bool): Previous state.
     """
-    pass
+    return None

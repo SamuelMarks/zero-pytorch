@@ -166,7 +166,6 @@ __all__ = [
     "ZeroPad2d",
     "ZeroPad3d",
 ]
-from typing import Any
 from .module import (
     Container,
     ModuleDict,

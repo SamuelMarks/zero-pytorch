@@ -40,8 +40,12 @@ jobs:
 
     - name: Test & Coverage
       run: |
-        pytest tests/test_all_apis.py --cov=src/zero_torch --cov-report=xml
+        pytest tests/test_all_apis.py tests/test_compiler_ops.py --cov=src/zero_torch --cov-report=xml
         pytest tests/pytorch_official/ --cov=src/zero_torch --cov-append --cov-report=xml
+
+    - name: API Snapshots Check
+      run: |
+        PYTHONPATH=src python scripts/check_api_snapshots.py
         
     - name: Update Badges
       run: |
