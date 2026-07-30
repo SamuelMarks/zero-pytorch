@@ -1,41 +1,16 @@
-from typing import Any, Optional, Callable, Iterable, TypeVar
+from typing import Any, Optional
+
+_Optional = Optional
+from collections.abc import Iterable
+from typing import Callable, Optional
+
 import torch
 from torch import Tensor
-
-_R = Any
-_FanMode = Any
-_NonlinearityType = Any
-_Optional = Optional
-_empty = Any
-ParamsT = Any
-_size_1_t = Any
-_size_2_t = Any
-_size_3_t = Any
-_size_any_t = Any
-_size_2_opt_t = Any
-_size_3_opt_t = Any
-_ratio_2_t = Any
-_ratio_3_t = Any
-optional = Any
-UninitializedParameter = Any
-Parameter = Any
-real = Any
-NamedShape = Any
-_ratio_any_t = Any
-_size_any_opt_t = Any
-_size = Any
-iterable = Iterable
-NoneType = type(None)
-_T_co = TypeVar("_T_co", covariant=True)
-_T = TypeVar("_T")
-_collate_fn_t = Any
-_worker_init_fn_t = Any
-_SnapshotState = Any
 
 class GELU:
     def __init__(
         self, approximate: str = "none", __constants__: list = ["approximate"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LeakyReLU:
     def __init__(
@@ -43,7 +18,7 @@ class LeakyReLU:
         negative_slope: float = 0.01,
         inplace: bool = False,
         __constants__: list = ["inplace", "negative_slope"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class ReLU:
     def __init__(
@@ -56,61 +31,61 @@ class SiLU:
     ) -> Any: ...
 
 class Sigmoid:
-    def __init__(self, *args, **kwargs) -> NoneType: ...
+    def __init__(self, *args, **kwargs) -> None: ...
 
 class Softmax:
     def __init__(
         self, dim: int | None = "```(None)```", __constants__: list = ["dim"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Tanh:
-    def __init__(self, *args, **kwargs) -> NoneType: ...
+    def __init__(self, *args, **kwargs) -> None: ...
 
 class AdaptiveAvgPool1d:
-    def __init__(self, output_size: _size_1_t = ...) -> NoneType: ...
+    def __init__(self, output_size: Any = ...) -> None: ...
 
 class AdaptiveAvgPool2d:
-    def __init__(self, output_size: _size_2_opt_t = ...) -> NoneType: ...
+    def __init__(self, output_size: Any = ...) -> None: ...
 
 class AdaptiveAvgPool3d:
-    def __init__(self, output_size: _size_3_opt_t = ...) -> NoneType: ...
+    def __init__(self, output_size: Any = ...) -> None: ...
 
 class AdaptiveMaxPool1d:
     def __init__(
-        self, output_size: _size_1_t = ..., return_indices: bool = False
-    ) -> NoneType: ...
+        self, output_size: Any = ..., return_indices: bool = False
+    ) -> None: ...
 
 class AdaptiveMaxPool2d:
     def __init__(
-        self, output_size: _size_2_opt_t = ..., return_indices: bool = False
-    ) -> NoneType: ...
+        self, output_size: Any = ..., return_indices: bool = False
+    ) -> None: ...
 
 class AdaptiveMaxPool3d:
     def __init__(
-        self, output_size: _size_3_opt_t = ..., return_indices: bool = False
-    ) -> NoneType: ...
+        self, output_size: Any = ..., return_indices: bool = False
+    ) -> None: ...
 
 class AlphaDropout:
     def __init__(
         self, p: float = 0.5, inplace: bool | None = "```(None)```"
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class AvgPool1d:
     def __init__(
         self,
-        kernel_size: _size_1_t = ...,
-        stride: _size_1_t = ":attr:`kernel_size",
-        padding: _size_1_t = 0,
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
+        padding: Any = 0,
         ceil_mode: bool = False,
         count_include_pad: bool = True,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class AvgPool2d:
     def __init__(
         self,
-        kernel_size: _size_2_t = ...,
-        stride: _size_2_t = ":attr:`kernel_size",
-        padding: _size_2_t = 0,
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
+        padding: Any = 0,
         ceil_mode: bool = False,
         count_include_pad: bool = True,
         divisor_override: int | None = "```(None)```",
@@ -122,14 +97,14 @@ class AvgPool2d:
             "count_include_pad",
             "divisor_override",
         ],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class AvgPool3d:
     def __init__(
         self,
-        kernel_size: _size_3_t = ...,
-        stride: _size_3_t = ":attr:`kernel_size",
-        padding: _size_3_t = 0,
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
+        padding: Any = 0,
         ceil_mode: bool = False,
         count_include_pad: bool = True,
         divisor_override: int | None = "```(None)```",
@@ -141,7 +116,7 @@ class AvgPool3d:
             "count_include_pad",
             "divisor_override",
         ],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class BatchNorm1d:
     def __init__(
@@ -153,7 +128,7 @@ class BatchNorm1d:
         track_running_stats: bool = True,
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class BatchNorm2d:
     def __init__(
@@ -165,7 +140,7 @@ class BatchNorm2d:
         track_running_stats: bool = True,
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class BatchNorm3d:
     def __init__(
@@ -177,7 +152,7 @@ class BatchNorm3d:
         track_running_stats: bool = True,
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Bilinear:
     def __init__(
@@ -190,7 +165,7 @@ class Bilinear:
         weight: Tensor = ...,
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class CELU:
     def __init__(
@@ -198,23 +173,19 @@ class CELU:
         alpha: float = 1.0,
         inplace: bool = False,
         __constants__: list = ["alpha", "inplace"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class ChannelShuffle:
-    def __init__(
-        self, groups: int = ..., __constants__: list = ["groups"]
-    ) -> NoneType: ...
+    def __init__(self, groups: int = ..., __constants__: list = ["groups"]) -> None: ...
 
 class CircularPad1d:
-    def __init__(self, padding: tuple[int, int] = ...) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int] = ...) -> None: ...
 
 class CircularPad2d:
-    def __init__(self, padding: tuple[int, int, int, int] = ...) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int, int, int] = ...) -> None: ...
 
 class CircularPad3d:
-    def __init__(
-        self, padding: tuple[int, int, int, int, int, int] = ...
-    ) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int, int, int, int, int] = ...) -> None: ...
 
 class ConstantPad1d:
     def __init__(self, padding: tuple[int, int] = ..., value: float = ...) -> Any: ...
@@ -225,157 +196,151 @@ class ConstantPad2d:
         padding: tuple[int, int, int, int] = ...,
         __constants__: list = ["padding", "value"],
         value: float = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class ConstantPad3d:
     def __init__(
         self, padding: tuple[int, int, int, int, int, int] = ..., value: float = ...
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Container:
-    def __init__(self, **kwargs) -> NoneType: ...
+    def __init__(self, **kwargs) -> None: ...
 
 class Conv1d:
     def __init__(
         self,
-        __doc__: Any = "```('Applies a 1D convolution over an input signal composed of several input\\n    planes.\\n\\n    In the simplest case, the output value of the layer with input size\\n    :math:`(N, C_{\\\\text{in}}, L)` and output :math:`(N, C_{\\\\text{out}}, L_{\\\\text{out}})` can be\\n    precisely described as:\\n\\n    .. math::\\n        \\\\text{out}(N_i, C_{\\\\text{out}_j}) = \\\\text{bias}(C_{\\\\text{out}_j}) +\\n        \\\\sum_{k = 0}^{C_{in} - 1} \\\\text{weight}(C_{\\\\text{out}_j}, k)\\n        \\\\star \\\\text{input}(N_i, k)\\n\\n    where :math:`\\\\star` is the valid `cross-correlation`_ operator,\\n    :math:`N` is a batch size, :math:`C` denotes a number of channels,\\n    :math:`L` is a length of signal sequence.\\n    ' + \"\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation, a single\\n      number or a one-element tuple.\\n\\n    * :attr:`padding` controls the amount of padding applied to the input. It\\n      can be either a string {{'valid', 'same'}} or a tuple of ints giving the\\n      amount of implicit padding applied on both sides.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also\\n      known as the à trous algorithm. It is harder to describe, but this `link`_\\n      has a nice visualization of what :attr:`dilation` does.\\n\\n    {groups_note}\\n\\n    Note:\\n        {depthwise_separable_note}\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Note:\\n        ``padding='valid'`` is the same as no padding. ``padding='same'`` pads\\n        the input so the output has the shape as the input. However, this mode\\n        doesn't support any stride values other than 1.\\n\\n    Note:\\n        This module supports complex data types i.e. ``complex32, complex64, complex128``.\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, optional): Stride of the convolution. Default: 1\\n        padding (int, tuple or str, optional): Padding added to both sides of\\n            the input. Default: 0\\n        dilation (int or tuple, optional): Spacing between kernel\\n            elements. Default: 1\\n        groups (int, optional): Number of blocked connections from input\\n            channels to output channels. Default: 1\\n        bias (bool, optional): If ``True``, adds a learnable bias to the\\n            output. Default: ``True``\\n        padding_mode (str, optional): ``'zeros'``, ``'reflect'``,\\n            ``'replicate'`` or ``'circular'``. Default: ``'zeros'``\\n\\n    \".format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, L_{in})` or :math:`(C_{in}, L_{in})`\\n        - Output: :math:`(N, C_{out}, L_{out})` or :math:`(C_{out}, L_{out})`, where\\n\\n          .. math::\\n              L_{out} = \\\\left\\\\lfloor\\\\frac{L_{in} + 2 \\\\times \\\\text{padding} - \\\\text{dilation}\\n                        \\\\times (\\\\text{kernel\\\\_size} - 1) - 1}{\\\\text{stride}} + 1\\\\right\\\\rfloor\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n            :math:`(\\\\text{out\\\\_channels},\\n            \\\\frac{\\\\text{in\\\\_channels}}{\\\\text{groups}}, \\\\text{kernel\\\\_size})`.\\n            The values of these weights are sampled from\\n            :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n            :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\text{kernel\\\\_size}}`\\n        bias (Tensor):   the learnable bias of the module of shape\\n            (out_channels). If :attr:`bias` is ``True``, then the values of these weights are\\n            sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n            :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\text{kernel\\\\_size}}`\\n\\n    Examples::\\n\\n        >>> m = nn.Conv1d(16, 33, 3, stride=2)\\n        >>> input = torch.randn(20, 16, 50)\\n        >>> output = m(input)\\n\\n    .. _cross-correlation:\\n        https://en.wikipedia.org/wiki/Cross-correlation\\n\\n    .. _link:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n    ')```",
+        __doc__: Any = "```('Applies a 1D convolution over an input signal composed of several input\\n    planes.\\n\\n    In the simplest case, the output value of the layer with input size\\n    :math:`(N, C_{\\\\text{in}}, L)` and output :math:`(N, C_{\\\\text{out}}, L_{\\\\text{out}})` can be\\n    precisely described as:\\n\\n    .. math::\\n        \\\\text{out}(N_i, C_{\\\\text{out}_j}) = \\\\text{bias}(C_{\\\\text{out}_j}) +\\n        \\\\sum_{k = 0}^{C_{in} - 1} \\\\text{weight}(C_{\\\\text{out}_j}, k)\\n        \\\\star \\\\text{input}(N_i, k)\\n\\n    where :math:`\\\\star` is the valid `cross-correlation`_ operator,\\n    :math:`N` is a batch size, :math:`C` denotes a number of channels,\\n    :math:`L` is a length of signal sequence.\\n    ' + \"\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation, a single\\n      number or a one-element tuple.\\n\\n    * :attr:`padding` controls the amount of padding applied to the input. It\\n      can be either a string {{'valid', 'same'}} or a tuple of ints giving the\\n      amount of implicit padding applied on both sides.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also\\n      known as the à trous algorithm. It is harder to describe, but this `link`_\\n      has a nice visualization of what :attr:`dilation` does.\\n\\n    {groups_note}\\n\\n    Note:\\n        {depthwise_separable_note}\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Note:\\n        ``padding='valid'`` is the same as no padding. ``padding='same'`` pads\\n        the input so the output has the shape as the input. However, this mode\\n        doesn't support any stride values other than 1.\\n\\n    Note:\\n        This module supports complex data types i.e. ``complex32, complex64, complex128``.\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, Any): Stride of the convolution. Default: 1\\n        padding (int, tuple or str, Any): Padding added to both sides of\\n            the input. Default: 0\\n        dilation (int or tuple, Any): Spacing between kernel\\n            elements. Default: 1\\n        groups (int, Any): Number of blocked connections from input\\n            channels to output channels. Default: 1\\n        bias (bool, Any): If ``True``, adds a learnable bias to the\\n            output. Default: ``True``\\n        padding_mode (str, Any): ``'zeros'``, ``'reflect'``,\\n            ``'replicate'`` or ``'circular'``. Default: ``'zeros'``\\n\\n    \".format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, L_{in})` or :math:`(C_{in}, L_{in})`\\n        - Output: :math:`(N, C_{out}, L_{out})` or :math:`(C_{out}, L_{out})`, where\\n\\n          .. math::\\n              L_{out} = \\\\left\\\\lfloor\\\\frac{L_{in} + 2 \\\\times \\\\text{padding} - \\\\text{dilation}\\n                        \\\\times (\\\\text{kernel\\\\Any} - 1) - 1}{\\\\text{stride}} + 1\\\\right\\\\rfloor\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n            :math:`(\\\\text{out\\\\_channels},\\n            \\\\frac{\\\\text{in\\\\_channels}}{\\\\text{groups}}, \\\\text{kernel\\\\Any})`.\\n            The values of these weights are sampled from\\n            :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n            :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\text{kernel\\\\Any}}`\\n        bias (Tensor):   the learnable bias of the module of shape\\n            (out_channels). If :attr:`bias` is ``True``, then the values of these weights are\\n            sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n            :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\text{kernel\\\\Any}}`\\n\\n    Examples::\\n\\n        >>> m = nn.Conv1d(16, 33, 3, stride=2)\\n        >>> input = torch.randn(20, 16, 50)\\n        >>> output = m(input)\\n\\n    .. _cross-correlation:\\n        https://en.wikipedia.org/wiki/Cross-correlation\\n\\n    .. _link:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n    ')```",
         device: Any = "```(None)```",
-        padding: str | _size_1_t = 0,
+        padding: str | Any = 0,
         out_channels: int = ...,
         groups: int = 1,
-        dilation: _size_1_t = 1,
+        dilation: Any = 1,
         in_channels: int = ...,
         bias: bool = True,
         padding_mode: str = "zeros",
         dtype: Any = "```(None)```",
-        kernel_size: _size_1_t = ...,
-        stride: _size_1_t = 1,
+        kernel_size: Any = ...,
+        stride: Any = 1,
         transposed: bool = ...,
         output_padding: tuple = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Conv2d:
     def __init__(
         self,
-        __doc__: Any = "```('Applies a 2D convolution over an input signal composed of several input\\n    planes.\\n\\n    In the simplest case, the output value of the layer with input size\\n    :math:`(N, C_{\\\\text{in}}, H, W)` and output :math:`(N, C_{\\\\text{out}}, H_{\\\\text{out}}, W_{\\\\text{out}})`\\n    can be precisely described as:\\n\\n    .. math::\\n        \\\\text{out}(N_i, C_{\\\\text{out}_j}) = \\\\text{bias}(C_{\\\\text{out}_j}) +\\n        \\\\sum_{k = 0}^{C_{\\\\text{in}} - 1} \\\\text{weight}(C_{\\\\text{out}_j}, k) \\\\star \\\\text{input}(N_i, k)\\n\\n\\n    where :math:`\\\\star` is the valid 2D `cross-correlation`_ operator,\\n    :math:`N` is a batch size, :math:`C` denotes a number of channels,\\n    :math:`H` is a height of input planes in pixels, and :math:`W` is\\n    width in pixels.\\n    ' + \"\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation, a single\\n      number or a tuple.\\n\\n    * :attr:`padding` controls the amount of padding applied to the input. It\\n      can be either a string {{'valid', 'same'}} or an int / a tuple of ints giving the\\n      amount of implicit padding applied on both sides.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also\\n      known as the à trous algorithm. It is harder to describe, but this `link`_\\n      has a nice visualization of what :attr:`dilation` does.\\n\\n\\n    {groups_note}\\n\\n    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`dilation` can either be:\\n\\n        - a single ``int`` -- in which case the same value is used for the height and width dimension\\n        - a ``tuple`` of two ints -- in which case, the first `int` is used for the height dimension,\\n          and the second `int` for the width dimension\\n\\n    Note:\\n        {depthwise_separable_note}\\n\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Note:\\n        ``padding='valid'`` is the same as no padding. ``padding='same'`` pads\\n        the input so the output has the shape as the input. However, this mode\\n        doesn't support any stride values other than 1.\\n\\n    Note:\\n        This module supports complex data types i.e. ``complex32, complex64, complex128``.\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, optional): Stride of the convolution. Default: 1\\n        padding (int, tuple or str, optional): Padding added to all four sides of\\n            the input. Default: 0\\n        dilation (int or tuple, optional): Spacing between kernel elements. Default: 1\\n        groups (int, optional): Number of blocked connections from input\\n            channels to output channels. Default: 1\\n        bias (bool, optional): If ``True``, adds a learnable bias to the\\n            output. Default: ``True``\\n        padding_mode (str, optional): ``'zeros'``, ``'reflect'``,\\n            ``'replicate'`` or ``'circular'``. Default: ``'zeros'``\\n    \".format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, H_{in}, W_{in})` or :math:`(C_{in}, H_{in}, W_{in})`\\n        - Output: :math:`(N, C_{out}, H_{out}, W_{out})` or :math:`(C_{out}, H_{out}, W_{out})`, where\\n\\n          .. math::\\n              H_{out} = \\\\left\\\\lfloor\\\\frac{H_{in}  + 2 \\\\times \\\\text{padding}[0] - \\\\text{dilation}[0]\\n                        \\\\times (\\\\text{kernel\\\\_size}[0] - 1) - 1}{\\\\text{stride}[0]} + 1\\\\right\\\\rfloor\\n\\n          .. math::\\n              W_{out} = \\\\left\\\\lfloor\\\\frac{W_{in}  + 2 \\\\times \\\\text{padding}[1] - \\\\text{dilation}[1]\\n                        \\\\times (\\\\text{kernel\\\\_size}[1] - 1) - 1}{\\\\text{stride}[1]} + 1\\\\right\\\\rfloor\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n            :math:`(\\\\text{out\\\\_channels}, \\\\frac{\\\\text{in\\\\_channels}}{\\\\text{groups}},`\\n            :math:`\\\\text{kernel\\\\_size[0]}, \\\\text{kernel\\\\_size[1]})`.\\n            The values of these weights are sampled from\\n            :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n            :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\prod_{i=0}^{1}\\\\text{kernel\\\\_size}[i]}`\\n        bias (Tensor):   the learnable bias of the module of shape\\n            (out_channels). If :attr:`bias` is ``True``,\\n            then the values of these weights are\\n            sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n            :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\prod_{i=0}^{1}\\\\text{kernel\\\\_size}[i]}`\\n\\n    Examples:\\n\\n        >>> # With square kernels and equal stride\\n        >>> m = nn.Conv2d(16, 33, 3, stride=2)\\n        >>> # non-square kernels and unequal stride and with padding\\n        >>> m = nn.Conv2d(16, 33, (3, 5), stride=(2, 1), padding=(4, 2))\\n        >>> # non-square kernels and unequal stride and with padding and dilation\\n        >>> m = nn.Conv2d(16, 33, (3, 5), stride=(2, 1), padding=(4, 2), dilation=(3, 1))\\n        >>> input = torch.randn(20, 16, 50, 100)\\n        >>> output = m(input)\\n\\n    .. _cross-correlation:\\n        https://en.wikipedia.org/wiki/Cross-correlation\\n\\n    .. _link:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n    ')```",
+        __doc__: Any = "```('Applies a 2D convolution over an input signal composed of several input\\n    planes.\\n\\n    In the simplest case, the output value of the layer with input size\\n    :math:`(N, C_{\\\\text{in}}, H, W)` and output :math:`(N, C_{\\\\text{out}}, H_{\\\\text{out}}, W_{\\\\text{out}})`\\n    can be precisely described as:\\n\\n    .. math::\\n        \\\\text{out}(N_i, C_{\\\\text{out}_j}) = \\\\text{bias}(C_{\\\\text{out}_j}) +\\n        \\\\sum_{k = 0}^{C_{\\\\text{in}} - 1} \\\\text{weight}(C_{\\\\text{out}_j}, k) \\\\star \\\\text{input}(N_i, k)\\n\\n\\n    where :math:`\\\\star` is the valid 2D `cross-correlation`_ operator,\\n    :math:`N` is a batch size, :math:`C` denotes a number of channels,\\n    :math:`H` is a height of input planes in pixels, and :math:`W` is\\n    width in pixels.\\n    ' + \"\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation, a single\\n      number or a tuple.\\n\\n    * :attr:`padding` controls the amount of padding applied to the input. It\\n      can be either a string {{'valid', 'same'}} or an int / a tuple of ints giving the\\n      amount of implicit padding applied on both sides.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also\\n      known as the à trous algorithm. It is harder to describe, but this `link`_\\n      has a nice visualization of what :attr:`dilation` does.\\n\\n\\n    {groups_note}\\n\\n    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`dilation` can either be:\\n\\n        - a single ``int`` -- in which case the same value is used for the height and width dimension\\n        - a ``tuple`` of two ints -- in which case, the first `int` is used for the height dimension,\\n          and the second `int` for the width dimension\\n\\n    Note:\\n        {depthwise_separable_note}\\n\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Note:\\n        ``padding='valid'`` is the same as no padding. ``padding='same'`` pads\\n        the input so the output has the shape as the input. However, this mode\\n        doesn't support any stride values other than 1.\\n\\n    Note:\\n        This module supports complex data types i.e. ``complex32, complex64, complex128``.\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, Any): Stride of the convolution. Default: 1\\n        padding (int, tuple or str, Any): Padding added to all four sides of\\n            the input. Default: 0\\n        dilation (int or tuple, Any): Spacing between kernel elements. Default: 1\\n        groups (int, Any): Number of blocked connections from input\\n            channels to output channels. Default: 1\\n        bias (bool, Any): If ``True``, adds a learnable bias to the\\n            output. Default: ``True``\\n        padding_mode (str, Any): ``'zeros'``, ``'reflect'``,\\n            ``'replicate'`` or ``'circular'``. Default: ``'zeros'``\\n    \".format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, H_{in}, W_{in})` or :math:`(C_{in}, H_{in}, W_{in})`\\n        - Output: :math:`(N, C_{out}, H_{out}, W_{out})` or :math:`(C_{out}, H_{out}, W_{out})`, where\\n\\n          .. math::\\n              H_{out} = \\\\left\\\\lfloor\\\\frac{H_{in}  + 2 \\\\times \\\\text{padding}[0] - \\\\text{dilation}[0]\\n                        \\\\times (\\\\text{kernel\\\\Any}[0] - 1) - 1}{\\\\text{stride}[0]} + 1\\\\right\\\\rfloor\\n\\n          .. math::\\n              W_{out} = \\\\left\\\\lfloor\\\\frac{W_{in}  + 2 \\\\times \\\\text{padding}[1] - \\\\text{dilation}[1]\\n                        \\\\times (\\\\text{kernel\\\\Any}[1] - 1) - 1}{\\\\text{stride}[1]} + 1\\\\right\\\\rfloor\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n            :math:`(\\\\text{out\\\\_channels}, \\\\frac{\\\\text{in\\\\_channels}}{\\\\text{groups}},`\\n            :math:`\\\\text{kernel\\\\Any[0]}, \\\\text{kernel\\\\Any[1]})`.\\n            The values of these weights are sampled from\\n            :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n            :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\prod_{i=0}^{1}\\\\text{kernel\\\\Any}[i]}`\\n        bias (Tensor):   the learnable bias of the module of shape\\n            (out_channels). If :attr:`bias` is ``True``,\\n            then the values of these weights are\\n            sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n            :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\prod_{i=0}^{1}\\\\text{kernel\\\\Any}[i]}`\\n\\n    Examples:\\n\\n        >>> # With square kernels and equal stride\\n        >>> m = nn.Conv2d(16, 33, 3, stride=2)\\n        >>> # non-square kernels and unequal stride and with padding\\n        >>> m = nn.Conv2d(16, 33, (3, 5), stride=(2, 1), padding=(4, 2))\\n        >>> # non-square kernels and unequal stride and with padding and dilation\\n        >>> m = nn.Conv2d(16, 33, (3, 5), stride=(2, 1), padding=(4, 2), dilation=(3, 1))\\n        >>> input = torch.randn(20, 16, 50, 100)\\n        >>> output = m(input)\\n\\n    .. _cross-correlation:\\n        https://en.wikipedia.org/wiki/Cross-correlation\\n\\n    .. _link:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n    ')```",
         device: Any = "```(None)```",
-        padding: str | _size_2_t = 0,
+        padding: str | Any = 0,
         out_channels: int = ...,
         groups: int = 1,
-        dilation: _size_2_t = 1,
+        dilation: Any = 1,
         in_channels: int = ...,
         bias: bool = True,
         padding_mode: str = "zeros",
         dtype: Any = "```(None)```",
-        kernel_size: _size_2_t = ...,
-        stride: _size_2_t = 1,
+        kernel_size: Any = ...,
+        stride: Any = 1,
         transposed: bool = ...,
         output_padding: tuple = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Conv3d:
     def __init__(
         self,
-        __doc__: Any = "```('Applies a 3D convolution over an input signal composed of several input\\n    planes.\\n\\n    In the simplest case, the output value of the layer with input size :math:`(N, C_{in}, D, H, W)`\\n    and output :math:`(N, C_{out}, D_{out}, H_{out}, W_{out})` can be precisely described as:\\n\\n    .. math::\\n        out(N_i, C_{out_j}) = bias(C_{out_j}) +\\n                                \\\\sum_{k = 0}^{C_{in} - 1} weight(C_{out_j}, k) \\\\star input(N_i, k)\\n\\n    where :math:`\\\\star` is the valid 3D `cross-correlation`_ operator\\n    ' + \"\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation.\\n\\n    * :attr:`padding` controls the amount of padding applied to the input. It\\n      can be either a string {{'valid', 'same'}} or a tuple of ints giving the\\n      amount of implicit padding applied on both sides.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also known as the à trous algorithm.\\n      It is harder to describe, but this `link`_ has a nice visualization of what :attr:`dilation` does.\\n\\n\\n    {groups_note}\\n\\n    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`dilation` can either be:\\n\\n        - a single ``int`` -- in which case the same value is used for the depth, height and width dimension\\n        - a ``tuple`` of three ints -- in which case, the first `int` is used for the depth dimension,\\n          the second `int` for the height dimension and the third `int` for the width dimension\\n\\n    Note:\\n        {depthwise_separable_note}\\n\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Note:\\n        ``padding='valid'`` is the same as no padding. ``padding='same'`` pads\\n        the input so the output has the shape as the input. However, this mode\\n        doesn't support any stride values other than 1.\\n\\n    Note:\\n        This module supports complex data types i.e. ``complex32, complex64, complex128``.\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, optional): Stride of the convolution. Default: 1\\n        padding (int, tuple or str, optional): Padding added to all six sides of\\n            the input. Default: 0\\n        dilation (int or tuple, optional): Spacing between kernel elements. Default: 1\\n        groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1\\n        bias (bool, optional): If ``True``, adds a learnable bias to the output. Default: ``True``\\n        padding_mode (str, optional): ``'zeros'``, ``'reflect'``, ``'replicate'`` or ``'circular'``. Default: ``'zeros'``\\n    \".format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, D_{in}, H_{in}, W_{in})` or :math:`(C_{in}, D_{in}, H_{in}, W_{in})`\\n        - Output: :math:`(N, C_{out}, D_{out}, H_{out}, W_{out})` or :math:`(C_{out}, D_{out}, H_{out}, W_{out})`,\\n          where\\n\\n          .. math::\\n              D_{out} = \\\\left\\\\lfloor\\\\frac{D_{in} + 2 \\\\times \\\\text{padding}[0] - \\\\text{dilation}[0]\\n                    \\\\times (\\\\text{kernel\\\\_size}[0] - 1) - 1}{\\\\text{stride}[0]} + 1\\\\right\\\\rfloor\\n\\n          .. math::\\n              H_{out} = \\\\left\\\\lfloor\\\\frac{H_{in} + 2 \\\\times \\\\text{padding}[1] - \\\\text{dilation}[1]\\n                    \\\\times (\\\\text{kernel\\\\_size}[1] - 1) - 1}{\\\\text{stride}[1]} + 1\\\\right\\\\rfloor\\n\\n          .. math::\\n              W_{out} = \\\\left\\\\lfloor\\\\frac{W_{in} + 2 \\\\times \\\\text{padding}[2] - \\\\text{dilation}[2]\\n                    \\\\times (\\\\text{kernel\\\\_size}[2] - 1) - 1}{\\\\text{stride}[2]} + 1\\\\right\\\\rfloor\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n                         :math:`(\\\\text{out\\\\_channels}, \\\\frac{\\\\text{in\\\\_channels}}{\\\\text{groups}},`\\n                         :math:`\\\\text{kernel\\\\_size[0]}, \\\\text{kernel\\\\_size[1]}, \\\\text{kernel\\\\_size[2]})`.\\n                         The values of these weights are sampled from\\n                         :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\prod_{i=0}^{2}\\\\text{kernel\\\\_size}[i]}`\\n        bias (Tensor):   the learnable bias of the module of shape (out_channels). If :attr:`bias` is ``True``,\\n                         then the values of these weights are\\n                         sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\prod_{i=0}^{2}\\\\text{kernel\\\\_size}[i]}`\\n\\n    Examples::\\n\\n        >>> # With square kernels and equal stride\\n        >>> m = nn.Conv3d(16, 33, 3, stride=2)\\n        >>> # non-square kernels and unequal stride and with padding\\n        >>> m = nn.Conv3d(16, 33, (3, 5, 2), stride=(2, 1, 1), padding=(4, 2, 0))\\n        >>> input = torch.randn(20, 16, 10, 50, 100)\\n        >>> output = m(input)\\n\\n    .. _cross-correlation:\\n        https://en.wikipedia.org/wiki/Cross-correlation\\n\\n    .. _link:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n    ')```",
+        __doc__: Any = "```('Applies a 3D convolution over an input signal composed of several input\\n    planes.\\n\\n    In the simplest case, the output value of the layer with input size :math:`(N, C_{in}, D, H, W)`\\n    and output :math:`(N, C_{out}, D_{out}, H_{out}, W_{out})` can be precisely described as:\\n\\n    .. math::\\n        out(N_i, C_{out_j}) = bias(C_{out_j}) +\\n                                \\\\sum_{k = 0}^{C_{in} - 1} weight(C_{out_j}, k) \\\\star input(N_i, k)\\n\\n    where :math:`\\\\star` is the valid 3D `cross-correlation`_ operator\\n    ' + \"\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation.\\n\\n    * :attr:`padding` controls the amount of padding applied to the input. It\\n      can be either a string {{'valid', 'same'}} or a tuple of ints giving the\\n      amount of implicit padding applied on both sides.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also known as the à trous algorithm.\\n      It is harder to describe, but this `link`_ has a nice visualization of what :attr:`dilation` does.\\n\\n\\n    {groups_note}\\n\\n    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`dilation` can either be:\\n\\n        - a single ``int`` -- in which case the same value is used for the depth, height and width dimension\\n        - a ``tuple`` of three ints -- in which case, the first `int` is used for the depth dimension,\\n          the second `int` for the height dimension and the third `int` for the width dimension\\n\\n    Note:\\n        {depthwise_separable_note}\\n\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Note:\\n        ``padding='valid'`` is the same as no padding. ``padding='same'`` pads\\n        the input so the output has the shape as the input. However, this mode\\n        doesn't support any stride values other than 1.\\n\\n    Note:\\n        This module supports complex data types i.e. ``complex32, complex64, complex128``.\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, Any): Stride of the convolution. Default: 1\\n        padding (int, tuple or str, Any): Padding added to all six sides of\\n            the input. Default: 0\\n        dilation (int or tuple, Any): Spacing between kernel elements. Default: 1\\n        groups (int, Any): Number of blocked connections from input channels to output channels. Default: 1\\n        bias (bool, Any): If ``True``, adds a learnable bias to the output. Default: ``True``\\n        padding_mode (str, Any): ``'zeros'``, ``'reflect'``, ``'replicate'`` or ``'circular'``. Default: ``'zeros'``\\n    \".format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, D_{in}, H_{in}, W_{in})` or :math:`(C_{in}, D_{in}, H_{in}, W_{in})`\\n        - Output: :math:`(N, C_{out}, D_{out}, H_{out}, W_{out})` or :math:`(C_{out}, D_{out}, H_{out}, W_{out})`,\\n          where\\n\\n          .. math::\\n              D_{out} = \\\\left\\\\lfloor\\\\frac{D_{in} + 2 \\\\times \\\\text{padding}[0] - \\\\text{dilation}[0]\\n                    \\\\times (\\\\text{kernel\\\\Any}[0] - 1) - 1}{\\\\text{stride}[0]} + 1\\\\right\\\\rfloor\\n\\n          .. math::\\n              H_{out} = \\\\left\\\\lfloor\\\\frac{H_{in} + 2 \\\\times \\\\text{padding}[1] - \\\\text{dilation}[1]\\n                    \\\\times (\\\\text{kernel\\\\Any}[1] - 1) - 1}{\\\\text{stride}[1]} + 1\\\\right\\\\rfloor\\n\\n          .. math::\\n              W_{out} = \\\\left\\\\lfloor\\\\frac{W_{in} + 2 \\\\times \\\\text{padding}[2] - \\\\text{dilation}[2]\\n                    \\\\times (\\\\text{kernel\\\\Any}[2] - 1) - 1}{\\\\text{stride}[2]} + 1\\\\right\\\\rfloor\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n                         :math:`(\\\\text{out\\\\_channels}, \\\\frac{\\\\text{in\\\\_channels}}{\\\\text{groups}},`\\n                         :math:`\\\\text{kernel\\\\Any[0]}, \\\\text{kernel\\\\Any[1]}, \\\\text{kernel\\\\Any[2]})`.\\n                         The values of these weights are sampled from\\n                         :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\prod_{i=0}^{2}\\\\text{kernel\\\\Any}[i]}`\\n        bias (Tensor):   the learnable bias of the module of shape (out_channels). If :attr:`bias` is ``True``,\\n                         then the values of these weights are\\n                         sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{in} * \\\\prod_{i=0}^{2}\\\\text{kernel\\\\Any}[i]}`\\n\\n    Examples::\\n\\n        >>> # With square kernels and equal stride\\n        >>> m = nn.Conv3d(16, 33, 3, stride=2)\\n        >>> # non-square kernels and unequal stride and with padding\\n        >>> m = nn.Conv3d(16, 33, (3, 5, 2), stride=(2, 1, 1), padding=(4, 2, 0))\\n        >>> input = torch.randn(20, 16, 10, 50, 100)\\n        >>> output = m(input)\\n\\n    .. _cross-correlation:\\n        https://en.wikipedia.org/wiki/Cross-correlation\\n\\n    .. _link:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n    ')```",
         device: Any = "```(None)```",
-        padding: str | _size_3_t = 0,
+        padding: str | Any = 0,
         out_channels: int = ...,
         groups: int = 1,
-        dilation: _size_3_t = 1,
+        dilation: Any = 1,
         in_channels: int = ...,
         bias: bool = True,
         padding_mode: str = "zeros",
         dtype: Any = "```(None)```",
-        kernel_size: _size_3_t = ...,
-        stride: _size_3_t = 1,
+        kernel_size: Any = ...,
+        stride: Any = 1,
         transposed: bool = ...,
         output_padding: tuple = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class ConvTranspose1d:
     def __init__(
         self,
-        __doc__: Any = "```('Applies a 1D transposed convolution operator over an input image\\n    composed of several input planes.\\n\\n    This module can be seen as the gradient of Conv1d with respect to its input.\\n    It is also known as a fractionally-strided convolution or\\n    a deconvolution (although it is not an actual deconvolution operation as it does\\n    not compute a true inverse of convolution). For more information, see the visualizations\\n    `here`_ and the `Deconvolutional Networks`_ paper.\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation.\\n\\n    * :attr:`padding` controls the amount of implicit zero padding on both\\n      sides for ``dilation * (kernel_size - 1) - padding`` number of points. See note\\n      below for details.\\n\\n    * :attr:`output_padding` controls the additional size added to one side\\n      of the output shape. See note below for details.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also known as the à trous algorithm.\\n      It is harder to describe, but the link `here`_ has a nice visualization of what :attr:`dilation` does.\\n\\n    {groups_note}\\n\\n    Note:\\n        The :attr:`padding` argument effectively adds ``dilation * (kernel_size - 1) - padding``\\n        amount of zero padding to both sizes of the input. This is set so that\\n        when a :class:`~torch.nn.Conv1d` and a :class:`~torch.nn.ConvTranspose1d`\\n        are initialized with same parameters, they are inverses of each other in\\n        regard to the input and output shapes. However, when ``stride > 1``,\\n        :class:`~torch.nn.Conv1d` maps multiple input shapes to the same output\\n        shape. :attr:`output_padding` is provided to resolve this ambiguity by\\n        effectively increasing the calculated output shape on one side. Note\\n        that :attr:`output_padding` is only used to find output shape, but does\\n        not actually add zero-padding to output.\\n\\n    Note:\\n        In some circumstances when using the CUDA backend with CuDNN, this operator\\n        may select a nondeterministic algorithm to increase performance. If this is\\n        undesirable, you can try to make the operation deterministic (potentially at\\n        a performance cost) by setting ``torch.backends.cudnn.deterministic =\\n        True``.\\n        Please see the notes on :doc:`/notes/randomness` for background.\\n\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, optional): Stride of the convolution. Default: 1\\n        padding (int or tuple, optional): ``dilation * (kernel_size - 1) - padding`` zero-padding\\n            will be added to both sides of the input. Default: 0\\n        output_padding (int or tuple, optional): Additional size added to one side\\n            of the output shape. Default: 0\\n        groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1\\n        bias (bool, optional): If ``True``, adds a learnable bias to the output. Default: ``True``\\n        dilation (int or tuple, optional): Spacing between kernel elements. Default: 1\\n    '.format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, L_{in})` or :math:`(C_{in}, L_{in})`\\n        - Output: :math:`(N, C_{out}, L_{out})` or :math:`(C_{out}, L_{out})`, where\\n\\n          .. math::\\n              L_{out} = (L_{in} - 1) \\\\times \\\\text{stride} - 2 \\\\times \\\\text{padding} + \\\\text{dilation}\\n                        \\\\times (\\\\text{kernel\\\\_size} - 1) + \\\\text{output\\\\_padding} + 1\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n                         :math:`(\\\\text{in\\\\_channels}, \\\\frac{\\\\text{out\\\\_channels}}{\\\\text{groups}},`\\n                         :math:`\\\\text{kernel\\\\_size})`.\\n                         The values of these weights are sampled from\\n                         :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\text{kernel\\\\_size}}`\\n        bias (Tensor):   the learnable bias of the module of shape (out_channels).\\n                         If :attr:`bias` is ``True``, then the values of these weights are\\n                         sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\text{kernel\\\\_size}}`\\n\\n    .. _`here`:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n\\n    .. _`Deconvolutional Networks`:\\n        https://www.matthewzeiler.com/mattzeiler/deconvolutionalnetworks.pdf\\n    ')```",
-        output_padding: _size_1_t = 0,
+        __doc__: Any = "```('Applies a 1D transposed convolution operator over an input image\\n    composed of several input planes.\\n\\n    This module can be seen as the gradient of Conv1d with respect to its input.\\n    It is also known as a fractionally-strided convolution or\\n    a deconvolution (although it is not an actual deconvolution operation as it does\\n    not compute a true inverse of convolution). For more information, see the visualizations\\n    `here`_ and the `Deconvolutional Networks`_ paper.\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation.\\n\\n    * :attr:`padding` controls the amount of implicit zero padding on both\\n      sides for ``dilation * (kernel_size - 1) - padding`` number of points. See note\\n      below for details.\\n\\n    * :attr:`output_padding` controls the additional size added to one side\\n      of the output shape. See note below for details.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also known as the à trous algorithm.\\n      It is harder to describe, but the link `here`_ has a nice visualization of what :attr:`dilation` does.\\n\\n    {groups_note}\\n\\n    Note:\\n        The :attr:`padding` argument effectively adds ``dilation * (kernel_size - 1) - padding``\\n        amount of zero padding to both sizes of the input. This is set so that\\n        when a :class:`~torch.nn.Conv1d` and a :class:`~torch.nn.ConvTranspose1d`\\n        are initialized with same parameters, they are inverses of each other in\\n        regard to the input and output shapes. However, when ``stride > 1``,\\n        :class:`~torch.nn.Conv1d` maps multiple input shapes to the same output\\n        shape. :attr:`output_padding` is provided to resolve this ambiguity by\\n        effectively increasing the calculated output shape on one side. Note\\n        that :attr:`output_padding` is only used to find output shape, but does\\n        not actually add zero-padding to output.\\n\\n    Note:\\n        In some circumstances when using the CUDA backend with CuDNN, this operator\\n        may select a nondeterministic algorithm to increase performance. If this is\\n        undesirable, you can try to make the operation deterministic (potentially at\\n        a performance cost) by setting ``torch.backends.cudnn.deterministic =\\n        True``.\\n        Please see the notes on :doc:`/notes/randomness` for background.\\n\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, Any): Stride of the convolution. Default: 1\\n        padding (int or tuple, Any): ``dilation * (kernel_size - 1) - padding`` zero-padding\\n            will be added to both sides of the input. Default: 0\\n        output_padding (int or tuple, Any): Additional size added to one side\\n            of the output shape. Default: 0\\n        groups (int, Any): Number of blocked connections from input channels to output channels. Default: 1\\n        bias (bool, Any): If ``True``, adds a learnable bias to the output. Default: ``True``\\n        dilation (int or tuple, Any): Spacing between kernel elements. Default: 1\\n    '.format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, L_{in})` or :math:`(C_{in}, L_{in})`\\n        - Output: :math:`(N, C_{out}, L_{out})` or :math:`(C_{out}, L_{out})`, where\\n\\n          .. math::\\n              L_{out} = (L_{in} - 1) \\\\times \\\\text{stride} - 2 \\\\times \\\\text{padding} + \\\\text{dilation}\\n                        \\\\times (\\\\text{kernel\\\\Any} - 1) + \\\\text{output\\\\_padding} + 1\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n                         :math:`(\\\\text{in\\\\_channels}, \\\\frac{\\\\text{out\\\\_channels}}{\\\\text{groups}},`\\n                         :math:`\\\\text{kernel\\\\Any})`.\\n                         The values of these weights are sampled from\\n                         :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\text{kernel\\\\Any}}`\\n        bias (Tensor):   the learnable bias of the module of shape (out_channels).\\n                         If :attr:`bias` is ``True``, then the values of these weights are\\n                         sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\text{kernel\\\\Any}}`\\n\\n    .. _`here`:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n\\n    .. _`Deconvolutional Networks`:\\n        https://www.matthewzeiler.com/mattzeiler/deconvolutionalnetworks.pdf\\n    ')```",
+        output_padding: Any = 0,
         device: Any = "```(None)```",
-        padding: _size_1_t = 0,
+        padding: Any = 0,
         out_channels: int = ...,
         groups: int = 1,
-        dilation: _size_1_t = 1,
+        dilation: Any = 1,
         in_channels: int = ...,
         bias: bool = True,
         padding_mode: str = "zeros",
         dtype: Any = "```(None)```",
-        kernel_size: _size_1_t = ...,
-        stride: _size_1_t = 1,
-        transposed: _empty = ...,
-    ) -> NoneType: ...
+        kernel_size: Any = ...,
+        stride: Any = 1,
+        transposed: Any = ...,
+    ) -> None: ...
 
 class ConvTranspose2d:
     def __init__(
         self,
-        __doc__: Any = "```('Applies a 2D transposed convolution operator over an input image\\n    composed of several input planes.\\n\\n    This module can be seen as the gradient of Conv2d with respect to its input.\\n    It is also known as a fractionally-strided convolution or\\n    a deconvolution (although it is not an actual deconvolution operation as it does\\n    not compute a true inverse of convolution). For more information, see the visualizations\\n    `here`_ and the `Deconvolutional Networks`_ paper.\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation. When stride > 1, ConvTranspose2d inserts zeros between input\\n      elements along the spatial dimensions before applying the convolution kernel. This zero-insertion operation is the standard\\n      behavior of transposed convolutions, which can increase the spatial resolution and is equivalent to a learnable\\n      upsampling operation.\\n\\n    * :attr:`padding` controls the amount of implicit zero padding on both\\n      sides for ``dilation * (kernel_size - 1) - padding`` number of points. See note\\n      below for details.\\n\\n    * :attr:`output_padding` controls the additional size added to one side\\n      of the output shape. See note below for details.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also known as the à trous algorithm.\\n      It is harder to describe, but the link `here`_ has a nice visualization of what :attr:`dilation` does.\\n\\n    {groups_note}\\n\\n    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`output_padding`\\n    can either be:\\n\\n        - a single ``int`` -- in which case the same value is used for the height and width dimensions\\n        - a ``tuple`` of two ints -- in which case, the first `int` is used for the height dimension,\\n          and the second `int` for the width dimension\\n\\n    Note:\\n        The :attr:`padding` argument effectively adds ``dilation * (kernel_size - 1) - padding``\\n        amount of zero padding to both sizes of the input. This is set so that\\n        when a :class:`~torch.nn.Conv2d` and a :class:`~torch.nn.ConvTranspose2d`\\n        are initialized with same parameters, they are inverses of each other in\\n        regard to the input and output shapes. However, when ``stride > 1``,\\n        :class:`~torch.nn.Conv2d` maps multiple input shapes to the same output\\n        shape. :attr:`output_padding` is provided to resolve this ambiguity by\\n        effectively increasing the calculated output shape on one side. Note\\n        that :attr:`output_padding` is only used to find output shape, but does\\n        not actually add zero-padding to output.\\n\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, optional): Stride of the convolution. Default: 1\\n        padding (int or tuple, optional): ``dilation * (kernel_size - 1) - padding`` zero-padding\\n            will be added to both sides of each dimension in the input. Default: 0\\n        output_padding (int or tuple, optional): Additional size added to one side\\n            of each dimension in the output shape. Default: 0\\n        groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1\\n        bias (bool, optional): If ``True``, adds a learnable bias to the output. Default: ``True``\\n        dilation (int or tuple, optional): Spacing between kernel elements. Default: 1\\n    '.format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, H_{in}, W_{in})` or :math:`(C_{in}, H_{in}, W_{in})`\\n        - Output: :math:`(N, C_{out}, H_{out}, W_{out})` or :math:`(C_{out}, H_{out}, W_{out})`, where\\n\\n        .. math::\\n              H_{out} = (H_{in} - 1) \\\\times \\\\text{stride}[0] - 2 \\\\times \\\\text{padding}[0] + \\\\text{dilation}[0]\\n                        \\\\times (\\\\text{kernel\\\\_size}[0] - 1) + \\\\text{output\\\\_padding}[0] + 1\\n        .. math::\\n              W_{out} = (W_{in} - 1) \\\\times \\\\text{stride}[1] - 2 \\\\times \\\\text{padding}[1] + \\\\text{dilation}[1]\\n                        \\\\times (\\\\text{kernel\\\\_size}[1] - 1) + \\\\text{output\\\\_padding}[1] + 1\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n                         :math:`(\\\\text{in\\\\_channels}, \\\\frac{\\\\text{out\\\\_channels}}{\\\\text{groups}},`\\n                         :math:`\\\\text{kernel\\\\_size[0]}, \\\\text{kernel\\\\_size[1]})`.\\n                         The values of these weights are sampled from\\n                         :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\prod_{i=0}^{1}\\\\text{kernel\\\\_size}[i]}`\\n        bias (Tensor):   the learnable bias of the module of shape (out_channels)\\n                         If :attr:`bias` is ``True``, then the values of these weights are\\n                         sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\prod_{i=0}^{1}\\\\text{kernel\\\\_size}[i]}`\\n\\n    Examples::\\n\\n        >>> # With square kernels and equal stride\\n        >>> m = nn.ConvTranspose2d(16, 33, 3, stride=2)\\n        >>> # non-square kernels and unequal stride and with padding\\n        >>> m = nn.ConvTranspose2d(16, 33, (3, 5), stride=(2, 1), padding=(4, 2))\\n        >>> input = torch.randn(20, 16, 50, 100)\\n        >>> output = m(input)\\n        >>> # exact output size can be also specified as an argument\\n        >>> input = torch.randn(1, 16, 12, 12)\\n        >>> downsample = nn.Conv2d(16, 16, 3, stride=2, padding=1)\\n        >>> upsample = nn.ConvTranspose2d(16, 16, 3, stride=2, padding=1)\\n        >>> h = downsample(input)\\n        >>> h.size()\\n        torch.Size([1, 16, 6, 6])\\n        >>> output = upsample(h, output_size=input.size())\\n        >>> output.size()\\n        torch.Size([1, 16, 12, 12])\\n\\n    .. _`here`:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n\\n    .. _`Deconvolutional Networks`:\\n        https://www.matthewzeiler.com/mattzeiler/deconvolutionalnetworks.pdf\\n    ')```",
-        output_padding: _size_2_t = 0,
+        __doc__: Any = "```('Applies a 2D transposed convolution operator over an input image\\n    composed of several input planes.\\n\\n    This module can be seen as the gradient of Conv2d with respect to its input.\\n    It is also known as a fractionally-strided convolution or\\n    a deconvolution (although it is not an actual deconvolution operation as it does\\n    not compute a true inverse of convolution). For more information, see the visualizations\\n    `here`_ and the `Deconvolutional Networks`_ paper.\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation. When stride > 1, ConvTranspose2d inserts zeros between input\\n      elements along the spatial dimensions before applying the convolution kernel. This zero-insertion operation is the standard\\n      behavior of transposed convolutions, which can increase the spatial resolution and is equivalent to a learnable\\n      upsampling operation.\\n\\n    * :attr:`padding` controls the amount of implicit zero padding on both\\n      sides for ``dilation * (kernel_size - 1) - padding`` number of points. See note\\n      below for details.\\n\\n    * :attr:`output_padding` controls the additional size added to one side\\n      of the output shape. See note below for details.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also known as the à trous algorithm.\\n      It is harder to describe, but the link `here`_ has a nice visualization of what :attr:`dilation` does.\\n\\n    {groups_note}\\n\\n    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`output_padding`\\n    can either be:\\n\\n        - a single ``int`` -- in which case the same value is used for the height and width dimensions\\n        - a ``tuple`` of two ints -- in which case, the first `int` is used for the height dimension,\\n          and the second `int` for the width dimension\\n\\n    Note:\\n        The :attr:`padding` argument effectively adds ``dilation * (kernel_size - 1) - padding``\\n        amount of zero padding to both sizes of the input. This is set so that\\n        when a :class:`~torch.nn.Conv2d` and a :class:`~torch.nn.ConvTranspose2d`\\n        are initialized with same parameters, they are inverses of each other in\\n        regard to the input and output shapes. However, when ``stride > 1``,\\n        :class:`~torch.nn.Conv2d` maps multiple input shapes to the same output\\n        shape. :attr:`output_padding` is provided to resolve this ambiguity by\\n        effectively increasing the calculated output shape on one side. Note\\n        that :attr:`output_padding` is only used to find output shape, but does\\n        not actually add zero-padding to output.\\n\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, Any): Stride of the convolution. Default: 1\\n        padding (int or tuple, Any): ``dilation * (kernel_size - 1) - padding`` zero-padding\\n            will be added to both sides of each dimension in the input. Default: 0\\n        output_padding (int or tuple, Any): Additional size added to one side\\n            of each dimension in the output shape. Default: 0\\n        groups (int, Any): Number of blocked connections from input channels to output channels. Default: 1\\n        bias (bool, Any): If ``True``, adds a learnable bias to the output. Default: ``True``\\n        dilation (int or tuple, Any): Spacing between kernel elements. Default: 1\\n    '.format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, H_{in}, W_{in})` or :math:`(C_{in}, H_{in}, W_{in})`\\n        - Output: :math:`(N, C_{out}, H_{out}, W_{out})` or :math:`(C_{out}, H_{out}, W_{out})`, where\\n\\n        .. math::\\n              H_{out} = (H_{in} - 1) \\\\times \\\\text{stride}[0] - 2 \\\\times \\\\text{padding}[0] + \\\\text{dilation}[0]\\n                        \\\\times (\\\\text{kernel\\\\Any}[0] - 1) + \\\\text{output\\\\_padding}[0] + 1\\n        .. math::\\n              W_{out} = (W_{in} - 1) \\\\times \\\\text{stride}[1] - 2 \\\\times \\\\text{padding}[1] + \\\\text{dilation}[1]\\n                        \\\\times (\\\\text{kernel\\\\Any}[1] - 1) + \\\\text{output\\\\_padding}[1] + 1\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n                         :math:`(\\\\text{in\\\\_channels}, \\\\frac{\\\\text{out\\\\_channels}}{\\\\text{groups}},`\\n                         :math:`\\\\text{kernel\\\\Any[0]}, \\\\text{kernel\\\\Any[1]})`.\\n                         The values of these weights are sampled from\\n                         :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\prod_{i=0}^{1}\\\\text{kernel\\\\Any}[i]}`\\n        bias (Tensor):   the learnable bias of the module of shape (out_channels)\\n                         If :attr:`bias` is ``True``, then the values of these weights are\\n                         sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\prod_{i=0}^{1}\\\\text{kernel\\\\Any}[i]}`\\n\\n    Examples::\\n\\n        >>> # With square kernels and equal stride\\n        >>> m = nn.ConvTranspose2d(16, 33, 3, stride=2)\\n        >>> # non-square kernels and unequal stride and with padding\\n        >>> m = nn.ConvTranspose2d(16, 33, (3, 5), stride=(2, 1), padding=(4, 2))\\n        >>> input = torch.randn(20, 16, 50, 100)\\n        >>> output = m(input)\\n        >>> # exact output size can be also specified as an argument\\n        >>> input = torch.randn(1, 16, 12, 12)\\n        >>> downsample = nn.Conv2d(16, 16, 3, stride=2, padding=1)\\n        >>> upsample = nn.ConvTranspose2d(16, 16, 3, stride=2, padding=1)\\n        >>> h = downsample(input)\\n        >>> h.size()\\n        torch.Size([1, 16, 6, 6])\\n        >>> output = upsample(h, output_size=input.size())\\n        >>> output.size()\\n        torch.Size([1, 16, 12, 12])\\n\\n    .. _`here`:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n\\n    .. _`Deconvolutional Networks`:\\n        https://www.matthewzeiler.com/mattzeiler/deconvolutionalnetworks.pdf\\n    ')```",
+        output_padding: Any = 0,
         device: Any = "```(None)```",
-        padding: _size_2_t = 0,
+        padding: Any = 0,
         out_channels: int = ...,
         groups: int = 1,
-        dilation: _size_2_t = 1,
+        dilation: Any = 1,
         in_channels: int = ...,
         bias: bool = True,
         padding_mode: str = "zeros",
         dtype: Any = "```(None)```",
-        kernel_size: _size_2_t = ...,
-        stride: _size_2_t = 1,
-        transposed: _empty = ...,
-    ) -> NoneType: ...
+        kernel_size: Any = ...,
+        stride: Any = 1,
+        transposed: Any = ...,
+    ) -> None: ...
 
 class ConvTranspose3d:
     def __init__(
         self,
-        __doc__: Any = "```('Applies a 3D transposed convolution operator over an input image composed of several input\\n    planes.\\n    The transposed convolution operator multiplies each input value element-wise by a learnable kernel,\\n    and sums over the outputs from all input feature planes.\\n\\n    This module can be seen as the gradient of Conv3d with respect to its input.\\n    It is also known as a fractionally-strided convolution or\\n    a deconvolution (although it is not an actual deconvolution operation as it does\\n    not compute a true inverse of convolution). For more information, see the visualizations\\n    `here`_ and the `Deconvolutional Networks`_ paper.\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation.\\n\\n    * :attr:`padding` controls the amount of implicit zero padding on both\\n      sides for ``dilation * (kernel_size - 1) - padding`` number of points. See note\\n      below for details.\\n\\n    * :attr:`output_padding` controls the additional size added to one side\\n      of the output shape. See note below for details.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also known as the à trous algorithm.\\n      It is harder to describe, but the link `here`_ has a nice visualization of what :attr:`dilation` does.\\n\\n    {groups_note}\\n\\n    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`output_padding`\\n    can either be:\\n\\n        - a single ``int`` -- in which case the same value is used for the depth, height and width dimensions\\n        - a ``tuple`` of three ints -- in which case, the first `int` is used for the depth dimension,\\n          the second `int` for the height dimension and the third `int` for the width dimension\\n\\n    Note:\\n        The :attr:`padding` argument effectively adds ``dilation * (kernel_size - 1) - padding``\\n        amount of zero padding to both sizes of the input. This is set so that\\n        when a :class:`~torch.nn.Conv3d` and a :class:`~torch.nn.ConvTranspose3d`\\n        are initialized with same parameters, they are inverses of each other in\\n        regard to the input and output shapes. However, when ``stride > 1``,\\n        :class:`~torch.nn.Conv3d` maps multiple input shapes to the same output\\n        shape. :attr:`output_padding` is provided to resolve this ambiguity by\\n        effectively increasing the calculated output shape on one side. Note\\n        that :attr:`output_padding` is only used to find output shape, but does\\n        not actually add zero-padding to output.\\n\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, optional): Stride of the convolution. Default: 1\\n        padding (int or tuple, optional): ``dilation * (kernel_size - 1) - padding`` zero-padding\\n            will be added to both sides of each dimension in the input. Default: 0\\n        output_padding (int or tuple, optional): Additional size added to one side\\n            of each dimension in the output shape. Default: 0\\n        groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1\\n        bias (bool, optional): If ``True``, adds a learnable bias to the output. Default: ``True``\\n        dilation (int or tuple, optional): Spacing between kernel elements. Default: 1\\n    '.format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, D_{in}, H_{in}, W_{in})` or :math:`(C_{in}, D_{in}, H_{in}, W_{in})`\\n        - Output: :math:`(N, C_{out}, D_{out}, H_{out}, W_{out})` or\\n          :math:`(C_{out}, D_{out}, H_{out}, W_{out})`, where\\n\\n        .. math::\\n              D_{out} = (D_{in} - 1) \\\\times \\\\text{stride}[0] - 2 \\\\times \\\\text{padding}[0] + \\\\text{dilation}[0]\\n                        \\\\times (\\\\text{kernel\\\\_size}[0] - 1) + \\\\text{output\\\\_padding}[0] + 1\\n        .. math::\\n              H_{out} = (H_{in} - 1) \\\\times \\\\text{stride}[1] - 2 \\\\times \\\\text{padding}[1] + \\\\text{dilation}[1]\\n                        \\\\times (\\\\text{kernel\\\\_size}[1] - 1) + \\\\text{output\\\\_padding}[1] + 1\\n        .. math::\\n              W_{out} = (W_{in} - 1) \\\\times \\\\text{stride}[2] - 2 \\\\times \\\\text{padding}[2] + \\\\text{dilation}[2]\\n                        \\\\times (\\\\text{kernel\\\\_size}[2] - 1) + \\\\text{output\\\\_padding}[2] + 1\\n\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n                         :math:`(\\\\text{in\\\\_channels}, \\\\frac{\\\\text{out\\\\_channels}}{\\\\text{groups}},`\\n                         :math:`\\\\text{kernel\\\\_size[0]}, \\\\text{kernel\\\\_size[1]}, \\\\text{kernel\\\\_size[2]})`.\\n                         The values of these weights are sampled from\\n                         :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\prod_{i=0}^{2}\\\\text{kernel\\\\_size}[i]}`\\n        bias (Tensor):   the learnable bias of the module of shape (out_channels)\\n                         If :attr:`bias` is ``True``, then the values of these weights are\\n                         sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\prod_{i=0}^{2}\\\\text{kernel\\\\_size}[i]}`\\n\\n    Examples::\\n\\n        >>> # With square kernels and equal stride\\n        >>> m = nn.ConvTranspose3d(16, 33, 3, stride=2)\\n        >>> # non-square kernels and unequal stride and with padding\\n        >>> m = nn.ConvTranspose3d(16, 33, (3, 5, 2), stride=(2, 1, 1), padding=(0, 4, 2))\\n        >>> input = torch.randn(20, 16, 10, 50, 100)\\n        >>> output = m(input)\\n\\n    .. _`here`:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n\\n    .. _`Deconvolutional Networks`:\\n        https://www.matthewzeiler.com/mattzeiler/deconvolutionalnetworks.pdf\\n    ')```",
-        output_padding: _size_3_t = 0,
+        __doc__: Any = "```('Applies a 3D transposed convolution operator over an input image composed of several input\\n    planes.\\n    The transposed convolution operator multiplies each input value element-wise by a learnable kernel,\\n    and sums over the outputs from all input feature planes.\\n\\n    This module can be seen as the gradient of Conv3d with respect to its input.\\n    It is also known as a fractionally-strided convolution or\\n    a deconvolution (although it is not an actual deconvolution operation as it does\\n    not compute a true inverse of convolution). For more information, see the visualizations\\n    `here`_ and the `Deconvolutional Networks`_ paper.\\n\\n    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.\\n\\n    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.\\n\\n    * :attr:`stride` controls the stride for the cross-correlation.\\n\\n    * :attr:`padding` controls the amount of implicit zero padding on both\\n      sides for ``dilation * (kernel_size - 1) - padding`` number of points. See note\\n      below for details.\\n\\n    * :attr:`output_padding` controls the additional size added to one side\\n      of the output shape. See note below for details.\\n\\n    * :attr:`dilation` controls the spacing between the kernel points; also known as the à trous algorithm.\\n      It is harder to describe, but the link `here`_ has a nice visualization of what :attr:`dilation` does.\\n\\n    {groups_note}\\n\\n    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`output_padding`\\n    can either be:\\n\\n        - a single ``int`` -- in which case the same value is used for the depth, height and width dimensions\\n        - a ``tuple`` of three ints -- in which case, the first `int` is used for the depth dimension,\\n          the second `int` for the height dimension and the third `int` for the width dimension\\n\\n    Note:\\n        The :attr:`padding` argument effectively adds ``dilation * (kernel_size - 1) - padding``\\n        amount of zero padding to both sizes of the input. This is set so that\\n        when a :class:`~torch.nn.Conv3d` and a :class:`~torch.nn.ConvTranspose3d`\\n        are initialized with same parameters, they are inverses of each other in\\n        regard to the input and output shapes. However, when ``stride > 1``,\\n        :class:`~torch.nn.Conv3d` maps multiple input shapes to the same output\\n        shape. :attr:`output_padding` is provided to resolve this ambiguity by\\n        effectively increasing the calculated output shape on one side. Note\\n        that :attr:`output_padding` is only used to find output shape, but does\\n        not actually add zero-padding to output.\\n\\n    Note:\\n        {cudnn_reproducibility_note}\\n\\n    Args:\\n        in_channels (int): Number of channels in the input image\\n        out_channels (int): Number of channels produced by the convolution\\n        kernel_size (int or tuple): Size of the convolving kernel\\n        stride (int or tuple, Any): Stride of the convolution. Default: 1\\n        padding (int or tuple, Any): ``dilation * (kernel_size - 1) - padding`` zero-padding\\n            will be added to both sides of each dimension in the input. Default: 0\\n        output_padding (int or tuple, Any): Additional size added to one side\\n            of each dimension in the output shape. Default: 0\\n        groups (int, Any): Number of blocked connections from input channels to output channels. Default: 1\\n        bias (bool, Any): If ``True``, adds a learnable bias to the output. Default: ``True``\\n        dilation (int or tuple, Any): Spacing between kernel elements. Default: 1\\n    '.format(**reproducibility_notes, **convolution_notes) + '\\n\\n    Shape:\\n        - Input: :math:`(N, C_{in}, D_{in}, H_{in}, W_{in})` or :math:`(C_{in}, D_{in}, H_{in}, W_{in})`\\n        - Output: :math:`(N, C_{out}, D_{out}, H_{out}, W_{out})` or\\n          :math:`(C_{out}, D_{out}, H_{out}, W_{out})`, where\\n\\n        .. math::\\n              D_{out} = (D_{in} - 1) \\\\times \\\\text{stride}[0] - 2 \\\\times \\\\text{padding}[0] + \\\\text{dilation}[0]\\n                        \\\\times (\\\\text{kernel\\\\Any}[0] - 1) + \\\\text{output\\\\_padding}[0] + 1\\n        .. math::\\n              H_{out} = (H_{in} - 1) \\\\times \\\\text{stride}[1] - 2 \\\\times \\\\text{padding}[1] + \\\\text{dilation}[1]\\n                        \\\\times (\\\\text{kernel\\\\Any}[1] - 1) + \\\\text{output\\\\_padding}[1] + 1\\n        .. math::\\n              W_{out} = (W_{in} - 1) \\\\times \\\\text{stride}[2] - 2 \\\\times \\\\text{padding}[2] + \\\\text{dilation}[2]\\n                        \\\\times (\\\\text{kernel\\\\Any}[2] - 1) + \\\\text{output\\\\_padding}[2] + 1\\n\\n\\n    Attributes:\\n        weight (Tensor): the learnable weights of the module of shape\\n                         :math:`(\\\\text{in\\\\_channels}, \\\\frac{\\\\text{out\\\\_channels}}{\\\\text{groups}},`\\n                         :math:`\\\\text{kernel\\\\Any[0]}, \\\\text{kernel\\\\Any[1]}, \\\\text{kernel\\\\Any[2]})`.\\n                         The values of these weights are sampled from\\n                         :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\prod_{i=0}^{2}\\\\text{kernel\\\\Any}[i]}`\\n        bias (Tensor):   the learnable bias of the module of shape (out_channels)\\n                         If :attr:`bias` is ``True``, then the values of these weights are\\n                         sampled from :math:`\\\\mathcal{U}(-\\\\sqrt{k}, \\\\sqrt{k})` where\\n                         :math:`k = \\\\frac{groups}{C_\\\\text{out} * \\\\prod_{i=0}^{2}\\\\text{kernel\\\\Any}[i]}`\\n\\n    Examples::\\n\\n        >>> # With square kernels and equal stride\\n        >>> m = nn.ConvTranspose3d(16, 33, 3, stride=2)\\n        >>> # non-square kernels and unequal stride and with padding\\n        >>> m = nn.ConvTranspose3d(16, 33, (3, 5, 2), stride=(2, 1, 1), padding=(0, 4, 2))\\n        >>> input = torch.randn(20, 16, 10, 50, 100)\\n        >>> output = m(input)\\n\\n    .. _`here`:\\n        https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md\\n\\n    .. _`Deconvolutional Networks`:\\n        https://www.matthewzeiler.com/mattzeiler/deconvolutionalnetworks.pdf\\n    ')```",
+        output_padding: Any = 0,
         device: Any = "```(None)```",
-        padding: _size_3_t = 0,
+        padding: Any = 0,
         out_channels: int = ...,
         groups: int = 1,
-        dilation: _size_3_t = 1,
+        dilation: Any = 1,
         in_channels: int = ...,
         bias: bool = True,
         padding_mode: str = "zeros",
         dtype: Any = "```(None)```",
-        kernel_size: _size_3_t = ...,
-        stride: _size_3_t = 1,
-        transposed: _empty = ...,
-    ) -> NoneType: ...
+        kernel_size: Any = ...,
+        stride: Any = 1,
+        transposed: Any = ...,
+    ) -> None: ...
 
 class CosineSimilarity:
     def __init__(
         self, dim: int = 1, eps: float = 1e-08, __constants__: list = ["dim", "eps"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class CrossMapLRN2d:
     def __init__(
         self, size: int = ..., alpha: float = 0.0001, beta: float = 0.75, k: float = 1
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Dropout:
-    def __init__(self, p: float = 0.5, inplace: bool = False) -> NoneType: ...
+    def __init__(self, p: float = 0.5, inplace: bool = False) -> None: ...
 
 class Dropout1d:
-    def __init__(
-        self, p: float | None = ..., inplace: bool | None = ...
-    ) -> NoneType: ...
+    def __init__(self, p: float | None = ..., inplace: bool | None = ...) -> None: ...
 
 class Dropout2d:
-    def __init__(
-        self, p: float | None = ..., inplace: bool | None = ...
-    ) -> NoneType: ...
+    def __init__(self, p: float | None = ..., inplace: bool | None = ...) -> None: ...
 
 class Dropout3d:
-    def __init__(
-        self, p: float | None = ..., inplace: bool | None = ...
-    ) -> NoneType: ...
+    def __init__(self, p: float | None = ..., inplace: bool | None = ...) -> None: ...
 
 class ELU:
     def __init__(
@@ -383,7 +348,7 @@ class ELU:
         alpha: float = 1.0,
         inplace: bool = False,
         __constants__: list = ["alpha", "inplace"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Embedding:
     def __init__(
@@ -410,7 +375,7 @@ class Embedding:
         _freeze: bool = False,
         dtype: Any = "```(None)```",
         _weight: Tensor | None = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class EmbeddingBag:
     def __init__(
@@ -439,12 +404,12 @@ class EmbeddingBag:
         device: Any = "```(None)```",
         _weight: Tensor | None = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class FeatureAlphaDropout:
     def __init__(
         self, p: float | None = 0.5, inplace: bool | None = "```(None)```"
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Flatten:
     def __init__(
@@ -452,16 +417,16 @@ class Flatten:
         start_dim: int = 1,
         end_dim: int = -1,
         __constants__: list = ["start_dim", "end_dim"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Fold:
     def __init__(
         self,
-        output_size: _size_any_t = ...,
-        kernel_size: _size_any_t = ...,
-        dilation: _size_any_t = 1,
-        padding: _size_any_t = 0,
-        stride: _size_any_t = 1,
+        output_size: Any = ...,
+        kernel_size: Any = ...,
+        dilation: Any = 1,
+        padding: Any = 0,
+        stride: Any = 1,
         __constants__: list = [
             "output_size",
             "kernel_size",
@@ -469,14 +434,14 @@ class Fold:
             "padding",
             "stride",
         ],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class FractionalMaxPool2d:
     def __init__(
         self,
-        kernel_size: _size_2_t = ...,
-        output_size: _size_2_t = "```(None)```",
-        output_ratio: _ratio_2_t = "```(None)```",
+        kernel_size: Any = ...,
+        output_size: Any = "```(None)```",
+        output_ratio: Any = "```(None)```",
         return_indices: bool = False,
         __constants__: list = [
             "kernel_size",
@@ -485,14 +450,14 @@ class FractionalMaxPool2d:
             "output_ratio",
         ],
         _random_samples: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class FractionalMaxPool3d:
     def __init__(
         self,
-        kernel_size: _size_3_t = ...,
-        output_size: _size_3_t = "```(None)```",
-        output_ratio: _ratio_3_t = "```(None)```",
+        kernel_size: Any = ...,
+        output_size: Any = "```(None)```",
+        output_ratio: Any = "```(None)```",
         return_indices: bool = False,
         __constants__: list = [
             "kernel_size",
@@ -501,10 +466,10 @@ class FractionalMaxPool3d:
             "output_ratio",
         ],
         _random_samples: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class GLU:
-    def __init__(self, dim: int = -1, __constants__: list = ["dim"]) -> NoneType: ...
+    def __init__(self, dim: int = -1, __constants__: list = ["dim"]) -> None: ...
 
 class GRU:
     def __init__(
@@ -531,7 +496,7 @@ class GRUCell:
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
         num_chunks: int = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class GroupNorm:
     def __init__(
@@ -543,22 +508,20 @@ class GroupNorm:
         __constants__: list = ["num_groups", "num_channels", "eps", "affine"],
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Hardshrink:
-    def __init__(
-        self, lambd: float = 0.5, __constants__: list = ["lambd"]
-    ) -> NoneType: ...
+    def __init__(self, lambd: float = 0.5, __constants__: list = ["lambd"]) -> None: ...
 
 class Hardsigmoid:
     def __init__(
         self, inplace: bool = False, __constants__: list = ["inplace"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Hardswish:
     def __init__(
         self, inplace: bool = False, __constants__: list = ["inplace"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Hardtanh:
     def __init__(
@@ -569,10 +532,10 @@ class Hardtanh:
         __constants__: list = ["min_val", "max_val", "inplace"],
         min_value: float | None = "```(None)```",
         max_value: float | None = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Identity:
-    def __init__(self, *args, **kwargs) -> NoneType: ...
+    def __init__(self, *args, **kwargs) -> None: ...
 
 class InstanceNorm1d:
     def __init__(
@@ -584,7 +547,7 @@ class InstanceNorm1d:
         track_running_stats: bool = False,
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class InstanceNorm2d:
     def __init__(
@@ -596,7 +559,7 @@ class InstanceNorm2d:
         track_running_stats: bool = False,
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class InstanceNorm3d:
     def __init__(
@@ -608,34 +571,34 @@ class InstanceNorm3d:
         track_running_stats: bool = False,
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LPPool1d:
     def __init__(
         self,
-        kernel_size: _size_1_t = ...,
-        stride: _size_1_t = ":attr:`kernel_size",
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
         ceil_mode: bool = "```(None)```",
         norm_type: float = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LPPool2d:
     def __init__(
         self,
-        kernel_size: _size_2_t = ...,
-        stride: _size_2_t = ":attr:`kernel_size",
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
         ceil_mode: bool = "```(None)```",
         norm_type: float = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LPPool3d:
     def __init__(
         self,
-        kernel_size: _size_3_t = ...,
-        stride: _size_3_t = ":attr:`kernel_size",
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
         ceil_mode: bool = "```(None)```",
         norm_type: float = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LSTM:
     def __init__(
@@ -662,7 +625,7 @@ class LSTMCell:
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
         num_chunks: int = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LayerNorm:
     def __init__(
@@ -674,7 +637,7 @@ class LayerNorm:
         device: Any = "```(None)```",
         bias: bool = True,
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyBatchNorm1d:
     def __init__(
@@ -686,7 +649,7 @@ class LazyBatchNorm1d:
         cls_to_become: str = "BatchNorm1d",
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyBatchNorm2d:
     def __init__(
@@ -698,7 +661,7 @@ class LazyBatchNorm2d:
         cls_to_become: str = "BatchNorm2d",
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyBatchNorm3d:
     def __init__(
@@ -710,16 +673,16 @@ class LazyBatchNorm3d:
         cls_to_become: str = "BatchNorm3d",
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyConv1d:
     def __init__(
         self,
         out_channels: int = ...,
         kernel_size: int | tuple = ...,
-        stride: int | tuple | optional = 1,
-        padding: int | tuple | optional = 0,
-        dilation: int | tuple | optional = 1,
+        stride: int | tuple | Any = 1,
+        padding: int | tuple | Any = 0,
+        dilation: int | tuple | Any = 1,
         groups: int | None = 1,
         bias: bool | None = True,
         padding_mode: str | None = "zeros",
@@ -729,16 +692,16 @@ class LazyConv1d:
         in_channels: int = ...,
         transposed: bool = ...,
         output_padding: tuple = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyConv2d:
     def __init__(
         self,
         out_channels: int = ...,
         kernel_size: int | tuple = ...,
-        stride: int | tuple | optional = 1,
-        padding: int | tuple | optional = 0,
-        dilation: int | tuple | optional = 1,
+        stride: int | tuple | Any = 1,
+        padding: int | tuple | Any = 0,
+        dilation: int | tuple | Any = 1,
         groups: int | None = 1,
         bias: bool | None = True,
         padding_mode: str | None = "zeros",
@@ -748,16 +711,16 @@ class LazyConv2d:
         in_channels: int = ...,
         transposed: bool = ...,
         output_padding: tuple = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyConv3d:
     def __init__(
         self,
         out_channels: int = ...,
         kernel_size: int | tuple = ...,
-        stride: int | tuple | optional = 1,
-        padding: int | tuple | optional = 0,
-        dilation: int | tuple | optional = 1,
+        stride: int | tuple | Any = 1,
+        padding: int | tuple | Any = 0,
+        dilation: int | tuple | Any = 1,
         groups: int | None = 1,
         bias: bool | None = True,
         padding_mode: str | None = "zeros",
@@ -767,64 +730,64 @@ class LazyConv3d:
         in_channels: int = ...,
         transposed: bool = ...,
         output_padding: tuple = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyConvTranspose1d:
     def __init__(
         self,
         out_channels: int = ...,
         kernel_size: int | tuple = ...,
-        stride: int | tuple | optional = 1,
-        padding: int | tuple | optional = 0,
-        output_padding: int | tuple | optional = 0,
+        stride: int | tuple | Any = 1,
+        padding: int | tuple | Any = 0,
+        output_padding: int | tuple | Any = 0,
         groups: int | None = 1,
         bias: bool | None = True,
-        dilation: int | tuple | optional = 1,
+        dilation: int | tuple | Any = 1,
         cls_to_become: str = "ConvTranspose1d",
         dtype: Any = "```(None)```",
         device: Any = "```(None)```",
         padding_mode: str = "zeros",
         in_channels: int = ...,
-        transposed: _empty = ...,
-    ) -> NoneType: ...
+        transposed: Any = ...,
+    ) -> None: ...
 
 class LazyConvTranspose2d:
     def __init__(
         self,
         out_channels: int = ...,
         kernel_size: int | tuple = ...,
-        stride: int | tuple | optional = 1,
-        padding: int | tuple | optional = 0,
-        output_padding: int | tuple | optional = 0,
+        stride: int | tuple | Any = 1,
+        padding: int | tuple | Any = 0,
+        output_padding: int | tuple | Any = 0,
         groups: int | None = 1,
         bias: bool | None = True,
-        dilation: int | tuple | optional = 1,
+        dilation: int | tuple | Any = 1,
         cls_to_become: str = "ConvTranspose2d",
         dtype: Any = "```(None)```",
         device: Any = "```(None)```",
         padding_mode: str = "zeros",
         in_channels: int = ...,
-        transposed: _empty = ...,
-    ) -> NoneType: ...
+        transposed: Any = ...,
+    ) -> None: ...
 
 class LazyConvTranspose3d:
     def __init__(
         self,
         out_channels: int = ...,
         kernel_size: int | tuple = ...,
-        stride: int | tuple | optional = 1,
-        padding: int | tuple | optional = 0,
-        output_padding: int | tuple | optional = 0,
+        stride: int | tuple | Any = 1,
+        padding: int | tuple | Any = 0,
+        output_padding: int | tuple | Any = 0,
         groups: int | None = 1,
         bias: bool | None = True,
-        dilation: int | tuple | optional = 1,
+        dilation: int | tuple | Any = 1,
         cls_to_become: str = "ConvTranspose3d",
         dtype: Any = "```(None)```",
         device: Any = "```(None)```",
         padding_mode: str = "zeros",
         in_channels: int = ...,
-        transposed: _empty = ...,
-    ) -> NoneType: ...
+        transposed: Any = ...,
+    ) -> None: ...
 
 class LazyInstanceNorm1d:
     def __init__(
@@ -837,7 +800,7 @@ class LazyInstanceNorm1d:
         cls_to_become: str = "InstanceNorm1d",
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyInstanceNorm2d:
     def __init__(
@@ -850,7 +813,7 @@ class LazyInstanceNorm2d:
         cls_to_become: str = "InstanceNorm2d",
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyInstanceNorm3d:
     def __init__(
@@ -863,18 +826,18 @@ class LazyInstanceNorm3d:
         cls_to_become: str = "InstanceNorm3d",
         device: Any = None,
         dtype: Any = None,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LazyLinear:
     def __init__(
         self,
         out_features: int = ...,
-        bias: UninitializedParameter = True,
+        bias: Any = True,
         cls_to_become: str = "Linear",
-        weight: UninitializedParameter = ...,
+        weight: Any = ...,
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Linear:
     def __init__(
@@ -886,7 +849,7 @@ class Linear:
         weight: Tensor = ...,
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LocalResponseNorm:
     def __init__(
@@ -896,72 +859,72 @@ class LocalResponseNorm:
         beta: float = 0.75,
         k: float = 1,
         __constants__: list = ["size", "alpha", "beta", "k"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class LogSigmoid:
-    def __init__(self, *args, **kwargs) -> NoneType: ...
+    def __init__(self, *args, **kwargs) -> None: ...
 
 class LogSoftmax:
     def __init__(
         self, dim: int | None = "```(None)```", __constants__: list = ["dim"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MaxPool1d:
     def __init__(
         self,
-        kernel_size: _size_1_t = ...,
-        stride: _size_1_t = ":attr:`kernel_size",
-        padding: _size_1_t = "```(None)```",
-        dilation: _size_1_t = "```(None)```",
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
+        padding: Any = "```(None)```",
+        dilation: Any = "```(None)```",
         return_indices: bool = "```(None)```",
         ceil_mode: bool = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MaxPool2d:
     def __init__(
         self,
-        kernel_size: _size_2_t = ...,
-        stride: _size_2_t = ":attr:`kernel_size",
-        padding: _size_2_t = "```(None)```",
-        dilation: _size_2_t = "```(None)```",
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
+        padding: Any = "```(None)```",
+        dilation: Any = "```(None)```",
         return_indices: bool = "```(None)```",
         ceil_mode: bool = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MaxPool3d:
     def __init__(
         self,
-        kernel_size: _size_3_t = ...,
-        stride: _size_3_t = ":attr:`kernel_size",
-        padding: _size_3_t = "```(None)```",
-        dilation: _size_3_t = "```(None)```",
+        kernel_size: Any = ...,
+        stride: Any = ":attr:`kernel_size",
+        padding: Any = "```(None)```",
+        dilation: Any = "```(None)```",
         return_indices: bool = "```(None)```",
         ceil_mode: bool = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MaxUnpool1d:
     def __init__(
         self,
-        kernel_size: _size_1_t = ...,
-        stride: _size_1_t = "```(None)```",
-        padding: _size_1_t = 0,
-    ) -> NoneType: ...
+        kernel_size: Any = ...,
+        stride: Any = "```(None)```",
+        padding: Any = 0,
+    ) -> None: ...
 
 class MaxUnpool2d:
     def __init__(
         self,
-        kernel_size: _size_2_t = ...,
-        stride: _size_2_t = "```(None)```",
-        padding: _size_2_t = 0,
-    ) -> NoneType: ...
+        kernel_size: Any = ...,
+        stride: Any = "```(None)```",
+        padding: Any = 0,
+    ) -> None: ...
 
 class MaxUnpool3d:
     def __init__(
         self,
-        kernel_size: _size_3_t = ...,
-        stride: _size_3_t = "```(None)```",
-        padding: _size_3_t = 0,
-    ) -> NoneType: ...
+        kernel_size: Any = ...,
+        stride: Any = "```(None)```",
+        padding: Any = 0,
+    ) -> None: ...
 
 class Mish:
     def __init__(
@@ -974,7 +937,7 @@ class Module:
         training: bool = ...,
         dump_patches: bool = False,
         _version: int = 1,
-        _parameters: dict[str, Parameter | None] = ...,
+        _parameters: dict[str, Any | None] = ...,
         _buffers: dict[str, Tensor | None] = ...,
         _non_persistent_buffers_set: set[str] = ...,
         _backward_pre_hooks: dict[int, Callable] = ...,
@@ -989,7 +952,7 @@ class Module:
         _load_state_dict_pre_hooks: dict[int, Callable] = ...,
         _state_dict_pre_hooks: dict[int, Callable] = ...,
         _load_state_dict_post_hooks: dict[int, Callable] = ...,
-        _modules: dict[str, "Module" | None] = ...,
+        _modules: dict[str, Module | None] = ...,
         call_super_init: bool = False,
         _compiled_call_impl: Callable | None = "```(None)```",
         forward: Callable[..., Any] = "_forward_unimplemented",
@@ -997,7 +960,7 @@ class Module:
         T_destination: Any = "```(TypeVar('T_destination', bound=dict[str, Any]))```",
         *args,
         **kwargs,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class ModuleDict:
     def __init__(
@@ -1030,7 +993,7 @@ class MultiheadAttention:
         bias_v: torch.Tensor | None = ...,
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class NLLLoss2d:
     def __init__(
@@ -1040,7 +1003,7 @@ class NLLLoss2d:
         ignore_index: int = -100,
         reduce: bool | None = "```(None)```",
         reduction: str = "mean",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class PReLU:
     def __init__(
@@ -1050,22 +1013,22 @@ class PReLU:
         __constants__: list = ["num_parameters"],
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class PairwiseDistance:
     def __init__(
         self,
-        p: real | None = 2,
+        p: Any | None = 2,
         eps: float = 1e-06,
         keepdim: bool = False,
         __constants__: list = ["norm", "eps", "keepdim"],
         norm: float = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class ParameterDict:
     def __init__(
         self, values: Iterable | None = ..., parameters: Any = "```(None)```"
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class ParameterList:
     def __init__(
@@ -1077,12 +1040,12 @@ class ParameterList:
 class PixelShuffle:
     def __init__(
         self, upscale_factor: int = ..., __constants__: list = ["upscale_factor"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class PixelUnshuffle:
     def __init__(
         self, downscale_factor: int = ..., __constants__: list = ["downscale_factor"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class RMSNorm:
     def __init__(
@@ -1093,7 +1056,7 @@ class RMSNorm:
         elementwise_affine: bool = True,
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class RNN:
     def __init__(
@@ -1138,7 +1101,7 @@ class RNNBase:
         proj_size: int = 0,
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class RNNCell:
     def __init__(
@@ -1151,7 +1114,7 @@ class RNNCell:
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
         num_chunks: int = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class RNNCellBase:
     def __init__(
@@ -1165,7 +1128,7 @@ class RNNCellBase:
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
         num_chunks: int = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class RReLU:
     def __init__(
@@ -1180,42 +1143,38 @@ class ReLU6:
     def __init__(self, inplace: bool = False) -> Any: ...
 
 class ReflectionPad1d:
-    def __init__(self, padding: tuple[int, int] = ...) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int] = ...) -> None: ...
 
 class ReflectionPad2d:
-    def __init__(self, padding: tuple[int, int, int, int] = ...) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int, int, int] = ...) -> None: ...
 
 class ReflectionPad3d:
-    def __init__(
-        self, padding: tuple[int, int, int, int, int, int] = ...
-    ) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int, int, int, int, int] = ...) -> None: ...
 
 class ReplicationPad1d:
-    def __init__(self, padding: tuple[int, int] = ...) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int] = ...) -> None: ...
 
 class ReplicationPad2d:
-    def __init__(self, padding: tuple[int, int, int, int] = ...) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int, int, int] = ...) -> None: ...
 
 class ReplicationPad3d:
-    def __init__(
-        self, padding: tuple[int, int, int, int, int, int] = ...
-    ) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int, int, int, int, int] = ...) -> None: ...
 
 class SELU:
     def __init__(
         self, inplace: bool = False, __constants__: list = ["inplace"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Sequential:
     def __init__(self, _modules: dict[str, Module] = ..., *args) -> Any: ...
 
 class Softmax2d:
-    def __init__(self, *args, **kwargs) -> NoneType: ...
+    def __init__(self, *args, **kwargs) -> None: ...
 
 class Softmin:
     def __init__(
         self, dim: int | None = "```(None)```", __constants__: list = ["dim"]
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Softplus:
     def __init__(
@@ -1223,15 +1182,13 @@ class Softplus:
         beta: float = 1,
         threshold: float = 20,
         __constants__: list = ["beta", "threshold"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Softshrink:
-    def __init__(
-        self, lambd: float = 0.5, __constants__: list = ["lambd"]
-    ) -> NoneType: ...
+    def __init__(self, lambd: float = 0.5, __constants__: list = ["lambd"]) -> None: ...
 
 class Softsign:
-    def __init__(self, *args, **kwargs) -> NoneType: ...
+    def __init__(self, *args, **kwargs) -> None: ...
 
 class SyncBatchNorm:
     def __init__(
@@ -1244,10 +1201,10 @@ class SyncBatchNorm:
         process_group: Any | None = "```(None)```",
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Tanhshrink:
-    def __init__(self, *args, **kwargs) -> NoneType: ...
+    def __init__(self, *args, **kwargs) -> None: ...
 
 class Threshold:
     def __init__(
@@ -1256,7 +1213,7 @@ class Threshold:
         value: float = ...,
         inplace: bool = False,
         __constants__: list = ["threshold", "value", "inplace"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Transformer:
     def __init__(
@@ -1276,16 +1233,16 @@ class Transformer:
         bias: bool = True,
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class TransformerDecoder:
     def __init__(
         self,
-        decoder_layer: "TransformerDecoderLayer" = ...,
+        decoder_layer: TransformerDecoderLayer = ...,
         num_layers: int = ...,
         norm: Module | None = "```(None)```",
         __constants__: list = ["norm"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class TransformerDecoderLayer:
     def __init__(
@@ -1302,18 +1259,18 @@ class TransformerDecoderLayer:
         __constants__: list = ["norm_first"],
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class TransformerEncoder:
     def __init__(
         self,
-        encoder_layer: "TransformerEncoderLayer" = ...,
+        encoder_layer: TransformerEncoderLayer = ...,
         num_layers: int = ...,
         norm: Module | None = "```(None)```",
         enable_nested_tensor: str = "True`` (enabled).",
         __constants__: list = ["norm"],
         mask_check: bool = True,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class TransformerEncoderLayer:
     def __init__(
@@ -1330,26 +1287,26 @@ class TransformerEncoderLayer:
         __constants__: list = ["norm_first"],
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Unflatten:
     def __init__(
         self,
         dim: int | str = ...,
-        unflattened_size: _size | NamedShape = ...,
-        NamedShape: Any = "```(tuple)```",
+        unflattened_size: Any = ...,
+        Any: Any = "```(tuple)```",
         __constants__: list = ["dim", "unflattened_size"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Unfold:
     def __init__(
         self,
-        kernel_size: _size_any_t = ...,
-        dilation: _size_any_t = 1,
-        padding: _size_any_t = 0,
-        stride: _size_any_t = 1,
+        kernel_size: Any = ...,
+        dilation: Any = 1,
+        padding: Any = 0,
+        stride: Any = 1,
         __constants__: list = ["kernel_size", "dilation", "padding", "stride"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Upsample:
     def __init__(
@@ -1363,37 +1320,35 @@ class Upsample:
             "recompute_scale_factor",
         ],
         name: str = ...,
-        size: _size_any_t | None = "```(None)```",
-        scale_factor: _ratio_any_t | None = "```(None)```",
+        size: Any | None = "```(None)```",
+        scale_factor: Any | None = "```(None)```",
         mode: str = "nearest",
         align_corners: bool | None = "```(None)```",
         recompute_scale_factor: bool | None = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class UpsamplingBilinear2d:
     def __init__(
         self,
-        size: int | tuple[int, int] | optional = "```(None)```",
-        scale_factor: float | tuple[float, float] | optional = "```(None)```",
-    ) -> NoneType: ...
+        size: int | tuple[int, int] | Any = "```(None)```",
+        scale_factor: float | tuple[float, float] | Any = "```(None)```",
+    ) -> None: ...
 
 class UpsamplingNearest2d:
     def __init__(
         self,
-        size: int | tuple[int, int] | optional = "```(None)```",
-        scale_factor: float | tuple[float, float] | optional = "```(None)```",
-    ) -> NoneType: ...
+        size: int | tuple[int, int] | Any = "```(None)```",
+        scale_factor: float | tuple[float, float] | Any = "```(None)```",
+    ) -> None: ...
 
 class ZeroPad1d:
-    def __init__(self, padding: tuple[int, int] = ...) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int] = ...) -> None: ...
 
 class ZeroPad2d:
-    def __init__(self, padding: tuple[int, int, int, int] = ...) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int, int, int] = ...) -> None: ...
 
 class ZeroPad3d:
-    def __init__(
-        self, padding: tuple[int, int, int, int, int, int] = ...
-    ) -> NoneType: ...
+    def __init__(self, padding: tuple[int, int, int, int, int, int] = ...) -> None: ...
 
 class AdaptiveLogSoftmaxWithLoss:
     def __init__(
@@ -1407,7 +1362,7 @@ class AdaptiveLogSoftmaxWithLoss:
         tail: ModuleList = ...,
         device: Any = "```(None)```",
         dtype: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class BCELoss:
     def __init__(
@@ -1417,7 +1372,7 @@ class BCELoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class BCEWithLogitsLoss:
     def __init__(
@@ -1427,7 +1382,7 @@ class BCEWithLogitsLoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         pos_weight: Tensor | None = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class CTCLoss:
     def __init__(
@@ -1446,7 +1401,7 @@ class CosineEmbeddingLoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["margin", "reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class CrossEntropyLoss:
     def __init__(
@@ -1458,7 +1413,7 @@ class CrossEntropyLoss:
         reduction: str | None = "mean",
         label_smoothing: float = ":math:`0.0",
         __constants__: list = ["ignore_index", "reduction", "label_smoothing"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class GaussianNLLLoss:
     def __init__(
@@ -1467,7 +1422,7 @@ class GaussianNLLLoss:
         eps: float = 1e-06,
         reduction: str | None = "mean",
         __constants__: list = ["full", "eps", "reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class HingeEmbeddingLoss:
     def __init__(
@@ -1477,7 +1432,7 @@ class HingeEmbeddingLoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["margin", "reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class HuberLoss:
     def __init__(
@@ -1485,7 +1440,7 @@ class HuberLoss:
         reduction: str | None = "mean",
         delta: float | None = 1.0,
         __constants__: list = ["reduction", "delta"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class KLDivLoss:
     def __init__(
@@ -1495,7 +1450,7 @@ class KLDivLoss:
         reduction: str | None = "mean",
         log_target: bool | None = False,
         __constants__: list = ["reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class L1Loss:
     def __init__(
@@ -1504,7 +1459,7 @@ class L1Loss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MSELoss:
     def __init__(
@@ -1513,7 +1468,7 @@ class MSELoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MarginRankingLoss:
     def __init__(
@@ -1523,7 +1478,7 @@ class MarginRankingLoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["margin", "reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MultiLabelMarginLoss:
     def __init__(
@@ -1532,7 +1487,7 @@ class MultiLabelMarginLoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MultiLabelSoftMarginLoss:
     def __init__(
@@ -1542,7 +1497,7 @@ class MultiLabelSoftMarginLoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class MultiMarginLoss:
     def __init__(
@@ -1554,7 +1509,7 @@ class MultiMarginLoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["p", "margin", "reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class NLLLoss:
     def __init__(
@@ -1565,7 +1520,7 @@ class NLLLoss:
         reduce: bool | None = "```(None)```",
         reduction: str | None = "mean",
         __constants__: list = ["ignore_index", "reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class PoissonNLLLoss:
     def __init__(
@@ -1577,7 +1532,7 @@ class PoissonNLLLoss:
         reduce: Any = "```(None)```",
         reduction: str = "mean",
         size_average: Any = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class SmoothL1Loss:
     def __init__(
@@ -1587,7 +1542,7 @@ class SmoothL1Loss:
         reduction: str | None = "mean",
         beta: float | None = 1.0,
         __constants__: list = ["reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class SoftMarginLoss:
     def __init__(
@@ -1596,7 +1551,7 @@ class SoftMarginLoss:
         reduce: bool | None = True,
         reduction: str | None = "mean",
         __constants__: list = ["reduction"],
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class TripletMarginLoss:
     def __init__(

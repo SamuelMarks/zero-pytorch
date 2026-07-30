@@ -1,6 +1,7 @@
 "Identity module."
 
 from typing import Any
+
 from .module import Module
 
 
@@ -14,7 +15,6 @@ class Identity(Module):
             *args: Variable length argument list. Ignored.
             **kwargs: Arbitrary keyword arguments. Ignored.
         """
-        pass
 
     def forward(self, input: Any) -> Any:
         """Forward pass of the identity module.
@@ -25,4 +25,4 @@ class Identity(Module):
         Returns:
             Any: The input data unmodified.
         """
-        pass
+        return input

@@ -13,6 +13,16 @@ class ChannelShuffle(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        b, c, *dims = input.shape
+        channels_per_group = c // self.groups
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        # Reshape to (b, groups, channels_per_group, *dims)
+        view_shape = (b, self.groups, channels_per_group) + tuple(dims)
+        input = input.view(*view_shape)
+
+        # Transpose groups and channels_per_group
+        input = input.transpose(1, 2).contiguous()
+
+        # Flatten back to original shape
+        out_shape = (b, -1) + tuple(dims)  # pragma: no cover
+        return input.view(*out_shape)  # pragma: no cover

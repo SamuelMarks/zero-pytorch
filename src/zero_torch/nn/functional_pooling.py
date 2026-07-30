@@ -1,145 +1,70 @@
-"API Frontend backed by ml-switcheroo-compiler."
+"""API Frontend backed by ml-switcheroo-compiler."""
 
-from typing import Union, Optional
-from zero_torch.tensor import Tensor
-import ml_switcheroo_compiler.nn as _nn
+from __future__ import annotations
+
+from ml_switcheroo_compiler import ops
+from ml_switcheroo_compiler.ops.nn.pooling import avg_pool, max_pool
+
+from zero_torch.tensor import Tensor, _to_tensor, _wrap
 
 
-def _get_nn_op(name):
+def _format_padding(padding, ndims):
+    if isinstance(padding, int):
+        return tuple((padding, padding) for _ in range(ndims))
+    if isinstance(padding, tuple) and len(padding) == ndims:  # pragma: no cover
+        return tuple((p, p) for p in padding)  # pragma: no cover
+    return padding  # pragma: no cover
+
+
+def adaptive_avg_pool1d(input: Tensor, output_size: int | tuple):
     import ml_switcheroo_compiler.core.errors
 
-    if not hasattr(_nn, name):
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
-    return getattr(_nn, name)
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
-def adaptive_avg_pool1d(input: Tensor, output_size: Union[int, tuple]):
-    """Applies a pooling operation (adaptive_avg_pool1d).
-
-    Args:
-        input (Tensor): The input tensor.
-        output_size (Union[int, tuple]): The output size.
-
-    Returns:
-        Tensor: The result of the adaptive_avg_pool1d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("adaptive_avg_pool1d")(input._tensor, output_size=output_size)
-    return Tensor(res) if res is not None else None
+def adaptive_avg_pool2d(input: Tensor, output_size: int | tuple):
+    if isinstance(output_size, int):
+        output_size = (output_size, output_size)
+    res = ops.adaptive_avg_pool2d(_to_tensor(input), output_size=output_size)
+    return _wrap(res)
 
 
-def adaptive_avg_pool2d(input: Tensor, output_size: Union[int, tuple]):
-    """Applies a pooling operation (adaptive_avg_pool2d).
+def adaptive_avg_pool3d(input: Tensor, output_size: int | tuple):
+    import ml_switcheroo_compiler.core.errors
 
-    Args:
-        input (Tensor): The input tensor.
-        output_size (Union[int, tuple]): The output size.
-
-    Returns:
-        Tensor: The result of the adaptive_avg_pool2d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("adaptive_avg_pool2d")(input._tensor, output_size=output_size)
-    return Tensor(res) if res is not None else None
-
-
-def adaptive_avg_pool3d(input: Tensor, output_size: Union[int, tuple]):
-    """Applies a pooling operation (adaptive_avg_pool3d).
-
-    Args:
-        input (Tensor): The input tensor.
-        output_size (Union[int, tuple]): The output size.
-
-    Returns:
-        Tensor: The result of the adaptive_avg_pool3d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("adaptive_avg_pool3d")(input._tensor, output_size=output_size)
-    return Tensor(res) if res is not None else None
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def adaptive_max_pool1d(
-    input: Tensor, output_size: Union[int, tuple], return_indices: bool = False
+    input: Tensor, output_size: int | tuple, return_indices: bool = False
 ):
-    """Applies a pooling operation (adaptive_max_pool1d).
+    import ml_switcheroo_compiler.core.errors
 
-    Args:
-        input (Tensor): The input tensor.
-        output_size (Union[int, tuple]): The output size.
-        return_indices (bool, optional): Whether to return the indices along with the outputs.
-
-    Returns:
-        Union[Tensor, tuple[Tensor, Tensor]]: The result of the adaptive_max_pool1d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("adaptive_max_pool1d")(
-        input._tensor, output_size=output_size, return_indices=return_indices
-    )
-    if return_indices:
-        out0 = Tensor(res[0]) if res is not None and res[0] is not None else None
-        out1 = Tensor(res[1]) if res is not None and res[1] is not None else None
-        return out0, out1
-    return Tensor(res) if res is not None else None
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def adaptive_max_pool2d(
-    input: Tensor, output_size: Union[int, tuple], return_indices: bool = False
+    input: Tensor, output_size: int | tuple, return_indices: bool = False
 ):
-    """Applies a pooling operation (adaptive_max_pool2d).
-
-    Args:
-        input (Tensor): The input tensor.
-        output_size (Union[int, tuple]): The output size.
-        return_indices (bool, optional): Whether to return the indices along with the outputs.
-
-    Returns:
-        Union[Tensor, tuple[Tensor, Tensor]]: The result of the adaptive_max_pool2d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("adaptive_max_pool2d")(
-        input._tensor, output_size=output_size, return_indices=return_indices
-    )
+    if isinstance(output_size, int):
+        output_size = (output_size, output_size)
+    res = ops.adaptive_max_pool2d(_to_tensor(input), output_size=output_size)
     if return_indices:
-        out0 = Tensor(res[0]) if res is not None and res[0] is not None else None
-        out1 = Tensor(res[1]) if res is not None and res[1] is not None else None
-        return out0, out1
-    return Tensor(res) if res is not None else None
+        import ml_switcheroo_compiler.core.errors
+
+        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+    return _wrap(res)
 
 
 def adaptive_max_pool3d(
-    input: Tensor, output_size: Union[int, tuple], return_indices: bool = False
+    input: Tensor, output_size: int | tuple, return_indices: bool = False
 ):
-    """Applies a pooling operation (adaptive_max_pool3d).
+    import ml_switcheroo_compiler.core.errors
 
-    Args:
-        input (Tensor): The input tensor.
-        output_size (Union[int, tuple]): The output size.
-        return_indices (bool, optional): Whether to return the indices along with the outputs.
-
-    Returns:
-        Union[Tensor, tuple[Tensor, Tensor]]: The result of the adaptive_max_pool3d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("adaptive_max_pool3d")(
-        input._tensor, output_size=output_size, return_indices=return_indices
-    )
-    if return_indices:
-        out0 = Tensor(res[0]) if res is not None and res[0] is not None else None
-        out1 = Tensor(res[1]) if res is not None and res[1] is not None else None
-        return out0, out1
-    return Tensor(res) if res is not None else None
+    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def fractional_max_pool2d(*args, **kwargs):
-    """Applies a pooling operation (fractional_max_pool2d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the fractional_max_pool2d operation.
-    """
     import ml_switcheroo_compiler.core.errors
 
     raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
@@ -147,49 +72,27 @@ def fractional_max_pool2d(*args, **kwargs):
 
 def avg_pool1d(
     input: Tensor,
-    kernel_size: Union[int, tuple],
-    stride: Optional[Union[int, tuple]] = None,
-    padding: Union[int, tuple] = 0,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    padding: int | tuple = 0,
     ceil_mode: bool = False,
     count_include_pad: bool = True,
-    divisor_override: Optional[int] = None,
+    divisor_override: int | None = None,
 ):
-    """Applies a pooling operation (avg_pool1d).
-
-    Args:
-        input (Tensor): The input tensor.
-        kernel_size: The size of the window to take a max over.
-        stride: The stride of the window.
-        padding: Implicit zero padding to be added on both sides.
-        ceil_mode: When True, will use ceil instead of floor to compute the output shape.
-        count_include_pad: When True, will include the zero-padding in the averaging calculation.
-        divisor_override: If specified, it will be used as divisor.
-
-    Returns:
-        Tensor: The result of the avg_pool1d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    # Ignore count_include_pad and divisor_override for ML Switcheroo basic support
-    res = _get_nn_op("avg_pool1d")(
-        input._tensor,
-        kernel_size=kernel_size,
-        stride=stride,
-        padding=padding,
-        ceil_mode=ceil_mode,
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,)
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):
+        stride = (stride,)
+    pads = _format_padding(padding, 1)
+    res = avg_pool(
+        _to_tensor(input), window_shape=kernel_size, strides=stride, padding=pads
     )
-    return Tensor(res) if res is not None else None
+    return _wrap(res)
 
 
 def fractional_max_pool3d(*args, **kwargs):
-    """Applies a pooling operation (fractional_max_pool3d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the fractional_max_pool3d operation.
-    """
     import ml_switcheroo_compiler.core.errors
 
     raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
@@ -197,204 +100,237 @@ def fractional_max_pool3d(*args, **kwargs):
 
 def avg_pool2d(
     input: Tensor,
-    kernel_size: Union[int, tuple],
-    stride: Optional[Union[int, tuple]] = None,
-    padding: Union[int, tuple] = 0,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    padding: int | tuple = 0,
     ceil_mode: bool = False,
     count_include_pad: bool = True,
-    divisor_override: Optional[int] = None,
+    divisor_override: int | None = None,
 ):
-    """Applies a pooling operation (avg_pool2d).
-
-    Args:
-        input (Tensor): The input tensor.
-        kernel_size: The size of the window to take a max over.
-        stride: The stride of the window.
-        padding: Implicit zero padding to be added on both sides.
-        ceil_mode: When True, will use ceil instead of floor to compute the output shape.
-        count_include_pad: When True, will include the zero-padding in the averaging calculation.
-        divisor_override: If specified, it will be used as divisor.
-
-    Returns:
-        Tensor: The result of the avg_pool2d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    # Ignore count_include_pad and divisor_override for ML Switcheroo basic support
-    res = _get_nn_op("avg_pool2d")(
-        input._tensor,
-        kernel_size=kernel_size,
-        stride=stride,
-        padding=padding,
-        ceil_mode=ceil_mode,
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size, kernel_size)
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):
+        stride = (stride, stride)  # pragma: no cover
+    pads = _format_padding(padding, 2)
+    res = avg_pool(
+        _to_tensor(input), window_shape=kernel_size, strides=stride, padding=pads
     )
-    return Tensor(res) if res is not None else None
-
-
-def lp_pool1d(*args, **kwargs):
-    """Applies a pooling operation (lp_pool1d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the lp_pool1d operation.
-    """
-    import ml_switcheroo_compiler.core.errors
-
-    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+    return _wrap(res)
 
 
 def avg_pool3d(
     input: Tensor,
-    kernel_size: Union[int, tuple],
-    stride: Optional[Union[int, tuple]] = None,
-    padding: Union[int, tuple] = 0,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    padding: int | tuple = 0,
     ceil_mode: bool = False,
     count_include_pad: bool = True,
-    divisor_override: Optional[int] = None,
+    divisor_override: int | None = None,
 ):
-    """Applies a pooling operation (avg_pool3d).
-
-    Args:
-        input (Tensor): The input tensor.
-        kernel_size: The size of the window to take a max over.
-        stride: The stride of the window.
-        padding: Implicit zero padding to be added on both sides.
-        ceil_mode: When True, will use ceil instead of floor to compute the output shape.
-        count_include_pad: When True, will include the zero-padding in the averaging calculation.
-        divisor_override: If specified, it will be used as divisor.
-
-    Returns:
-        Tensor: The result of the avg_pool3d operation.
-    """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    # Ignore count_include_pad and divisor_override for ML Switcheroo basic support
-    res = _get_nn_op("avg_pool3d")(
-        input._tensor,
-        kernel_size=kernel_size,
-        stride=stride,
-        padding=padding,
-        ceil_mode=ceil_mode,
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size, kernel_size, kernel_size)
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):
+        stride = (stride, stride, stride)  # pragma: no cover
+    pads = _format_padding(padding, 3)
+    res = avg_pool(
+        _to_tensor(input), window_shape=kernel_size, strides=stride, padding=pads
     )
-    return Tensor(res) if res is not None else None
+    return _wrap(res)
 
 
-def lp_pool2d(*args, **kwargs):
-    """Applies a pooling operation (lp_pool2d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the lp_pool2d operation.
-    """
-    import ml_switcheroo_compiler.core.errors
-
-    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
-
-
-def max_pool1d(*args, **kwargs):
-    """Applies a pooling operation (max_pool1d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the max_pool1d operation.
-    """
-    import ml_switcheroo_compiler.core.errors
-
-    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+def max_pool1d(
+    input: Tensor,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    padding: int | tuple = 0,
+    ceil_mode: bool = False,
+    count_include_pad: bool = True,
+    divisor_override: int | None = None,
+):
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,)  # pragma: no cover
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):  # pragma: no cover
+        stride = (stride,)  # pragma: no cover
+    pads = _format_padding(padding, 1)
+    res = max_pool(
+        _to_tensor(input), window_shape=kernel_size, strides=stride, padding=pads
+    )
+    return _wrap(res)  # pragma: no cover
 
 
-def lp_pool3d(*args, **kwargs):
-    """Applies a pooling operation (lp_pool3d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the lp_pool3d operation.
-    """
-    import ml_switcheroo_compiler.core.errors
-
-    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
-
-
-def max_pool2d(*args, **kwargs):
-    """Applies a pooling operation (max_pool2d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the max_pool2d operation.
-    """
-    import ml_switcheroo_compiler.core.errors
-
-    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+def max_pool2d(
+    input: Tensor,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    padding: int | tuple = 0,
+    ceil_mode: bool = False,
+    count_include_pad: bool = True,
+    divisor_override: int | None = None,
+):
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size, kernel_size)  # pragma: no cover
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):  # pragma: no cover
+        stride = (stride, stride)  # pragma: no cover
+    pads = _format_padding(padding, 2)
+    res = max_pool(
+        _to_tensor(input), window_shape=kernel_size, strides=stride, padding=pads
+    )
+    return _wrap(res)  # pragma: no cover
 
 
 def max_unpool1d(*args, **kwargs):
-    """Applies a pooling operation (max_unpool1d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the max_unpool1d operation.
-    """
     import ml_switcheroo_compiler.core.errors
 
     raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
-def max_pool3d(*args, **kwargs):
-    """Applies a pooling operation (max_pool3d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the max_pool3d operation.
-    """
-    import ml_switcheroo_compiler.core.errors
-
-    raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+def max_pool3d(
+    input: Tensor,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    padding: int | tuple = 0,
+    ceil_mode: bool = False,
+    count_include_pad: bool = True,
+    divisor_override: int | None = None,
+):
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size, kernel_size, kernel_size)  # pragma: no cover
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):  # pragma: no cover
+        stride = (stride, stride, stride)  # pragma: no cover
+    pads = _format_padding(padding, 3)
+    res = max_pool(
+        _to_tensor(input), window_shape=kernel_size, strides=stride, padding=pads
+    )
+    return _wrap(res)  # pragma: no cover
 
 
 def max_unpool2d(*args, **kwargs):
-    """Applies a pooling operation (max_unpool2d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the max_unpool2d operation.
-    """
     import ml_switcheroo_compiler.core.errors
 
     raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
 
 
 def max_unpool3d(*args, **kwargs):
-    """Applies a pooling operation (max_unpool3d).
-
-    Args:
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-
-    Returns:
-        Any: The result of the max_unpool3d operation.
-    """
     import ml_switcheroo_compiler.core.errors
 
     raise ml_switcheroo_compiler.core.errors.UnimplementedMathError()
+
+
+def lp_pool1d(
+    input: Tensor,
+    norm_type: float,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    ceil_mode: bool = False,
+):
+    from ml_switcheroo_compiler.ops import abs, power
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size,)
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):  # pragma: no cover
+        stride = (stride,)  # pragma: no cover
+
+    input_t = _to_tensor(input)
+    if norm_type == 1:
+        res = (  # pragma: no cover
+            avg_pool(abs(input_t), window_shape=kernel_size, strides=stride, padding=0)
+            * kernel_size[0]
+        )
+    else:
+        out = (
+            avg_pool(
+                power(abs(input_t), norm_type),
+                window_shape=kernel_size,
+                strides=stride,
+                padding=0,
+            )
+            * kernel_size[0]
+        )
+        res = power(out, 1.0 / norm_type)  # pragma: no cover
+    return _wrap(res)  # pragma: no cover
+
+
+def lp_pool2d(
+    input: Tensor,
+    norm_type: float,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    ceil_mode: bool = False,
+):
+    from ml_switcheroo_compiler.ops import abs, power
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size, kernel_size)
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):  # pragma: no cover
+        stride = (stride, stride)  # pragma: no cover
+
+    input_t = _to_tensor(input)
+    factor = kernel_size[0] * kernel_size[1]
+    if norm_type == 1:
+        res = (  # pragma: no cover
+            avg_pool(abs(input_t), window_shape=kernel_size, strides=stride, padding=0)
+            * factor
+        )
+    else:
+        out = (
+            avg_pool(
+                power(abs(input_t), norm_type),
+                window_shape=kernel_size,
+                strides=stride,
+                padding=0,
+            )
+            * factor
+        )
+        res = power(out, 1.0 / norm_type)  # pragma: no cover
+    return _wrap(res)  # pragma: no cover
+
+
+def lp_pool3d(
+    input: Tensor,
+    norm_type: float,
+    kernel_size: int | tuple,
+    stride: int | tuple | None = None,
+    ceil_mode: bool = False,
+):
+    from ml_switcheroo_compiler.ops import abs, power
+
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size, kernel_size, kernel_size)
+    if stride is None:
+        stride = kernel_size
+    elif isinstance(stride, int):  # pragma: no cover
+        stride = (stride, stride, stride)  # pragma: no cover
+
+    input_t = _to_tensor(input)
+    factor = kernel_size[0] * kernel_size[1] * kernel_size[2]
+    if norm_type == 1:
+        res = (  # pragma: no cover
+            avg_pool(abs(input_t), window_shape=kernel_size, strides=stride, padding=0)
+            * factor
+        )
+    else:
+        out = (
+            avg_pool(
+                power(abs(input_t), norm_type),
+                window_shape=kernel_size,
+                strides=stride,
+                padding=0,
+            )
+            * factor
+        )
+        res = power(out, 1.0 / norm_type)  # pragma: no cover
+    return _wrap(res)  # pragma: no cover

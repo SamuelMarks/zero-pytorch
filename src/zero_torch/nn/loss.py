@@ -1,8 +1,10 @@
 """Loss module."""
 
 from typing import Any
-from .module import Module
+
 from zero_torch.tensor import Tensor
+
+from .module import Module
 
 
 class _Loss(Module):
@@ -37,7 +39,7 @@ class _Loss(Module):
         Returns:
             Tensor: The computed loss.
         """
-        return input
+        return input  # pragma: no cover
 
 
 class _WeightedLoss(_Loss):
@@ -68,7 +70,21 @@ class _WeightedLoss(_Loss):
 class BCELoss(_WeightedLoss):
     """Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities."""
 
-    pass
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.binary_cross_entropy(input, target)
+
+    """Creates a criterion that measures the Binary Cross Entropy between the target and the input probabilities."""
 
 
 class BCEWithLogitsLoss(_Loss):
@@ -97,6 +113,20 @@ class BCEWithLogitsLoss(_Loss):
         """
         super().__init__()
 
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.binary_cross_entropy_with_logits(input, target)
+
 
 class CTCLoss(_Loss):
     """The Connectionist Temporal Classification loss."""
@@ -119,6 +149,20 @@ class CTCLoss(_Loss):
             **kwargs: Arbitrary keyword arguments.
         """
         super().__init__()
+
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.ctc_loss(input, target)
 
 
 class CosineEmbeddingLoss(_Loss):
@@ -145,26 +189,37 @@ class CosineEmbeddingLoss(_Loss):
         """
         super().__init__()
 
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.cosine_embedding_loss(input, target)
+
 
 class CrossEntropyLoss(_WeightedLoss):
     """This criterion computes the cross entropy loss between input logits and target."""
 
-    def __call__(self, *args, **kwargs) -> Tensor:
-        """Computes the loss.
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        """Computes the cross entropy loss.
 
         Args:
-            *args: Positional arguments for forward pass.
-            **kwargs: Keyword arguments for forward pass.
+            input (Tensor): input tensor.
+            target (Tensor): target tensor.
 
         Returns:
             Tensor: The computed loss.
-
-        Raises:
-            UnimplementedMathError: If the math operations are not implemented.
         """
         import zero_torch.nn.functional as F
 
-        return F.cross_entropy(args[0], args[1])
+        return F.cross_entropy(input, target)
 
     def __init__(
         self,
@@ -214,6 +269,20 @@ class GaussianNLLLoss(_Loss):
         """
         super().__init__()
 
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.gaussian_nll_loss(input, target)
+
 
 class HingeEmbeddingLoss(_Loss):
     """Measures the loss given an input tensor and a labels tensor."""
@@ -238,6 +307,20 @@ class HingeEmbeddingLoss(_Loss):
             **kwargs: Arbitrary keyword arguments.
         """
         super().__init__()
+
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.hinge_embedding_loss(input, target)
 
 
 class KLDivLoss(_Loss):
@@ -264,29 +347,57 @@ class KLDivLoss(_Loss):
         """
         super().__init__()
 
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.kl_div(input, target)
+
 
 class L1Loss(_Loss):
     """Creates a criterion that measures the mean absolute error (MAE) between each element in the input x and target y."""
 
-    pass
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.l1_loss(input, target)
+
+    """Creates a criterion that measures the mean absolute error (MAE) between each element in the input x and target y."""
 
 
 class MSELoss(_Loss):
     """Creates a criterion that measures the mean squared error (squared L2 norm) between each element in the input x and target y."""
 
-    def __call__(self, *args, **kwargs) -> Tensor:
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
         """Computes the MSE loss.
 
         Args:
-            *args: Positional arguments for forward pass.
-            **kwargs: Keyword arguments for forward pass.
+            input (Tensor): input tensor.
+            target (Tensor): target tensor.
 
         Returns:
-            Tensor: The computed MSE loss (currently mocked to 0.0).
+            Tensor: The computed MSE loss.
         """
-        from zero_torch.tensor import Tensor
+        import zero_torch.nn.functional as F
 
-        return Tensor(0.0)
+        return F.mse_loss(input, target)
 
 
 class NLLLoss(_WeightedLoss):
@@ -315,11 +426,39 @@ class NLLLoss(_WeightedLoss):
         """
         super().__init__()
 
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.nll_loss(input, target)
+
 
 class NLLLoss2d(NLLLoss):
     """The negative log likelihood loss for 2D images."""
 
-    pass
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.nll_loss(input, target)
+
+    """The negative log likelihood loss for 2D images."""
 
 
 class PoissonNLLLoss(_Loss):
@@ -350,6 +489,20 @@ class PoissonNLLLoss(_Loss):
         """
         super().__init__()
 
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.poisson_nll_loss(input, target)
+
 
 class SmoothL1Loss(_Loss):
     """Creates a criterion that uses a squared term if the absolute element-wise error falls below beta and an L1 term otherwise."""
@@ -375,11 +528,39 @@ class SmoothL1Loss(_Loss):
         """
         super().__init__()
 
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.smooth_l1_loss(input, target)
+
 
 class SoftMarginLoss(_Loss):
     """Creates a criterion that optimizes a two-class classification logistic loss."""
 
-    pass
+    def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.soft_margin_loss(input, target)
+
+    """Creates a criterion that optimizes a two-class classification logistic loss."""
 
 
 class TripletMarginLoss(_Loss):
@@ -412,6 +593,21 @@ class TripletMarginLoss(_Loss):
         """
         super().__init__()
 
+    def forward(self, anchor, positive, negative):
+        """Forward pass.
+
+        Args:
+            anchor (Tensor): anchor.
+            positive (Tensor): positive.
+            negative (Tensor): negative.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.triplet_margin_loss(anchor, positive, negative)
+
 
 class TripletMarginWithDistanceLoss(_Loss):
     """Creates a criterion that measures the triplet loss given input tensors and a custom distance function."""
@@ -436,6 +632,21 @@ class TripletMarginWithDistanceLoss(_Loss):
             **kwargs: Arbitrary keyword arguments.
         """
         super().__init__()
+
+    def forward(self, anchor, positive, negative):
+        """Forward pass.
+
+        Args:
+            anchor (Tensor): anchor.
+            positive (Tensor): positive.
+            negative (Tensor): negative.
+
+        Returns:
+            Tensor: loss.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.triplet_margin_with_distance_loss(anchor, positive, negative)
 
 
 class AdaptiveLogSoftmaxWithLoss(Module):
@@ -486,6 +697,15 @@ class HuberLoss(_Loss):
         self.delta = delta
 
     def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
         import zero_torch.nn.functional as F
 
         return F.huber_loss(input, target)
@@ -505,9 +725,19 @@ class MarginRankingLoss(_Loss):
         self.margin = margin
 
     def forward(self, input1, input2, target):
+        """Forward pass.
+
+        Args:
+            input1 (Tensor): input1.
+            input2 (Tensor): input2.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
         import zero_torch.nn.functional as F
 
-        return F.margin_ranking_loss(input, target)
+        return F.margin_ranking_loss(input1, input2, target)
 
 
 class MultiLabelMarginLoss(_Loss):
@@ -517,6 +747,15 @@ class MultiLabelMarginLoss(_Loss):
         super().__init__(size_average, reduce, reduction)
 
     def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
         import zero_torch.nn.functional as F
 
         return F.multi_label_margin_loss(input, target)
@@ -531,6 +770,15 @@ class MultiLabelSoftMarginLoss(_WeightedLoss):
         super().__init__(weight, size_average, reduce, reduction)
 
     def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
         import zero_torch.nn.functional as F
 
         return F.multi_label_soft_margin_loss(input, target)
@@ -553,6 +801,15 @@ class MultiMarginLoss(_WeightedLoss):
         self.margin = margin
 
     def forward(self, input, target):
+        """Forward pass.
+
+        Args:
+            input (Tensor): input.
+            target (Tensor): target.
+
+        Returns:
+            Tensor: loss.
+        """
         import zero_torch.nn.functional as F
 
         return F.multi_margin_loss(input, target)

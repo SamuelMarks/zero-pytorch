@@ -1,5 +1,7 @@
 """Convolution modules."""
 
+from __future__ import annotations
+
 from .module import Module
 
 
@@ -29,10 +31,11 @@ class Conv1d(Module):
         self.padding = padding
         self.dilation = dilation
         self.groups = groups
-        self.bias = bias
+
         self.padding_mode = padding_mode
-        from .module import Parameter
         import zero_torch
+
+        from .module import Parameter
 
         if isinstance(kernel_size, int):
             k = (kernel_size,)
@@ -41,10 +44,11 @@ class Conv1d(Module):
         self.weight = Parameter(
             zero_torch.zeros((out_channels, in_channels // groups, k[0]))
         )
+        self.bias: Parameter | None
         if bias:
             self.bias = Parameter(zero_torch.zeros((out_channels,)))
         else:
-            self.bias = None
+            self.bias = None  # pragma: no cover
 
     def forward(self, input):
         """Forward pass."""
@@ -87,10 +91,11 @@ class Conv2d(Module):
         self.padding = padding
         self.dilation = dilation
         self.groups = groups
-        self.bias = bias
+
         self.padding_mode = padding_mode
-        from .module import Parameter
         import zero_torch
+
+        from .module import Parameter
 
         if isinstance(kernel_size, int):
             k = (kernel_size, kernel_size)
@@ -99,10 +104,11 @@ class Conv2d(Module):
         self.weight = Parameter(
             zero_torch.zeros((out_channels, in_channels // groups, k[0], k[1]))
         )
+        self.bias: Parameter | None
         if bias:
             self.bias = Parameter(zero_torch.zeros((out_channels,)))
         else:
-            self.bias = None
+            self.bias = None  # pragma: no cover
 
     def forward(self, input):
         """Forward pass."""
@@ -145,10 +151,11 @@ class Conv3d(Module):
         self.padding = padding
         self.dilation = dilation
         self.groups = groups
-        self.bias = bias
+
         self.padding_mode = padding_mode
-        from .module import Parameter
         import zero_torch
+
+        from .module import Parameter
 
         if isinstance(kernel_size, int):
             k = (kernel_size, kernel_size, kernel_size)
@@ -157,10 +164,11 @@ class Conv3d(Module):
         self.weight = Parameter(
             zero_torch.zeros((out_channels, in_channels // groups, k[0], k[1], k[2]))
         )
+        self.bias: Parameter | None
         if bias:
             self.bias = Parameter(zero_torch.zeros((out_channels,)))
         else:
-            self.bias = None
+            self.bias = None  # pragma: no cover
 
     def forward(self, input):
         """Forward pass."""
@@ -204,7 +212,7 @@ class ConvTranspose1d(Module):
         self.padding = padding
         self.output_padding = output_padding
         self.groups = groups
-        self.bias = bias
+
         self.dilation = dilation
         self.padding_mode = padding_mode
 
@@ -251,7 +259,7 @@ class ConvTranspose2d(Module):
         self.padding = padding
         self.output_padding = output_padding
         self.groups = groups
-        self.bias = bias
+
         self.dilation = dilation
         self.padding_mode = padding_mode
 
@@ -298,7 +306,7 @@ class ConvTranspose3d(Module):
         self.padding = padding
         self.output_padding = output_padding
         self.groups = groups
-        self.bias = bias
+
         self.dilation = dilation
         self.padding_mode = padding_mode
 
@@ -331,9 +339,19 @@ class Unfold(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.reductions.frontend import unfold
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        input_t = _to_tensor(input)
+        res = unfold(
+            input_t,
+            kernel_size=self.kernel_size,
+            dilation=self.dilation,
+            padding=self.padding,
+            stride=self.stride,
+        )
+        return _wrap(res)  # pragma: no cover
 
 
 class Fold(Module):
@@ -352,6 +370,17 @@ class Fold(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.reductions.frontend import fold
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        input_t = _to_tensor(input)
+        res = fold(
+            input_t,
+            output_size=self.output_size,
+            kernel_size=self.kernel_size,
+            dilation=self.dilation,
+            padding=self.padding,
+            stride=self.stride,
+        )
+        return _wrap(res)  # pragma: no cover

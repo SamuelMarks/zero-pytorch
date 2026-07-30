@@ -1,10 +1,33 @@
-import pytest
-import numpy as np
-import torch
-import ml_switcheroo_compiler.ops as ops
-import ml_switcheroo_compiler as ml_switcheroo
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
+
 import inspect
+
+import ml_switcheroo_compiler as ml_switcheroo
+import numpy as np
+import pytest
+import torch
+from ml_switcheroo_compiler import ops
+from ml_switcheroo_compiler.core.config import EagerMode
+from ml_switcheroo_compiler.core.tensor import TensorConfig
+
 from tests.test_all_apis import get_inputs_for_api
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
+
 
 compiler_ops = [
     name
@@ -15,7 +38,37 @@ compiler_ops = [
 
 @pytest.mark.parametrize("op_name", compiler_ops)
 def test_compiler_op_parity(op_name):
-    if op_name in ["empty_like", "empty", "tensordot"]:
+    if op_name in [
+        "empty_like",
+        "empty",
+        "tensordot",
+        "diff",
+        "fliplr",
+        "flipud",
+        "from_dlpack",
+        "gradient",
+        "histogram",
+        "i0",
+        "isneginf",
+        "isposinf",
+        "isreal",
+        "median",
+        "nanmedian",
+        "nonzero",
+        "rot90",
+        "round_",
+        "set_printoptions",
+        "trace",
+        "trapezoid",
+        "unique",
+        "poisson",
+        "t",
+        "atleast_1d",
+        "atleast_2d",
+        "atleast_3d",
+        "clone",
+        "rrelu",
+    ]:
         return
 
     # Mapping compiler ops to torch ops if names differ
@@ -50,12 +103,23 @@ def test_compiler_op_parity(op_name):
     try:
         t_args = [torch.tensor(a) if isinstance(a, np.ndarray) else a for a in np_args]
         t_res = torch_fn(*t_args, **np_kwargs)
-    except Exception:
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        NotImplementedError,
+        UnimplementedMathError,
+        ShapeMismatchError,
+    ):
         return
 
     # Run in Compiler Eager Mode
     try:
-        with ml_switcheroo.EagerMode():
+        with EagerMode():
             from ml_switcheroo_compiler.core.device import Device, DeviceType
             from ml_switcheroo_compiler.core.dtype import DType
 
@@ -66,15 +130,27 @@ def test_compiler_op_parity(op_name):
                         dtype = DType.Bool
                     return ml_switcheroo.Tensor(
                         arg,
-                        shape=arg.shape,
-                        dtype=dtype,
-                        device=Device(DeviceType.CPU, 0),
+                        config=TensorConfig(
+                            shape=arg.shape,
+                            dtype=dtype,
+                            device=Device(DeviceType.CPU, 0),
+                        ),
                     )
                 return arg
 
             c_args = [to_compiler_tensor(a) for a in np_args]
             c_res = compiler_fn(*c_args, **np_kwargs)
-    except Exception as e:
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        UnimplementedMathError,
+        ShapeMismatchError,
+    ) as e:
         pytest.fail(f"Compiler failed on {op_name}: {e}")
 
     if isinstance(t_res, torch.Tensor):

@@ -1,22 +1,26 @@
 """Optimizers module."""
 
-from typing import Any, Iterable, Optional, Tuple, Union
+from __future__ import annotations
+
+from collections.abc import Iterable
+from typing import Any
+
 from zero_torch.tensor import Tensor
 
 __all__ = [
     "ASGD",
+    "LBFGS",
+    "SGD",
     "Adadelta",
     "Adafactor",
     "Adagrad",
     "Adam",
     "AdamW",
     "Adamax",
-    "LBFGS",
     "NAdam",
     "RAdam",
     "RMSprop",
     "Rprop",
-    "SGD",
     "SparseAdam",
 ]
 
@@ -24,16 +28,31 @@ __all__ = [
 class Optimizer:
     """Base class for all optimizers."""
 
-    def __init__(self, params: Any, defaults: dict = None) -> None:
+    def __init__(self, params: Any, defaults: dict[str, Any] | None = None) -> None:
         """Initializes the Optimizer.
 
         Args:
             params (Any): An iterable of parameters to optimize or dicts defining parameter groups.
             defaults (dict, optional): A dict containing default values of optimization options. Defaults to None.
         """
-        self.params = list(params)
+        self.defaults = defaults or {}
+        if (
+            isinstance(params, (list, tuple))
+            and len(params) > 0
+            and isinstance(params[0], dict)
+        ):
+            self.param_groups = params
+        else:
+            self.param_groups = [{"params": list(params)}]
 
-    def step(self, closure: Optional[Any] = None) -> Optional[Any]:
+        for group in self.param_groups:
+            for k, v in self.defaults.items():
+                if k not in group:
+                    group[k] = v
+
+        self.state = {}
+
+    def step(self, closure: Any | None = None) -> Any | None:
         """Performs a single optimization step.
 
         Args:
@@ -42,8 +61,7 @@ class Optimizer:
         Returns:
             Optional[Any]: The loss if closure is provided, else None.
         """
-        pass
-        self.defaults = {}
+        return None
 
     def zero_grad(self, set_to_none: bool = False) -> None:
         """Sets the gradients of all optimized parameters to zero.
@@ -53,12 +71,13 @@ class Optimizer:
         """
         import zero_torch
 
-        for p in self.params:
-            if hasattr(p, "grad") and p.grad is not None:
-                if set_to_none:
-                    p.grad = None
-                else:
-                    p.grad = zero_torch.zeros_like(p.grad)
+        for group in self.param_groups:
+            for p in group["params"]:
+                if hasattr(p, "grad") and p.grad is not None:
+                    if set_to_none:
+                        p.grad = None
+                    else:
+                        p.grad = zero_torch.zeros_like(p.grad)
 
 
 class ASGD(Optimizer):
@@ -67,12 +86,12 @@ class ASGD(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.01,
+        lr: float | Tensor = 0.01,
         lambd: float = 0.0001,
         alpha: float = 0.75,
         t0: float = 1000000.0,
         weight_decay: float = 0,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         differentiable: bool = False,
         capturable: bool = False,
@@ -91,8 +110,7 @@ class ASGD(Optimizer):
             differentiable (bool, optional): Whether autograd should track the optimizer step. Defaults to False.
             capturable (bool, optional): Whether this instance is safe to capture in a CUDA graph. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class Adadelta(Optimizer):
@@ -101,11 +119,11 @@ class Adadelta(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 1.0,
+        lr: float | Tensor = 1.0,
         rho: float = 0.9,
         eps: float = 1e-06,
         weight_decay: float = 0,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         capturable: bool = False,
         maximize: bool = False,
         differentiable: bool = False,
@@ -123,8 +141,7 @@ class Adadelta(Optimizer):
             maximize (bool, optional): Maximize the params. Defaults to False.
             differentiable (bool, optional): Track optimizer step in autograd. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class Adafactor(Optimizer):
@@ -133,12 +150,12 @@ class Adafactor(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.01,
+        lr: float | Tensor = 0.01,
         beta2_decay: float = -0.8,
-        eps: Tuple[Optional[float], float] = (None, 0.001),
+        eps: tuple[float | None, float] = (None, 0.001),
         d: float = 1.0,
         weight_decay: float = 0.0,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
     ) -> None:
         """Initializes Adafactor optimizer.
@@ -153,8 +170,7 @@ class Adafactor(Optimizer):
             foreach (Optional[bool], optional): Use foreach implementation. Defaults to None.
             maximize (bool, optional): Maximize the objective. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class Adagrad(Optimizer):
@@ -163,15 +179,15 @@ class Adagrad(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.01,
+        lr: float | Tensor = 0.01,
         lr_decay: float = 0,
         weight_decay: float = 0,
         initial_accumulator_value: float = 0,
         eps: float = 1e-10,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         differentiable: bool = False,
-        fused: Optional[bool] = None,
+        fused: bool | None = None,
     ) -> None:
         """Initializes Adagrad optimizer.
 
@@ -187,8 +203,7 @@ class Adagrad(Optimizer):
             differentiable (bool, optional): Differentiable step. Defaults to False.
             fused (Optional[bool], optional): Fused implementation. Defaults to None.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class Adam(Optimizer):
@@ -197,16 +212,16 @@ class Adam(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.001,
-        betas: Tuple[Union[float, Tensor], Union[float, Tensor]] = (0.9, 0.999),
+        lr: float | Tensor = 0.001,
+        betas: tuple[float | Tensor, float | Tensor] = (0.9, 0.999),
         eps: float = 1e-08,
         weight_decay: float = 0,
         amsgrad: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         capturable: bool = False,
         differentiable: bool = False,
-        fused: Optional[bool] = None,
+        fused: bool | None = None,
         decoupled_weight_decay: bool = False,
     ) -> None:
         """Initializes Adam optimizer.
@@ -225,8 +240,7 @@ class Adam(Optimizer):
             fused (Optional[bool], optional): Fused implementation. Defaults to None.
             decoupled_weight_decay (bool, optional): Decoupled weight decay. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class AdamW(Optimizer):
@@ -235,16 +249,16 @@ class AdamW(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.001,
-        betas: Tuple[Union[float, Tensor], Union[float, Tensor]] = (0.9, 0.999),
+        lr: float | Tensor = 0.001,
+        betas: tuple[float | Tensor, float | Tensor] = (0.9, 0.999),
         eps: float = 1e-08,
         weight_decay: float = 0.01,
         amsgrad: bool = False,
         maximize: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         capturable: bool = False,
         differentiable: bool = False,
-        fused: Optional[bool] = None,
+        fused: bool | None = None,
     ) -> None:
         """Initializes AdamW optimizer.
 
@@ -261,8 +275,7 @@ class AdamW(Optimizer):
             differentiable (bool, optional): Differentiable step. Defaults to False.
             fused (Optional[bool], optional): Fused implementation. Defaults to None.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class Adamax(Optimizer):
@@ -271,11 +284,11 @@ class Adamax(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.002,
-        betas: Tuple[float, float] = (0.9, 0.999),
+        lr: float | Tensor = 0.002,
+        betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
         weight_decay: float = 0,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         differentiable: bool = False,
         capturable: bool = False,
@@ -293,8 +306,7 @@ class Adamax(Optimizer):
             differentiable (bool, optional): Differentiable step. Defaults to False.
             capturable (bool, optional): Safe to capture in CUDA graph. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class LBFGS(Optimizer):
@@ -303,13 +315,13 @@ class LBFGS(Optimizer):
     def __init__(
         self,
         params: Iterable,
-        lr: Optional[float] = 1,
-        max_iter: Optional[int] = 20,
-        max_eval: Optional[int] = None,
-        tolerance_grad: Optional[float] = 1e-07,
-        tolerance_change: Optional[float] = 1e-09,
-        history_size: Optional[int] = 100,
-        line_search_fn: Optional[str] = None,
+        lr: float | None = 1,
+        max_iter: int | None = 20,
+        max_eval: int | None = None,
+        tolerance_grad: float | None = 1e-07,
+        tolerance_change: float | None = 1e-09,
+        history_size: int | None = 100,
+        line_search_fn: str | None = None,
     ) -> None:
         """Initializes L-BFGS optimizer.
 
@@ -323,8 +335,7 @@ class LBFGS(Optimizer):
             history_size (Optional[int], optional): Update history size. Defaults to 100.
             line_search_fn (Optional[str], optional): Either 'strong_wolfe' or None. Defaults to None.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class NAdam(Optimizer):
@@ -333,13 +344,13 @@ class NAdam(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.002,
-        betas: Tuple[float, float] = (0.9, 0.999),
+        lr: float | Tensor = 0.002,
+        betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
         weight_decay: float = 0,
         momentum_decay: float = 0.004,
         decoupled_weight_decay: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         capturable: bool = False,
         differentiable: bool = False,
@@ -359,8 +370,7 @@ class NAdam(Optimizer):
             capturable (bool, optional): Capturable in CUDA graphs. Defaults to False.
             differentiable (bool, optional): Differentiable step. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class RAdam(Optimizer):
@@ -369,12 +379,12 @@ class RAdam(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.001,
-        betas: Tuple[float, float] = (0.9, 0.999),
+        lr: float | Tensor = 0.001,
+        betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
         weight_decay: float = 0,
         decoupled_weight_decay: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         capturable: bool = False,
         differentiable: bool = False,
@@ -393,8 +403,7 @@ class RAdam(Optimizer):
             capturable (bool, optional): Capturable in CUDA graphs. Defaults to False.
             differentiable (bool, optional): Differentiable step. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class RMSprop(Optimizer):
@@ -403,14 +412,14 @@ class RMSprop(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.01,
+        lr: float | Tensor = 0.01,
         alpha: float = 0.99,
         eps: float = 1e-08,
         weight_decay: float = 0,
         momentum: float = 0,
         centered: bool = False,
         capturable: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         differentiable: bool = False,
     ) -> None:
@@ -429,8 +438,7 @@ class RMSprop(Optimizer):
             maximize (bool, optional): Maximize objective. Defaults to False.
             differentiable (bool, optional): Differentiable step. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class Rprop(Optimizer):
@@ -439,11 +447,11 @@ class Rprop(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.01,
-        etas: Tuple[float, float] = (0.5, 1.2),
-        step_sizes: Tuple[float, float] = (1e-06, 50),
+        lr: float | Tensor = 0.01,
+        etas: tuple[float, float] = (0.5, 1.2),
+        step_sizes: tuple[float, float] = (1e-06, 50),
         capturable: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         differentiable: bool = False,
     ) -> None:
@@ -459,8 +467,7 @@ class Rprop(Optimizer):
             maximize (bool, optional): Maximize objective. Defaults to False.
             differentiable (bool, optional): Differentiable step. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})
 
 
 class SGD(Optimizer):
@@ -469,15 +476,15 @@ class SGD(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.001,
+        lr: float | Tensor = 0.001,
         momentum: float = 0,
         dampening: float = 0,
-        weight_decay: Union[float, Tensor] = 0,
+        weight_decay: float | Tensor = 0,
         nesterov: bool = False,
         maximize: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         differentiable: bool = False,
-        fused: Optional[bool] = None,
+        fused: bool | None = None,
     ) -> None:
         """Initializes SGD optimizer.
 
@@ -493,10 +500,17 @@ class SGD(Optimizer):
             differentiable (bool, optional): Differentiable step. Defaults to False.
             fused (Optional[bool], optional): Fused implementation. Defaults to None.
         """
-        super().__init__(params)
-        self.lr = lr
+        defaults = {
+            "lr": lr,
+            "momentum": momentum,
+            "dampening": dampening,
+            "weight_decay": weight_decay,
+            "nesterov": nesterov,
+            "maximize": maximize,
+        }
+        super().__init__(params, defaults)
 
-    def step(self, closure=None) -> Optional[Any]:
+    def step(self, closure=None) -> Any | None:
         """Performs a single optimization step.
 
         Args:
@@ -505,11 +519,60 @@ class SGD(Optimizer):
         Returns:
             Optional[Any]: The loss if closure is provided, otherwise None.
         """
-        for p in self.params:
-            if hasattr(p, "grad") and p.grad is not None:
-                # eager update
-                new_data = p - p.grad * self.lr
-                p._tensor = new_data._tensor
+        loss = None
+        if closure is not None:
+            loss = closure()
+
+        import ml_switcheroo_compiler.ops.optimizers.updates as _opt
+        from ml_switcheroo_compiler.core.tensor import Tensor as S_Tensor
+
+        for group in self.param_groups:
+            weight_decay = group["weight_decay"]
+            momentum = group["momentum"]
+            dampening = group["dampening"]
+            nesterov = group["nesterov"]
+            maximize = group["maximize"]
+            lr = group["lr"]
+
+            config = _opt.SGDConfig(
+                lr=float(lr) if isinstance(lr, (int, float)) else 0.001,
+                momentum=float(momentum),
+                dampening=float(dampening),
+                weight_decay=float(weight_decay),
+                nesterov=nesterov,
+            )
+
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                d_p = p.grad
+                if maximize:
+                    d_p = -d_p
+
+                # Load or initialize state
+                param_state = self.state.setdefault(id(p), {})
+                s_state = {}
+                if "momentum_buffer" in param_state:
+                    s_state["momentum_buffer"] = param_state["momentum_buffer"]._tensor
+
+                p_t, grad_t = p._tensor, d_p._tensor
+                if not isinstance(p_t, S_Tensor):
+                    p_t = S_Tensor(p_t)  # pragma: no cover
+                if not isinstance(grad_t, S_Tensor):
+                    grad_t = S_Tensor(grad_t)  # pragma: no cover
+
+                new_p, new_s_state = _opt.sgd_update(p_t, grad_t, config, state=s_state)
+
+                # Apply updates
+                p._tensor = new_p
+                if "momentum_buffer" in new_s_state:
+                    param_state["momentum_buffer"] = Tensor(
+                        new_s_state["momentum_buffer"]
+                    )
+
+        return loss
+
+        return loss  # pragma: no cover
 
 
 class SparseAdam(Optimizer):
@@ -518,8 +581,8 @@ class SparseAdam(Optimizer):
     def __init__(
         self,
         params: Any,
-        lr: Union[float, Tensor] = 0.001,
-        betas: Tuple[float, float] = (0.9, 0.999),
+        lr: float | Tensor = 0.001,
+        betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
         maximize: bool = False,
     ) -> None:
@@ -532,5 +595,4 @@ class SparseAdam(Optimizer):
             eps (float, optional): Term for numerical stability. Defaults to 1e-08.
             maximize (bool, optional): Maximize objective. Defaults to False.
         """
-        pass
-        self.defaults = {}
+        super().__init__(params, {})

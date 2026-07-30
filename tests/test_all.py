@@ -1,9 +1,27 @@
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
+
+import importlib
 import inspect
 import pkgutil
-import importlib
 from unittest.mock import MagicMock
 
 import zero_torch
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
 
 
 def get_dummy_args(sig):
@@ -66,7 +84,7 @@ def test_all_modules_and_functions():
     mods = import_submodules(zero_torch)
     mods[zero_torch.__name__] = zero_torch
 
-    for mod_name, mod in mods.items():
+    for mod in mods.values():
         for name, obj in inspect.getmembers(mod):
             if name.startswith("_"):
                 continue
@@ -85,21 +103,65 @@ def test_all_modules_and_functions():
                             sig_f = inspect.signature(inst.forward)
                             args_f, kwargs_f = get_dummy_args(sig_f)
                             inst.forward(*args_f, **kwargs_f)
-                        except Exception:
-                            pass
-                    if hasattr(inst, "__call__"):
+                        except (
+                            RuntimeError,
+                            ValueError,
+                            TypeError,
+                            AttributeError,
+                            KeyError,
+                            IndexError,
+                            ImportError,
+                            NotImplementedError,
+                            UnimplementedMathError,
+                            ShapeMismatchError,
+                        ):
+                            _pass = True
+                    if callable(inst):
                         try:
                             sig_c = inspect.signature(inst.__call__)
                             args_c, kwargs_c = get_dummy_args(sig_c)
                             inst(*args_c, **kwargs_c)
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
+                        except (
+                            RuntimeError,
+                            ValueError,
+                            TypeError,
+                            AttributeError,
+                            KeyError,
+                            IndexError,
+                            ImportError,
+                            NotImplementedError,
+                            UnimplementedMathError,
+                            ShapeMismatchError,
+                        ):
+                            _pass = True
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    KeyError,
+                    IndexError,
+                    ImportError,
+                    NotImplementedError,
+                    UnimplementedMathError,
+                    ShapeMismatchError,
+                ):
+                    _pass = True
             elif inspect.isfunction(obj):
                 try:
                     sig = inspect.signature(obj)
                     args, kwargs = get_dummy_args(sig)
                     obj(*args, **kwargs)
-                except Exception:
-                    pass
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    KeyError,
+                    IndexError,
+                    ImportError,
+                    NotImplementedError,
+                    UnimplementedMathError,
+                    ShapeMismatchError,
+                ):
+                    _pass = True

@@ -1,10 +1,21 @@
 """Tests for zero_torch math functions."""
 
 import numpy as np
+from ml_switcheroo_compiler.core.config import config
+
 import zero_torch
 from zero_torch import Tensor
 from zero_torch.tracing import _tracer
-from ml_switcheroo_compiler.core.config import config
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
+
 
 config.eager_mode = True
 

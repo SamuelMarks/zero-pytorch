@@ -1,5 +1,23 @@
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
+
 import zero_torch
 from zero_torch import Tensor
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
 
 
 def test_tensor_fix4():
@@ -17,8 +35,19 @@ def test_tensor_fix4():
 
     try:
         Tensor(BadArray())
-    except Exception:
-        pass
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        NotImplementedError,
+        UnimplementedMathError,
+        ShapeMismatchError,
+    ):
+        _pass = True
 
     # __gt__, __le__, __ge__, __eq__
     t = Tensor([1.0])
@@ -51,8 +80,19 @@ def test_tensor_fix4():
     t._tensor = MockVal()
     try:
         Tensor(t)
-    except Exception:
-        pass
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        NotImplementedError,
+        UnimplementedMathError,
+        ShapeMismatchError,
+    ):
+        _pass = True
 
 
 def test_init_fix4():

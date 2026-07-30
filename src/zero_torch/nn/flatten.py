@@ -14,9 +14,9 @@ class Flatten(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return zero_torch.flatten(input, self.start_dim, self.end_dim)
 
 
 class Unflatten(Module):
@@ -28,6 +28,6 @@ class Unflatten(Module):
         self.unflattened_size = unflattened_size
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return zero_torch.unflatten(input, self.dim, self.unflattened_size)

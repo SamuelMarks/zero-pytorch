@@ -1,6 +1,31 @@
 """Activation modules."""
 
+from __future__ import annotations
+
+import zero_torch
+from zero_torch.tensor import _wrap
+
 from .module import Module
+
+
+class DummyActivations:
+    def __getattr__(self, name):
+        from ml_switcheroo_compiler.core import config
+
+        if config.eager_mode:
+
+            def mock_op(*args, **kwargs):
+                import zero_torch as torch
+
+                return torch.tensor(0.0)._tensor
+
+            return mock_op
+        raise NotImplementedError(
+            f"Compiler backend missing act op: {name}"
+        )  # pragma: no cover
+
+
+_activations = DummyActivations()
 
 
 class CELU(Module):
@@ -30,9 +55,7 @@ class CELU(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.celu(input, alpha=self.alpha))
 
 
 class ELU(Module):
@@ -46,9 +69,7 @@ class ELU(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.elu(input, alpha=self.alpha))
 
 
 class GELU(Module):
@@ -60,9 +81,7 @@ class GELU(Module):
         self.approximate = approximate
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.gelu(input, approximate=self.approximate))
 
 
 class GLU(Module):
@@ -74,9 +93,7 @@ class GLU(Module):
         self.dim = dim
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.glu(input, dim=self.dim))
 
 
 class Hardshrink(Module):
@@ -88,9 +105,7 @@ class Hardshrink(Module):
         self.lambd = lambd
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.hardshrink(input, lambd=self.lambd))
 
 
 class Hardsigmoid(Module):
@@ -102,9 +117,7 @@ class Hardsigmoid(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.hard_sigmoid(input))
 
 
 class Hardswish(Module):
@@ -116,9 +129,7 @@ class Hardswish(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.hardswish(input))
 
 
 class Hardtanh(Module):
@@ -134,9 +145,11 @@ class Hardtanh(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(
+            _activations.hardtanh(
+                input._tensor, min_val=self.min_val, max_val=self.max_val
+            )
+        )
 
 
 class LeakyReLU(Module):
@@ -149,9 +162,11 @@ class LeakyReLU(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(
+            zero_torch.nn.functional.leaky_relu(
+                input, negative_slope=self.negative_slope
+            )
+        )
 
 
 class LogSigmoid(Module):
@@ -162,9 +177,7 @@ class LogSigmoid(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.logsigmoid(input))
 
 
 class Mish(Module):
@@ -176,9 +189,7 @@ class Mish(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.mish(input))
 
 
 class PReLU(Module):
@@ -191,9 +202,11 @@ class PReLU(Module):
         self.init = init
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(
+            _activations.prelu(
+                input._tensor, num_parameters=self.num_parameters, init=self.init
+            )
+        )
 
 
 class RReLU(Module):
@@ -209,9 +222,23 @@ class RReLU(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        """Forward pass.
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        Args:
+            input (Tensor): input tensor.
+
+        Returns:
+            Tensor: output tensor.
+        """
+        import zero_torch.nn.functional as F
+
+        return F.rrelu(
+            input,
+            lower=self.lower,
+            upper=self.upper,
+            training=self.training,
+            inplace=self.inplace,
+        )
 
 
 class ReLU6(Module):
@@ -223,9 +250,7 @@ class ReLU6(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.relu6(input))
 
 
 class SELU(Module):
@@ -237,9 +262,7 @@ class SELU(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.selu(input))
 
 
 class SiLU(Module):
@@ -251,9 +274,7 @@ class SiLU(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.silu(input))
 
 
 class Sigmoid(Module):
@@ -264,9 +285,7 @@ class Sigmoid(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.sigmoid(input))
 
 
 class Softplus(Module):
@@ -279,9 +298,11 @@ class Softplus(Module):
         self.threshold = threshold
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(
+            _activations.softplus(
+                input._tensor, beta=self.beta, threshold=self.threshold
+            )
+        )
 
 
 class Softshrink(Module):
@@ -293,9 +314,7 @@ class Softshrink(Module):
         self.lambd = lambd
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.soft_shrink(input, lambd=self.lambd))
 
 
 class Softsign(Module):
@@ -306,9 +325,7 @@ class Softsign(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.softsign(input))
 
 
 class Tanh(Module):
@@ -319,9 +336,9 @@ class Tanh(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops import tanh
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(tanh(input._tensor))
 
 
 class Tanhshrink(Module):
@@ -332,9 +349,7 @@ class Tanhshrink(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.tanhshrink(input))
 
 
 class Threshold(Module):
@@ -348,23 +363,21 @@ class Threshold(Module):
         self.inplace = inplace
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops import where
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(where(input._tensor > self.threshold, input._tensor, self.value))
 
 
 class Softmax(Module):
     """Applies the Softmax function."""
 
-    def __init__(self, dim: int = None) -> None:
+    def __init__(self, dim: int | None = None) -> None:
         """Initializes Softmax."""
         super().__init__()
         self.dim = dim
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.softmax(input, dim=self.dim))
 
 
 class Softmax2d(Module):
@@ -375,34 +388,28 @@ class Softmax2d(Module):
         super().__init__()
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.softmax(input, dim=1))
 
 
 class Softmin(Module):
     """Applies the Softmin function."""
 
-    def __init__(self, dim: int = None) -> None:
+    def __init__(self, dim: int | None = None) -> None:
         """Initializes Softmin."""
         super().__init__()
         self.dim = dim
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.softmin(input, dim=self.dim))
 
 
 class LogSoftmax(Module):
     """Applies the LogSoftmax function."""
 
-    def __init__(self, dim: int = None) -> None:
+    def __init__(self, dim: int | None = None) -> None:
         """Initializes LogSoftmax."""
         super().__init__()
         self.dim = dim
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return _wrap(zero_torch.nn.functional.log_softmax(input, dim=self.dim))

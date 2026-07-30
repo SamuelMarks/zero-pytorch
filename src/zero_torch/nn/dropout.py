@@ -1,8 +1,10 @@
 """Module."""
 
 from typing import Any
-from .module import Module
+
 from zero_torch.tensor import Tensor
+
+from .module import Module
 
 
 class Dropout(Module):
@@ -32,9 +34,9 @@ class Dropout(Module):
         Returns:
             Tensor: The output tensor with elements randomly zeroed out.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_dropout import dropout
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return dropout(input, p=self.p, training=self.training, inplace=self.inplace)
 
 
 class Dropout1d(Module):
@@ -64,9 +66,9 @@ class Dropout1d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_dropout import dropout1d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return dropout1d(input, p=self.p, training=self.training, inplace=self.inplace)
 
 
 class Dropout2d(Module):
@@ -96,9 +98,9 @@ class Dropout2d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_dropout import dropout2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return dropout2d(input, p=self.p, training=self.training, inplace=self.inplace)
 
 
 class Dropout3d(Module):
@@ -128,9 +130,9 @@ class Dropout3d(Module):
         Returns:
             Tensor: The output tensor with channels randomly zeroed out.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_dropout import dropout3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return dropout3d(input, p=self.p, training=self.training, inplace=self.inplace)
 
 
 class AlphaDropout(Module):
@@ -194,6 +196,8 @@ class FeatureAlphaDropout(Module):
         Returns:
             Tensor: The output tensor with feature alpha dropout applied.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_dropout import feature_alpha_dropout
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return feature_alpha_dropout(
+            input, p=self.p, training=self.training, inplace=self.inplace
+        )

@@ -29,6 +29,13 @@ repos:
         types: [python]
         pass_filenames: false
 
+      - id: check-dependencies
+        name: Check Dependencies
+        entry: python3 scripts/check_dependencies.py
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
 
       - id: check-api-compliance
         name: Check API Conformance

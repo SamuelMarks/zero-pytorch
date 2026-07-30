@@ -1,6 +1,16 @@
-from zero_torch.tensor import Tensor
 import numpy as np
+
+from zero_torch.tensor import Tensor
 from zero_torch.tracing import _tracer
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
 
 
 def test_tensor_t():

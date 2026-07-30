@@ -1,42 +1,14 @@
-from typing import Any, Optional, Iterable, TypeVar
-import torch
 import collections.abc
-from torch import Tensor
+from collections.abc import Iterable
+from typing import Any
 
-_R = Any
-_FanMode = Any
-_NonlinearityType = Any
-_Optional = Optional
-_empty = Any
-ParamsT = Any
-_size_1_t = Any
-_size_2_t = Any
-_size_3_t = Any
-_size_any_t = Any
-_size_2_opt_t = Any
-_size_3_opt_t = Any
-_ratio_2_t = Any
-_ratio_3_t = Any
-optional = Any
-UninitializedParameter = Any
-Parameter = Any
-real = Any
-NamedShape = Any
-_ratio_any_t = Any
-_size_any_opt_t = Any
-_size = Any
-iterable = Iterable
-NoneType = type(None)
-_T_co = TypeVar("_T_co", covariant=True)
-_T = TypeVar("_T")
-_collate_fn_t = Any
-_worker_init_fn_t = Any
-_SnapshotState = Any
+import torch
+from torch import Tensor
 
 class ASGD:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.01,
         lambd: float = 0.0001,
         alpha: float = 0.75,
@@ -51,7 +23,7 @@ class ASGD:
 class Adadelta:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 1.0,
         rho: float = 0.9,
         eps: float = 1e-06,
@@ -80,7 +52,7 @@ class Adafactor:
 class Adagrad:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.01,
         lr_decay: float = 0,
         weight_decay: float = 0,
@@ -95,7 +67,7 @@ class Adagrad:
 class Adam:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.001,
         betas: tuple[float | Tensor, float | Tensor] = (0.9, 0.999),
         eps: float = 1e-08,
@@ -112,7 +84,7 @@ class Adam:
 class AdamW:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.001,
         betas: tuple[float | Tensor, float | Tensor] = (0.9, 0.999),
         eps: float = 1e-08,
@@ -128,7 +100,7 @@ class AdamW:
 class Adamax:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.002,
         betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
@@ -155,7 +127,7 @@ class LBFGS:
 class NAdam:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.002,
         betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
@@ -171,7 +143,7 @@ class NAdam:
 class RAdam:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.001,
         betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
@@ -186,7 +158,7 @@ class RAdam:
 class RMSprop:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.01,
         alpha: float = 0.99,
         eps: float = 1e-08,
@@ -202,7 +174,7 @@ class RMSprop:
 class Rprop:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.01,
         etas: tuple[float, float] = (0.5, 1.2),
         step_sizes: tuple[float, float] = (1e-06, 50),
@@ -215,7 +187,7 @@ class Rprop:
 class SGD:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.001,
         momentum: float = 0,
         dampening: float = 0,
@@ -230,7 +202,7 @@ class SGD:
 class SparseAdam:
     def __init__(
         self,
-        params: ParamsT = ...,
+        params: Any = ...,
         lr: float | Tensor = 0.001,
         betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,

@@ -1,8 +1,18 @@
 import numpy as np
-import ml_switcheroo_compiler as ml_switcheroo
+from ml_switcheroo_compiler.core.config import EagerMode
+
 import zero_torch as torch
-import zero_torch.nn as nn
 import zero_torch.nn.functional as F
+from zero_torch import nn
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
 
 
 def test_module_lifecycle():
@@ -37,7 +47,7 @@ def test_module_lifecycle():
             """
             return self.linear(x) + self.running_mean
 
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         m = MyModule()
 
         # Check state_dict
@@ -64,7 +74,7 @@ def test_module_lifecycle():
 
 def test_functional_linear():
     """Tests for test_functional_linear."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         x = torch.ones((2, 3))
         w = torch.ones((4, 3)) * 2.0
         b = torch.ones((4,))
@@ -76,7 +86,7 @@ def test_functional_linear():
 
 def test_conv2d():
     """Tests for test_conv2d."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         # (N, C, H, W)
         x = torch.ones((2, 3, 5, 5))
         conv = nn.Conv2d(3, 4, kernel_size=3, padding=1)
@@ -91,15 +101,13 @@ def test_conv2d():
 
 def test_batchnorm2d():
     """Tests for test_batchnorm2d."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         pass
 
 
 def test_losses():
     """Tests for test_losses."""
-    with ml_switcheroo.EagerMode():
-        pass
-
+    with EagerMode():
         pred = torch.tensor([[0.5, -0.5], [1.0, 2.0]])
         # MSE
         target_mse = torch.tensor([[0.0, 0.0], [1.0, 2.0]])

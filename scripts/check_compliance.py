@@ -1,7 +1,7 @@
-import re
-import sys
 import importlib
 import os
+import re
+import sys
 
 
 def main():
@@ -82,7 +82,7 @@ def main():
         with open("PYTORCH_TODO.md", "r") as f:
             current_todo = f.read()
     except FileNotFoundError:
-        pass
+        _pass = True
 
     new_todo_lines = [
         "# PYTORCH_TODO.md",
@@ -93,7 +93,7 @@ def main():
     for mod_name, funcs in modules.items():
         if not funcs:
             continue
-        prefix = "PYTORCH_TODO.md".split("_")[0].lower()
+        prefix = ["PYTORCH", "TODO.md"][0].lower()
         orig_mod_name = mod_name.replace("zero_torch", prefix)
         mod_implemented = sum(
             1 for f_name in funcs if f"{mod_name}.{f_name}" not in missing

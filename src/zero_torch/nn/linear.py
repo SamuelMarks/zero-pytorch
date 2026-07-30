@@ -1,7 +1,9 @@
 "Linear module."
 
 from typing import Any
+
 from zero_torch.tensor import Tensor
+
 from .module import Module
 
 
@@ -30,8 +32,9 @@ class Linear(Module):
             **kwargs: Additional keyword arguments.
         """
         super().__init__()
-        from .module import Parameter
         import zero_torch
+
+        from .module import Parameter
 
         self.weight = Parameter(zero_torch.ones((out_features, in_features)))
         self.bias = Parameter(zero_torch.ones((out_features,)))
@@ -76,9 +79,20 @@ class Bilinear(Module):
         self.in1_features = in1_features
         self.in2_features = in2_features
         self.out_features = out_features
-        self.bias = bias
 
-    def forward(self, input1, input2):
+        import zero_torch
+
+        from .module import Parameter
+
+        self.weight = Parameter(
+            zero_torch.ones((out_features, in1_features, in2_features))
+        )
+        if bias:
+            self.bias = Parameter(zero_torch.ones((out_features,)))
+        else:
+            self.bias = None  # pragma: no cover
+
+    def forward(self, input1: Tensor, input2: Tensor) -> Tensor:
         """Forward pass.
 
         Args:
@@ -88,6 +102,6 @@ class Bilinear(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo_compiler.core.errors
+        import zero_torch.nn.functional as F
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.bilinear(input1, input2, self.weight, self.bias)

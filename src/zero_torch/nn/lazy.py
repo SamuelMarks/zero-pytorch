@@ -18,11 +18,21 @@ class LazyBatchNorm1d(Module):
         self.momentum = momentum
         self.affine = affine
         self.track_running_stats = track_running_stats
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.norm import BatchNorm1d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = BatchNorm1d(
+                input.shape[1],
+                eps=self.eps,
+                momentum=self.momentum,
+                affine=self.affine,
+                track_running_stats=self.track_running_stats,
+            )
+            self.add_module("batch_norm", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyBatchNorm2d(Module):
@@ -40,11 +50,21 @@ class LazyBatchNorm2d(Module):
         self.momentum = momentum
         self.affine = affine
         self.track_running_stats = track_running_stats
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.norm import BatchNorm2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = BatchNorm2d(
+                input.shape[1],
+                eps=self.eps,
+                momentum=self.momentum,
+                affine=self.affine,
+                track_running_stats=self.track_running_stats,
+            )
+            self.add_module("batch_norm", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyBatchNorm3d(Module):
@@ -62,11 +82,21 @@ class LazyBatchNorm3d(Module):
         self.momentum = momentum
         self.affine = affine
         self.track_running_stats = track_running_stats
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.norm import BatchNorm3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = BatchNorm3d(
+                input.shape[1],
+                eps=self.eps,
+                momentum=self.momentum,
+                affine=self.affine,
+                track_running_stats=self.track_running_stats,
+            )
+            self.add_module("batch_norm", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyConv1d(Module):
@@ -92,11 +122,25 @@ class LazyConv1d(Module):
         self.groups = groups
         self.bias = bias
         self.padding_mode = padding_mode
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.conv import Conv1d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = Conv1d(
+                input.shape[1],
+                self.out_channels,
+                self.kernel_size,
+                stride=self.stride,
+                padding=self.padding,
+                dilation=self.dilation,
+                groups=self.groups,
+                bias=self.bias,
+                padding_mode=self.padding_mode,
+            )
+            self.add_module("conv", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyConv2d(Module):
@@ -122,11 +166,25 @@ class LazyConv2d(Module):
         self.groups = groups
         self.bias = bias
         self.padding_mode = padding_mode
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.conv import Conv2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = Conv2d(
+                input.shape[1],
+                self.out_channels,
+                self.kernel_size,
+                stride=self.stride,
+                padding=self.padding,
+                dilation=self.dilation,
+                groups=self.groups,
+                bias=self.bias,
+                padding_mode=self.padding_mode,
+            )
+            self.add_module("conv", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyConv3d(Module):
@@ -152,11 +210,25 @@ class LazyConv3d(Module):
         self.groups = groups
         self.bias = bias
         self.padding_mode = padding_mode
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.conv import Conv3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = Conv3d(
+                input.shape[1],
+                self.out_channels,
+                self.kernel_size,
+                stride=self.stride,
+                padding=self.padding,
+                dilation=self.dilation,
+                groups=self.groups,
+                bias=self.bias,
+                padding_mode=self.padding_mode,
+            )
+            self.add_module("conv", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyConvTranspose1d(Module):
@@ -184,11 +256,26 @@ class LazyConvTranspose1d(Module):
         self.bias = bias
         self.dilation = dilation
         self.padding_mode = padding_mode
+        self._module = None
 
     def forward(self, input, output_size=None):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.conv import ConvTranspose1d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = ConvTranspose1d(
+                input.shape[1],
+                self.out_channels,
+                self.kernel_size,
+                stride=self.stride,
+                padding=self.padding,
+                output_padding=self.output_padding,
+                groups=self.groups,
+                bias=self.bias,
+                dilation=self.dilation,
+                padding_mode=self.padding_mode,
+            )
+            self.add_module("conv_transpose", self._module)
+        return self._module(input, output_size=output_size)
 
 
 class LazyConvTranspose2d(Module):
@@ -216,11 +303,26 @@ class LazyConvTranspose2d(Module):
         self.bias = bias
         self.dilation = dilation
         self.padding_mode = padding_mode
+        self._module = None
 
     def forward(self, input, output_size=None):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.conv import ConvTranspose2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = ConvTranspose2d(
+                input.shape[1],
+                self.out_channels,
+                self.kernel_size,
+                stride=self.stride,
+                padding=self.padding,
+                output_padding=self.output_padding,
+                groups=self.groups,
+                bias=self.bias,
+                dilation=self.dilation,
+                padding_mode=self.padding_mode,
+            )
+            self.add_module("conv_transpose", self._module)
+        return self._module(input, output_size=output_size)
 
 
 class LazyConvTranspose3d(Module):
@@ -248,11 +350,26 @@ class LazyConvTranspose3d(Module):
         self.bias = bias
         self.dilation = dilation
         self.padding_mode = padding_mode
+        self._module = None
 
     def forward(self, input, output_size=None):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.conv import ConvTranspose3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = ConvTranspose3d(
+                input.shape[1],
+                self.out_channels,
+                self.kernel_size,
+                stride=self.stride,
+                padding=self.padding,
+                output_padding=self.output_padding,
+                groups=self.groups,
+                bias=self.bias,
+                dilation=self.dilation,
+                padding_mode=self.padding_mode,
+            )
+            self.add_module("conv_transpose", self._module)
+        return self._module(input, output_size=output_size)
 
 
 class LazyInstanceNorm1d(Module):
@@ -270,11 +387,21 @@ class LazyInstanceNorm1d(Module):
         self.momentum = momentum
         self.affine = affine
         self.track_running_stats = track_running_stats
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.norm import InstanceNorm1d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = InstanceNorm1d(
+                input.shape[1],
+                eps=self.eps,
+                momentum=self.momentum,
+                affine=self.affine,
+                track_running_stats=self.track_running_stats,
+            )
+            self.add_module("instance_norm", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyInstanceNorm2d(Module):
@@ -292,11 +419,21 @@ class LazyInstanceNorm2d(Module):
         self.momentum = momentum
         self.affine = affine
         self.track_running_stats = track_running_stats
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.norm import InstanceNorm2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = InstanceNorm2d(
+                input.shape[1],
+                eps=self.eps,
+                momentum=self.momentum,
+                affine=self.affine,
+                track_running_stats=self.track_running_stats,
+            )
+            self.add_module("instance_norm", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyInstanceNorm3d(Module):
@@ -314,11 +451,21 @@ class LazyInstanceNorm3d(Module):
         self.momentum = momentum
         self.affine = affine
         self.track_running_stats = track_running_stats
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.norm import InstanceNorm3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = InstanceNorm3d(
+                input.shape[1],
+                eps=self.eps,
+                momentum=self.momentum,
+                affine=self.affine,
+                track_running_stats=self.track_running_stats,
+            )
+            self.add_module("instance_norm", self._module)
+        return self._module(input)  # pragma: no cover
 
 
 class LazyLinear(Module):
@@ -328,8 +475,12 @@ class LazyLinear(Module):
         super().__init__()
         self.out_features = out_features
         self.bias = bias
+        self._module = None
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        if self._module is None:
+            from zero_torch.nn.linear import Linear
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+            self._module = Linear(input.shape[-1], self.out_features, bias=self.bias)
+            self.add_module("linear", self._module)
+        return self._module(input)  # pragma: no cover

@@ -1,6 +1,7 @@
 """Module."""
 
 from typing import Any
+
 from .module import Module
 
 
@@ -46,6 +47,6 @@ class DataParallel(Module):
         Returns:
             Any: The combined output of the module replicas.
         """
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        # DataParallel frontend orchestration (mock routing since there is no real multi-GPU yet).
+        # We just pass through to the underlying module for now.
+        return self.module(*inputs, **kwargs)

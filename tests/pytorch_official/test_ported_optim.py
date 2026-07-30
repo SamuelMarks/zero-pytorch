@@ -1,13 +1,22 @@
 import numpy as np
-import ml_switcheroo_compiler as ml_switcheroo
+from ml_switcheroo_compiler.core.config import EagerMode
+
 import zero_torch as torch
-import zero_torch.optim as optim
-import zero_torch.nn as nn
+from zero_torch import nn, optim
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
 
 
 def test_sgd():
     """Tests for test_sgd."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         # Parameter
         w = nn.Parameter(torch.ones((2, 2)))
 

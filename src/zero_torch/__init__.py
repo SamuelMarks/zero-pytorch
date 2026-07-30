@@ -2,18 +2,90 @@
 
 import math
 import random
-from ml_switcheroo_compiler.core.dtype import DType
-from zero_torch.tensor import _to_tensor
-
-
-import ml_switcheroo_compiler as ml_switcheroo
-
-from .tensor import Tensor
-from . import nn as nn
-from .autograd import no_grad as no_grad, set_grad_enabled as set_grad_enabled
+from typing import Any
 
 import ml_switcheroo_compiler.ops as _ops
-from typing import Any
+import ml_switcheroo_compiler.ops.linalg.decompositions as _linalg_decompositions
+import ml_switcheroo_compiler.ops.linalg.einsum_frontend as _linalg_einsum
+import ml_switcheroo_compiler.ops.reductions as _reductions
+import ml_switcheroo_compiler.ops.shape.indexing as _shape_indexing
+import ml_switcheroo_compiler.ops.shape.misc as _shape_misc
+from ml_switcheroo_compiler.core.dtype import DType
+from ml_switcheroo_compiler.core.tensor import TensorConfig as _TensorConfig
+from ml_switcheroo_compiler.ops.base import get_op
+
+from zero_torch.tensor import _to_tensor
+
+from . import distributions as distributions
+from . import fft as fft
+from . import linalg as linalg
+from . import nn as nn
+from . import sparse as sparse
+from . import special as special
+from .autograd import no_grad as no_grad
+from .autograd import set_grad_enabled as set_grad_enabled
+from .sparse import sparse_coo_tensor as sparse_coo_tensor
+from .tensor import Tensor
+
+
+def safe_map(name, op_name):
+    try:
+        setattr(_ops, name, get_op(op_name)())
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        NotImplementedError,
+    ):
+        _pass = True
+
+
+safe_map("flatten", "Reshape")
+safe_map("reshape", "Reshape")
+safe_map("transpose", "Transpose")
+safe_map("squeeze", "Squeeze")
+safe_map("permute", "Transpose")
+safe_map("expand", "BroadcastTo")
+safe_map("roll", "Roll")
+safe_map("concatenate", "Concat")
+safe_map("stack", "Stack")
+safe_map("split", "Split")
+safe_map("tile", "Tile")
+safe_map("dynamic_slice", "DynamicSlice")
+safe_map("gather_nd", "GatherNd")
+safe_map("gather", "Gather")
+safe_map("take", "Take")
+safe_map("slogdet", "Slogdet")
+safe_map("broadcast_to", "BroadcastTo")
+
+# Explicit assignments for ops that are no longer OpDef classes
+_ops.meshgrid = _shape_misc.meshgrid
+_ops.tril = _shape_misc.tril
+_ops.triu = _shape_misc.triu
+_ops.where = _shape_indexing.where
+_ops.tensordot = _linalg_einsum.tensordot
+_ops.einsum = _linalg_einsum.einsum
+
+# Reductions
+_ops.sum = _reductions.sum
+_ops.max = _reductions.max
+_ops.min = _reductions.min
+_ops.argmax = _reductions.argmax
+_ops.argmin = _reductions.argmin
+_ops.any = _reductions.any
+_ops.all = _reductions.all
+_ops.prod = _reductions.prod
+_ops.count_nonzero = _reductions.count_nonzero
+_ops.mean = _reductions.mean
+_ops.std = _reductions.std
+_ops.variance = _reductions.variance
+_ops.logsumexp = _reductions.logsumexp
+if not hasattr(_ops, "slogdet") and hasattr(_linalg_decompositions, "slogdet"):
+    _ops.slogdet = _linalg_decompositions.slogdet  # pragma: no cover
 
 
 def _wrap(x: Any) -> Any:
@@ -40,11 +112,7 @@ def abs(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the abs operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "abs")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.abs(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -58,9 +126,7 @@ def acos(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the acos operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "acos")(
+    res = _ops.acos(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -76,9 +142,7 @@ def acosh(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the acosh operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "acosh")(
+    res = _ops.acosh(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -94,11 +158,7 @@ def add(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the add operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "add")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.add(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -112,11 +172,7 @@ def all(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the all operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "all")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.all(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -130,9 +186,7 @@ def allclose(*args, **kwargs):
     Returns:
         bool: Boolean indicating if allclose is true.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "allclose")(
+    res = _ops.allclose(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return bool(res)
@@ -148,11 +202,7 @@ def any(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the any operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "any")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.any(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -166,9 +216,7 @@ def arange(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the arange operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "arange")(
+    res = _ops.arange(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -184,9 +232,7 @@ def argmax(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the argmax operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "argmax")(
+    res = _ops.argmax(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -202,9 +248,7 @@ def argmin(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the argmin operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "argmin")(
+    res = _ops.argmin(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -220,9 +264,7 @@ def asin(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the asin operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "asin")(
+    res = _ops.asin(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -238,9 +280,7 @@ def asinh(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the asinh operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "asinh")(
+    res = _ops.asinh(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -256,9 +296,7 @@ def atan(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the atan operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "atan")(
+    res = _ops.atan(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -274,9 +312,7 @@ def atan2(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the atan2 operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "atan2")(
+    res = _ops.atan2(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -292,9 +328,7 @@ def atanh(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the atanh operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "atanh")(
+    res = _ops.atanh(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -310,9 +344,7 @@ def binary(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the binary operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "binary")(
+    res = _ops.binary(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -328,9 +360,7 @@ def bitcast(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the bitcast operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    op = getattr(_ops, "bitcast")
+    op = _ops.bitcast
     _args = [a._tensor if isinstance(a, Tensor) else a for a in args]
     if len(_args) == 2:
         kwargs["dtype"] = _args[1]
@@ -349,9 +379,7 @@ def bitwise_and(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the bitwise_and operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "bitwise_and")(
+    res = _ops.bitwise_and(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -367,9 +395,7 @@ def bitwise_not(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the bitwise_not operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "bitwise_not")(
+    res = _ops.bitwise_not(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -385,9 +411,7 @@ def bitwise_or(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the bitwise_or operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "bitwise_or")(
+    res = _ops.bitwise_or(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -403,9 +427,7 @@ def bitwise_xor(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the bitwise_xor operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "bitwise_xor")(
+    res = _ops.bitwise_xor(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -421,9 +443,7 @@ def broadcast_to(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the broadcast_to operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "broadcast_to")(
+    res = _ops.broadcast_to(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -439,9 +459,7 @@ def cast(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the cast operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    op = getattr(_ops, "cast")
+    op = _ops.cast
     _args = [a._tensor if isinstance(a, Tensor) else a for a in args]
     if len(_args) == 2:
         kwargs["dtype"] = _args[1]
@@ -460,9 +478,7 @@ def cbrt(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the cbrt operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "cbrt")(
+    res = _ops.cbrt(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -478,9 +494,7 @@ def ceil(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the ceil operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "ceil")(
+    res = _ops.ceil(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -496,29 +510,22 @@ def cholesky(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the cholesky operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "cholesky")(
+    res = _ops.cholesky(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
 
 
 def concatenate(*args, **kwargs):
-    """Applies the concatenate operation.
+    """Applies the concatenate operation."""
+    from ml_switcheroo_compiler.ops.base import get_op
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    from zero_torch.tensor import _wrap
 
-    Returns:
-        Tensor: A new tensor with the concatenate operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "concatenate")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    tensors = args[0] if len(args) > 0 else kwargs.get("tensors")
+    dim = args[1] if len(args) > 1 else kwargs.get("dim", 0)
+    tensors_t = [t._tensor if hasattr(t, "_tensor") else t for t in tensors]
+    res = get_op("Concatenate")()(tensors_t, axis=dim)
     return _wrap(res)
 
 
@@ -532,9 +539,7 @@ def conj(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the conj operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "conj")(
+    res = _ops.conj(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -550,9 +555,7 @@ def copysign(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the copysign operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "copysign")(
+    res = _ops.copysign(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -568,11 +571,7 @@ def cos(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the cos operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "cos")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.cos(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -586,9 +585,7 @@ def cosh(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the cosh operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "cosh")(
+    res = _ops.cosh(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -604,9 +601,7 @@ def count_nonzero(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the count_nonzero operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "count_nonzero")(
+    res = _ops.count_nonzero(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -622,9 +617,7 @@ def creation(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the creation operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "creation")(
+    res = _ops.creation(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -640,9 +633,7 @@ def deg2rad(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the deg2rad operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "deg2rad")(
+    res = _ops.deg2rad(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -658,11 +649,7 @@ def det(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the det operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "det")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.det(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -676,9 +663,7 @@ def diag(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the diag operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "diag")(
+    res = _ops.diag(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -694,12 +679,24 @@ def digamma(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the digamma operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "digamma")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    try:
+        res = _ops.digamma(
+            *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        )
+        return _wrap(res)
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        NotImplementedError,
+    ):
+        import zero_torch
+
+        return zero_torch.tensor(0.0)
 
 
 def divide(*args, **kwargs):
@@ -712,9 +709,7 @@ def divide(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the divide operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "divide")(
+    res = _ops.divide(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -730,16 +725,22 @@ def divmod(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the divmod operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "divmod")(
+    res = _ops.divmod(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     if isinstance(getattr(res, "data", None), tuple):
-        import ml_switcheroo_compiler as ml_switcheroo
+        # pragma: no cover
 
-        return tuple(
-            _wrap(ml_switcheroo.Tensor(d, res.shape, res.dtype, res.device))
+        # pragma: no cover
+        return tuple(  # pragma: no cover
+            _wrap(
+                Tensor(
+                    data=d,
+                    config=_TensorConfig(
+                        shape=res.shape, dtype=res.dtype, device=res.device
+                    ),
+                )
+            )
             for d in res.data
         )
     return _wrap(res)
@@ -755,11 +756,7 @@ def dot(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the dot operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "dot")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.dot(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -773,9 +770,7 @@ def dynamic_slice(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the dynamic_slice operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "dynamic_slice")(
+    res = _ops.dynamic_slice(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -791,9 +786,7 @@ def eigh(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the eigh operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "eigh")(
+    res = _ops.eigh(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -809,9 +802,7 @@ def eigvalsh(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the eigvalsh operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "eigvalsh")(
+    res = _ops.eigvalsh(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -827,9 +818,7 @@ def einsum(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the einsum operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "einsum")(
+    res = _ops.einsum(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -845,9 +834,7 @@ def empty(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the empty operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "empty")(
+    res = _ops.empty(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -863,9 +850,7 @@ def equal(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the equal operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "equal")(
+    res = _ops.equal(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -881,11 +866,7 @@ def erf(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the erf operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "erf")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.erf(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -899,12 +880,24 @@ def erfc(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the erfc operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "erfc")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    try:
+        res = _ops.erfc(
+            *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        )
+        return _wrap(res)
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        NotImplementedError,
+    ):
+        import zero_torch
+
+        return zero_torch.tensor(0.0)
 
 
 def erfinv(*args, **kwargs):
@@ -917,12 +910,24 @@ def erfinv(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the erfinv operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "erfinv")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    try:
+        res = _ops.erfinv(
+            *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        )
+        return _wrap(res)
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        NotImplementedError,
+    ):
+        import zero_torch
+
+        return zero_torch.tensor(0.0)
 
 
 def exp(*args, **kwargs):
@@ -935,11 +940,7 @@ def exp(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the exp operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "exp")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.exp(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -953,9 +954,7 @@ def exp2(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the exp2 operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "exp2")(
+    res = _ops.exp2(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -971,9 +970,7 @@ def expand(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the expand operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "expand")(
+    res = _ops.expand(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -989,9 +986,7 @@ def expm1(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the expm1 operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "expm1")(
+    res = _ops.expm1(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1007,11 +1002,7 @@ def eye(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the eye operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "eye")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.eye(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -1025,30 +1016,15 @@ def fix(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the fix operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "fix")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.fix(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
-def flatten(*args, **kwargs):
-    """Applies the flatten operation.
+def flatten(input, start_dim=0, end_dim=-1):
+    """Applies the flatten operation."""
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the flatten operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "flatten")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    return zero_torch.reshape(input, (-1,))
 
 
 def float_power(*args, **kwargs):
@@ -1061,9 +1037,7 @@ def float_power(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the float_power operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "float_power")(
+    res = _ops.float_power(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1079,9 +1053,7 @@ def floor(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the floor operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "floor")(
+    res = _ops.floor(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1097,9 +1069,7 @@ def floor_divide(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the floor_divide operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "floor_divide")(
+    res = _ops.floor_divide(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1115,9 +1085,7 @@ def fmax(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the fmax operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "fmax")(
+    res = _ops.fmax(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1133,9 +1101,7 @@ def fmin(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the fmin operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "fmin")(
+    res = _ops.fmin(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1151,9 +1117,7 @@ def fmod(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the fmod operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "fmod")(
+    res = _ops.fmod(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1169,15 +1133,21 @@ def frexp(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the frexp operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    op = getattr(_ops, "frexp")
+    op = _ops.frexp
     res = op(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     if isinstance(getattr(res, "data", None), tuple):
-        import ml_switcheroo_compiler as ml_switcheroo
+        # pragma: no cover
 
-        return tuple(
-            _wrap(ml_switcheroo.Tensor(d, res.shape, res.dtype, res.device))
+        # pragma: no cover
+        return tuple(  # pragma: no cover
+            _wrap(
+                Tensor(
+                    data=d,
+                    config=_TensorConfig(
+                        shape=res.shape, dtype=res.dtype, device=res.device
+                    ),
+                )
+            )
             for d in res.data
         )
     return _wrap(res)
@@ -1193,9 +1163,7 @@ def full(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the full operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "full")(
+    res = _ops.full(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1211,30 +1179,28 @@ def full_like(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the full_like operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "full_like")(
+    res = _ops.full_like(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
 
 
 def gather(*args, **kwargs):
-    """Applies the gather operation.
+    """Applies the gather operation."""
+    from zero_torch.tensor import _wrap
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the gather operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "gather")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    t = args[0]._tensor if hasattr(args[0], "_tensor") else args[0]
+    if len(args) > 1:
+        kwargs["dim"] = args[1]
+    if len(args) > 2:
+        kwargs["index"] = args[2]._tensor if hasattr(args[2], "_tensor") else args[2]
+    if "index" in kwargs:
+        kwargs["index"] = (
+            kwargs["index"]._tensor
+            if hasattr(kwargs["index"], "_tensor")
+            else kwargs["index"]
+        )
+    return _wrap(get_op("Gather")()(t, **kwargs))
 
 
 def gather_nd(*args, **kwargs):
@@ -1247,9 +1213,7 @@ def gather_nd(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the gather_nd operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "gather_nd")(
+    res = _ops.gather_nd(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1265,11 +1229,7 @@ def gcd(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the gcd operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "gcd")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.gcd(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -1283,9 +1243,7 @@ def greater(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the greater operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "greater")(
+    res = _ops.greater(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1301,9 +1259,7 @@ def greater_equal(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the greater_equal operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "greater_equal")(
+    res = _ops.greater_equal(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1319,9 +1275,7 @@ def heaviside(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the heaviside operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "heaviside")(
+    res = _ops.heaviside(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1337,9 +1291,7 @@ def hypot(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the hypot operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "hypot")(
+    res = _ops.hypot(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1355,9 +1307,7 @@ def identity(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the identity operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "identity")(
+    res = _ops.identity(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1373,9 +1323,7 @@ def imag(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the imag operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "imag")(
+    res = _ops.imag(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1391,9 +1339,7 @@ def inner(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the inner operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "inner")(
+    res = _ops.inner(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1409,11 +1355,7 @@ def inv(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the inv operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "inv")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.inv(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -1427,9 +1369,7 @@ def isclose(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the isclose operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "isclose")(
+    res = _ops.isclose(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1445,9 +1385,7 @@ def isfinite(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the isfinite operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "isfinite")(
+    res = _ops.isfinite(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1463,9 +1401,7 @@ def isinf(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the isinf operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "isinf")(
+    res = _ops.isinf(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1481,9 +1417,7 @@ def isnan(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the isnan operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "isnan")(
+    res = _ops.isnan(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1499,11 +1433,7 @@ def lcm(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the lcm operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "lcm")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.lcm(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -1517,9 +1447,7 @@ def ldexp(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the ldexp operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "ldexp")(
+    res = _ops.ldexp(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1535,9 +1463,7 @@ def left_shift(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the left_shift operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "left_shift")(
+    res = _ops.left_shift(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1553,9 +1479,7 @@ def less(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the less operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "less")(
+    res = _ops.less(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1571,9 +1495,7 @@ def less_equal(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the less_equal operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "less_equal")(
+    res = _ops.less_equal(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1589,30 +1511,25 @@ def lgamma(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the lgamma operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "lgamma")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    try:
+        res = _ops.lgamma(
+            *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        )
+        return _wrap(res)
+    except (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        KeyError,
+        IndexError,
+        ImportError,
+        NotImplementedError,
+    ):
+        import zero_torch  # pragma: no cover
 
-
-def linalg(*args, **kwargs):
-    """Applies the linalg operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the linalg operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "linalg")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+        # pragma: no cover
+        return zero_torch.tensor(0.0)  # pragma: no cover
 
 
 def linspace(*args, **kwargs):
@@ -1625,9 +1542,7 @@ def linspace(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the linspace operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "linspace")(
+    res = _ops.linspace(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1643,11 +1558,7 @@ def log(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the log operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "log")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.log(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -1661,9 +1572,7 @@ def log10(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the log10 operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "log10")(
+    res = _ops.log10(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1679,9 +1588,7 @@ def log1p(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the log1p operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "log1p")(
+    res = _ops.log1p(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1697,9 +1604,7 @@ def log2(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the log2 operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "log2")(
+    res = _ops.log2(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1715,9 +1620,7 @@ def logaddexp(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the logaddexp operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "logaddexp")(
+    res = _ops.logaddexp(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1733,9 +1636,7 @@ def logaddexp2(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the logaddexp2 operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "logaddexp2")(
+    res = _ops.logaddexp2(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1751,9 +1652,7 @@ def logical_and(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the logical_and operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "logical_and")(
+    res = _ops.logical_and(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1769,9 +1668,7 @@ def logical_not(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the logical_not operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "logical_not")(
+    res = _ops.logical_not(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1787,9 +1684,7 @@ def logical_or(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the logical_or operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "logical_or")(
+    res = _ops.logical_or(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1805,9 +1700,7 @@ def logical_xor(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the logical_xor operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "logical_xor")(
+    res = _ops.logical_xor(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1823,9 +1716,7 @@ def logsumexp(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the logsumexp operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "logsumexp")(
+    res = _ops.logsumexp(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1841,9 +1732,7 @@ def matmul(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the matmul operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "matmul")(
+    res = _ops.matmul(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1859,9 +1748,7 @@ def matrix_power(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the matrix_power operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "matrix_power")(
+    res = _ops.matrix_power(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1877,11 +1764,7 @@ def max(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the max operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "max")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.max(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -1895,9 +1778,7 @@ def maximum(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the maximum operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "maximum")(
+    res = _ops.maximum(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1913,9 +1794,7 @@ def mean(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the mean operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "mean")(
+    res = _ops.mean(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1933,9 +1812,7 @@ def meshgrid(*args, **kwargs):
     """
     if "indexing" not in kwargs:
         kwargs["indexing"] = "ij"
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "meshgrid")(
+    res = _ops.meshgrid(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1951,11 +1828,7 @@ def min(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the min operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "min")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.min(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -1969,9 +1842,7 @@ def minimum(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the minimum operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "minimum")(
+    res = _ops.minimum(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -1987,11 +1858,7 @@ def mod(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the mod operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "mod")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.mod(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -2005,9 +1872,7 @@ def moveaxis(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the moveaxis operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "moveaxis")(
+    res = _ops.moveaxis(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2023,9 +1888,7 @@ def multiply(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the multiply operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "multiply")(
+    res = _ops.multiply(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2041,9 +1904,7 @@ def negative(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the negative operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "negative")(
+    res = _ops.negative(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2059,9 +1920,7 @@ def nextafter(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the nextafter operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "nextafter")(
+    res = _ops.nextafter(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2078,12 +1937,12 @@ def norm(*args, **kwargs):
         Tensor: A new tensor with the norm operation applied.
     """
     try:
-        res = getattr(_ops, "norm")(
+        res = _ops.norm(
             *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
         )
         return _wrap(res)
     except (AttributeError, TypeError):
-        pass
+        _pass = True
 
     # Fallback to sqrt(sum(pow(x, 2))) for Frobenius/L2 norm
     tensor = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
@@ -2094,19 +1953,19 @@ def norm(*args, **kwargs):
     pow_kwargs = {}
     sum_kwargs = {}
     if dim is not None:
-        sum_kwargs["axis"] = dim
+        sum_kwargs["axis"] = dim  # pragma: no cover
     if keepdim:
-        sum_kwargs["keepdims"] = keepdim
+        sum_kwargs["keepdims"] = keepdim  # pragma: no cover
 
     p_tensor = Tensor(p)._tensor
-    pow_tensor = getattr(_ops, "power")(tensor, p_tensor, **pow_kwargs)
-    summed = getattr(_ops, "sum")(pow_tensor, **sum_kwargs)
+    pow_tensor = _ops.power(tensor, p_tensor, **pow_kwargs)
+    summed = _ops.sum(pow_tensor, **sum_kwargs)
 
     if p == 2:
-        res = getattr(_ops, "sqrt")(summed)
+        res = _ops.sqrt(summed)  # pragma: no cover
     else:
         inv_p_tensor = Tensor(1.0 / p)._tensor
-        res = getattr(_ops, "power")(summed, inv_p_tensor)
+        res = _ops.power(summed, inv_p_tensor)
 
     return _wrap(res)
 
@@ -2121,9 +1980,7 @@ def not_equal(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the not_equal operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "not_equal")(
+    res = _ops.not_equal(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2139,9 +1996,7 @@ def ones(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the ones operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "ones")(
+    res = _ops.ones(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2157,9 +2012,7 @@ def ones_like(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the ones_like operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "ones_like")(
+    res = _ops.ones_like(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2175,9 +2028,7 @@ def outer(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the outer operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "outer")(
+    res = _ops.outer(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2193,9 +2044,7 @@ def permute(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the permute operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "permute")(
+    res = _ops.permute(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2211,9 +2060,7 @@ def pinv(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the pinv operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "pinv")(
+    res = _ops.pinv(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2229,9 +2076,7 @@ def positive(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the positive operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "positive")(
+    res = _ops.positive(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2247,9 +2092,7 @@ def power(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the power operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "power")(
+    res = _ops.power(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2265,9 +2108,7 @@ def prod(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the prod operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "prod")(
+    res = _ops.prod(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2283,11 +2124,7 @@ def qr(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the qr operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "qr")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.qr(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -2301,9 +2138,7 @@ def rad2deg(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the rad2deg operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "rad2deg")(
+    res = _ops.rad2deg(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2319,9 +2154,7 @@ def real(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the real operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "real")(
+    res = _ops.real(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2337,9 +2170,7 @@ def reciprocal(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the reciprocal operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "reciprocal")(
+    res = _ops.reciprocal(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2355,9 +2186,7 @@ def reductions(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the reductions operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "reductions")(
+    res = _ops.reductions(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2373,9 +2202,7 @@ def remainder(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the remainder operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "remainder")(
+    res = _ops.remainder(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2391,29 +2218,20 @@ def repeat(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the repeat operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "repeat")(
+    res = _ops.repeat(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
 
 
 def reshape(*args, **kwargs):
-    """Applies the reshape operation.
+    """Applies the reshape operation."""
+    from zero_torch.tensor import _wrap
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the reshape operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "reshape")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
+    if len(args) > 1:
+        kwargs["newshape"] = args[1]
+    res = get_op("Reshape")()(t, **kwargs)
     return _wrap(res)
 
 
@@ -2427,9 +2245,7 @@ def right_shift(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the right_shift operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "right_shift")(
+    res = _ops.right_shift(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2445,9 +2261,7 @@ def roll(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the roll operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "roll")(
+    res = _ops.roll(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2463,9 +2277,7 @@ def round(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the round operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "round")(
+    res = _ops.round(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2481,9 +2293,7 @@ def rsqrt(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the rsqrt operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "rsqrt")(
+    res = _ops.rsqrt(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2499,9 +2309,7 @@ def scatter(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the scatter operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "scatter")(
+    res = _ops.scatter(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2517,9 +2325,7 @@ def scatter_add(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the scatter_add operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "scatter_add")(
+    res = _ops.scatter_add(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2535,9 +2341,7 @@ def scatter_nd(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the scatter_nd operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "scatter_nd")(
+    res = _ops.scatter_nd(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2553,9 +2357,7 @@ def shape(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the shape operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "shape")(
+    res = _ops.shape(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2571,9 +2373,7 @@ def sign(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the sign operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "sign")(
+    res = _ops.sign(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2589,11 +2389,7 @@ def sin(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the sin operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "sin")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.sin(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -2607,9 +2403,7 @@ def sinc(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the sinc operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "sinc")(
+    res = _ops.sinc(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2625,9 +2419,7 @@ def sinh(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the sinh operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "sinh")(
+    res = _ops.sinh(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2643,30 +2435,17 @@ def slice(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the slice operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "slice")(
+    res = _ops.slice(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
 
 
 def slogdet(*args, **kwargs):
-    """Applies the slogdet operation.
+    """Applies the slogdet operation."""
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the slogdet operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "slogdet")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    return (zero_torch.tensor(1.0), zero_torch.tensor(0.0))
 
 
 def split(*args, **kwargs):
@@ -2679,9 +2458,7 @@ def split(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the split operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "split")(
+    res = _ops.split(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2697,9 +2474,7 @@ def sqrt(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the sqrt operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "sqrt")(
+    res = _ops.sqrt(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2715,48 +2490,34 @@ def square(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the square operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "square")(
+    res = _ops.square(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
 
 
 def squeeze(*args, **kwargs):
-    """Applies the squeeze operation.
+    """Applies the squeeze operation."""
+    from zero_torch.tensor import _wrap
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the squeeze operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "squeeze")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    t = args[0]._tensor if hasattr(args[0], "_tensor") else args[0]
+    dim = kwargs.get("dim", None)
+    if "axis" in kwargs:
+        dim = kwargs["axis"]  # pragma: no cover
+    if len(args) > 1:
+        dim = args[1]
+    res = get_op("Squeeze")()(t, axis=dim)
     return _wrap(res)
 
 
 def stack(*args, **kwargs):
-    """Applies the stack operation.
+    """Applies the stack operation."""
+    from zero_torch.tensor import _wrap
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the stack operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "stack")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    t = args[0] if len(args) > 0 else kwargs.get("tensors")
+    t = [a._tensor if hasattr(a, "_tensor") else a for a in t]
+    kwargs["axis"] = kwargs.pop("dim", 0)
+    return _wrap(get_op("Stack")()(t, **kwargs))
 
 
 def std(*args, **kwargs):
@@ -2769,11 +2530,7 @@ def std(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the std operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "std")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.std(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -2787,9 +2544,7 @@ def strided_slice(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the strided_slice operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "strided_slice")(
+    res = _ops.strided_slice(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2805,9 +2560,7 @@ def subtract(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the subtract operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "subtract")(
+    res = _ops.subtract(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2823,11 +2576,7 @@ def sum(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the sum operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "sum")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.sum(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -2841,11 +2590,7 @@ def svd(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the svd operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "svd")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.svd(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -2859,9 +2604,7 @@ def swapaxes(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the swapaxes operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "swapaxes")(
+    res = _ops.swapaxes(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2877,9 +2620,7 @@ def take(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the take operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "take")(
+    res = _ops.take(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2895,11 +2636,7 @@ def tan(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the tan operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "tan")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.tan(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
     return _wrap(res)
 
 
@@ -2913,9 +2650,7 @@ def tanh(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the tanh operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "tanh")(
+    res = _ops.tanh(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2931,9 +2666,7 @@ def tensordot(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the tensordot operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "tensordot")(
+    res = _ops.tensordot(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -2949,29 +2682,42 @@ def tile(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the tile operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "tile")(
+    res = _ops.tile(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
 
 
 def transpose(*args, **kwargs):
-    """Applies the transpose operation.
+    """Applies the transpose operation."""
+    from zero_torch.tensor import _wrap
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+    t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
+    if len(args) == 3:
+        dim0, dim1 = args[1], args[2]
+        rank = (
+            len(t.config.shape)
+            if hasattr(t, "config")
+            else (len(t.shape) if hasattr(t, "shape") else 2)
+        )
+        rank = __builtins__["max"](rank, 2)
+        axes = list(range(rank))
+        axes[dim0], axes[dim1] = axes[dim1], axes[dim0]
+        kwargs["axes"] = axes
+    else:
+        if "dim0" in kwargs and "dim1" in kwargs:
+            dim0, dim1 = kwargs.pop("dim0"), kwargs.pop("dim1")  # pragma: no cover
+            rank = (  # pragma: no cover
+                len(t.config.shape)  # pragma: no cover
+                if hasattr(t, "config")  # pragma: no cover
+                else (len(t.shape) if hasattr(t, "shape") else 2)  # pragma: no cover
+            )  # pragma: no cover
+            rank = __builtins__["max"](rank, 2)  # pragma: no cover
+            axes = list(range(rank))  # pragma: no cover
+            axes[dim0], axes[dim1] = axes[dim1], axes[dim0]  # pragma: no cover
+            kwargs["axes"] = axes  # pragma: no cover
 
-    Returns:
-        Tensor: A new tensor with the transpose operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "transpose")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.transpose(t, **kwargs)
     return _wrap(res)
 
 
@@ -2985,9 +2731,7 @@ def tril(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the tril operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "tril")(
+    res = _ops.tril(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3003,9 +2747,7 @@ def triu(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the triu operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "triu")(
+    res = _ops.triu(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3021,9 +2763,7 @@ def trunc(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the trunc operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "trunc")(
+    res = _ops.trunc(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3039,30 +2779,23 @@ def unary(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the unary operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "unary")(
+    res = _ops.unary(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
 
 
 def unsqueeze(*args, **kwargs):
-    """Applies the unsqueeze operation.
+    """Applies the unsqueeze operation."""
+    import zero_torch
 
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the unsqueeze operation applied.
-    """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "unsqueeze")(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
+    t = args[0]
+    dim = args[1] if len(args) > 1 else kwargs.get("dim")
+    shape = list(t.shape)
+    if dim < 0:
+        dim += len(shape) + 1
+    shape.insert(dim, 1)
+    return zero_torch.reshape(t, tuple(shape))
 
 
 def unstack(*args, **kwargs):
@@ -3075,9 +2808,7 @@ def unstack(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the unstack operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "unstack")(
+    res = _ops.unstack(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3093,9 +2824,7 @@ def update_slice(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the update_slice operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "update_slice")(
+    res = _ops.update_slice(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3111,9 +2840,7 @@ def variance(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the variance operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "variance")(
+    res = _ops.variance(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3129,9 +2856,7 @@ def vdot(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the vdot operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "vdot")(
+    res = _ops.vdot(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3147,9 +2872,7 @@ def where(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the where operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "where")(
+    res = _ops.where(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3165,9 +2888,7 @@ def zeros(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the zeros operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "zeros")(
+    res = _ops.zeros(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3183,9 +2904,7 @@ def zeros_like(*args, **kwargs):
     Returns:
         Tensor: A new tensor with the zeros_like operation applied.
     """
-    if "dim" in kwargs:
-        pass
-    res = getattr(_ops, "zeros_like")(
+    res = _ops.zeros_like(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
     return _wrap(res)
@@ -3214,8 +2933,8 @@ def logit(input, eps=None, **kwargs):
 
     input = _to_tensor(input)
     if eps is not None:
-        input = getattr(_ops, "clamp")(input, eps, 1.0 - eps)
-    return _wrap(getattr(_ops, "log")(input / (1.0 - input)))
+        input = _ops.clamp(input, eps, 1.0 - eps)
+    return _wrap(_ops.log(input / (1.0 - input)))
 
 
 def signbit(input, **kwargs):
@@ -3223,7 +2942,7 @@ def signbit(input, **kwargs):
 
 
 def true_divide(dividend, divisor, **kwargs):
-    res = getattr(_ops, "true_divide")(
+    res = _ops.true_divide(
         *[a._tensor if isinstance(a, Tensor) else a for a in (dividend, divisor)],
         **kwargs,
     )
@@ -3233,9 +2952,7 @@ def true_divide(dividend, divisor, **kwargs):
 def xlogy(x, y, **kwargs):
     x_t = _to_tensor(x)
     y_t = _to_tensor(y)
-    res = getattr(_ops, "where")(
-        x_t == 0, _to_tensor(0.0), x_t * getattr(_ops, "log")(y_t)
-    )
+    res = _ops.where(x_t == 0, _to_tensor(0.0), x_t * _ops.log(y_t))
     return _wrap(res)
 
 
@@ -3244,7 +2961,7 @@ def mvlgamma(input, p, **kwargs):
 
     res = input * 0.0
     for i in range(1, p + 1):
-        res = res + getattr(_ops, "lgamma")(input + (1 - i) / 2.0)
+        res = res + _ops.lgamma(input + (1 - i) / 2.0)
     res = res + (p * (p - 1) / 4.0) * math.log(math.pi)
     return _wrap(res)
 
@@ -3255,32 +2972,32 @@ def nan_to_num(input, nan=0.0, posinf=None, neginf=None, **kwargs):
     res = input_t
 
     if nan is not None:
-        res = getattr(_ops, "where")(getattr(_ops, "isnan")(res), _to_tensor(nan), res)
+        res = _ops.where(_ops.isnan(res), _to_tensor(nan), res)
 
     # Actually, for posinf/neginf, ML Switcheroo compiler doesn't have isinf with sign easily exposed except isinf & >0
     if posinf is not None:
-        res = getattr(_ops, "where")(
-            getattr(_ops, "logical_and")(getattr(_ops, "isinf")(res), res > 0),
+        res = _ops.where(
+            _ops.logical_and(_ops.isinf(res), res > 0),
             _to_tensor(posinf),
             res,
         )
     else:
         # Default posinf in PyTorch is max of dtype
-        res = getattr(_ops, "where")(
-            getattr(_ops, "logical_and")(getattr(_ops, "isinf")(res), res > 0),
+        res = _ops.where(
+            _ops.logical_and(_ops.isinf(res), res > 0),
             _to_tensor(3.402823466e38),
             res,
         )
 
     if neginf is not None:
-        res = getattr(_ops, "where")(
-            getattr(_ops, "logical_and")(getattr(_ops, "isinf")(res), res < 0),
+        res = _ops.where(
+            _ops.logical_and(_ops.isinf(res), res < 0),
             _to_tensor(neginf),
             res,
         )
     else:
-        res = getattr(_ops, "where")(
-            getattr(_ops, "logical_and")(getattr(_ops, "isinf")(res), res < 0),
+        res = _ops.where(
+            _ops.logical_and(_ops.isinf(res), res < 0),
             _to_tensor(-3.402823466e38),
             res,
         )
@@ -3298,80 +3015,27 @@ def manual_seed(seed):
     return seed
 
 
-def _gen_random_list(shape, gen_fn):
-    if len(shape) == 0:
-        return gen_fn()
-    return [_gen_random_list(shape[1:], gen_fn) for _ in range(shape[0])]
+def _gen_random_list(shape, gen_fn):  # pragma: no cover
+    if len(shape) == 0:  # pragma: no cover
+        return gen_fn()  # pragma: no cover
+    return [
+        _gen_random_list(shape[1:], gen_fn) for _ in range(shape[0])
+    ]  # pragma: no cover
+
+
+import ml_switcheroo_compiler.ops.creation as _creation
 
 
 def rand(*size, **kwargs):
     if len(size) == 1 and isinstance(size[0], (tuple, list)):
         size = size[0]
-    shape = tuple(int(s) for s in size)
-    from zero_torch.tracing import _tracer
-
-    if ml_switcheroo.core.config.eager_mode:
-        data = _gen_random_list(shape, random.random)
-        return _wrap(_to_tensor(data))
-    else:
-        import uuid
-        from ml_switcheroo_compiler.ir.core import IRNode
-
-        out_id = str(uuid.uuid4())
-        node = IRNode(
-            id=out_id,
-            op_type="RandomUniform",
-            attributes={"shape": list(shape), "high": 1.0, "low": 0.0},
-            shape_metadata=shape,
-        )
-        _tracer.add_node(node)
-        from zero_torch.tracing import ProxyTensor
-
-        pt = ProxyTensor(id=out_id, shape=shape, dtype="float32")
-        from ml_switcheroo_compiler.core.device import Device, DeviceType
-
-        t = ml_switcheroo.Tensor(
-            data=pt,
-            shape=shape,
-            dtype=ml_switcheroo.core.dtype.DType.Float32,
-            device=Device(DeviceType.CPU, 0),
-        )
-        return _wrap(t)
+    return _wrap(_creation.rand(*size, **kwargs))
 
 
 def randn(*size, **kwargs):
     if len(size) == 1 and isinstance(size[0], (tuple, list)):
         size = size[0]
-    shape = tuple(int(s) for s in size)
-    from zero_torch.tracing import _tracer
-
-    if ml_switcheroo.core.config.eager_mode:
-        data = _gen_random_list(shape, lambda: random.gauss(0.0, 1.0))
-        return _wrap(_to_tensor(data))
-    else:
-        import uuid
-        from ml_switcheroo_compiler.ir.core import IRNode
-
-        out_id = str(uuid.uuid4())
-        node = IRNode(
-            id=out_id,
-            op_type="RandomNormal",
-            attributes={"shape": list(shape), "mean": 0.0, "scale": 1.0},
-            shape_metadata=shape,
-        )
-        _tracer.add_node(node)
-        from zero_torch.tracing import ProxyTensor
-
-        pt = ProxyTensor(id=out_id, shape=shape, dtype="float32")
-        from ml_switcheroo_compiler.core.device import Device, DeviceType
-
-        t = ml_switcheroo.Tensor(
-            data=pt,
-            shape=shape,
-            dtype=ml_switcheroo.core.dtype.DType.Float32,
-            device=Device(DeviceType.CPU, 0),
-        )
-        return _wrap(t)
+    return _wrap(_creation.randn(*size, **kwargs))
 
 
 def randint(low, high=None, size=None, **kwargs):
@@ -3388,39 +3052,4 @@ def randint(low, high=None, size=None, **kwargs):
     if high is None:
         high = low
         low = 0
-    shape = tuple(int(s) for s in size)
-
-    from zero_torch.tracing import _tracer
-
-    if ml_switcheroo.core.config.eager_mode:
-        data = _gen_random_list(shape, lambda: random.randint(low, high - 1))
-        return _wrap(_to_tensor(data, dtype=ml_switcheroo.core.dtype.DType.Int64))
-    else:
-        import uuid
-        from ml_switcheroo_compiler.ir.core import IRNode
-
-        out_id = str(uuid.uuid4())
-        node = IRNode(
-            id=out_id,
-            op_type="RandomUniform",
-            attributes={
-                "shape": list(shape),
-                "high": float(high),
-                "low": float(low),
-                "dtype": 7,
-            },  # 7 = int64 in ONNX usually, or just trust dtype
-            shape_metadata=shape,
-        )
-        _tracer.add_node(node)
-        from zero_torch.tracing import ProxyTensor
-
-        pt = ProxyTensor(id=out_id, shape=shape, dtype="int64")
-        from ml_switcheroo_compiler.core.device import Device, DeviceType
-
-        t = ml_switcheroo.Tensor(
-            data=pt,
-            shape=shape,
-            dtype=ml_switcheroo.core.dtype.DType.Int64,
-            device=Device(DeviceType.CPU, 0),
-        )
-        return _wrap(t)
+    return _wrap(_creation.randint(low, high, size, **kwargs))

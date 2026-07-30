@@ -45,9 +45,11 @@ class BatchNorm1d(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import batch_normalization
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(batch_normalization(_to_tensor(input), eps=self.eps))
 
 
 class BatchNorm2d(Module):
@@ -90,9 +92,11 @@ class BatchNorm2d(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import batch_normalization
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(batch_normalization(_to_tensor(input), eps=self.eps))
 
 
 class BatchNorm3d(Module):
@@ -135,9 +139,11 @@ class BatchNorm3d(Module):
         Returns:
             Tensor: output.
         """
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import batch_normalization
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(batch_normalization(_to_tensor(input), eps=self.eps))
 
 
 class CrossMapLRN2d(Module):
@@ -155,9 +161,20 @@ class CrossMapLRN2d(Module):
 
     def forward(self, input):
         """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.configs import LRNConfig
+        from ml_switcheroo_compiler.ops.nn.normalization import lrn  # pragma: no cover
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap  # pragma: no cover
+
+        # pragma: no cover
+        return _wrap(  # pragma: no cover
+            lrn(
+                _to_tensor(input),
+                config=LRNConfig(
+                    size=self.size, alpha=self.alpha, beta=self.beta, bias=self.k
+                ),
+            )
+        )
 
 
 class GroupNorm(Module):
@@ -173,9 +190,13 @@ class GroupNorm(Module):
         self.affine = affine
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import group_norm
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(
+            group_norm(_to_tensor(input), num_groups=self.num_groups, eps=self.eps)
+        )
 
 
 class InstanceNorm1d(Module):
@@ -197,9 +218,11 @@ class InstanceNorm1d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import instance_norm
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(instance_norm(_to_tensor(input), eps=self.eps))
 
 
 class InstanceNorm2d(Module):
@@ -221,9 +244,11 @@ class InstanceNorm2d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import instance_norm
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(instance_norm(_to_tensor(input), eps=self.eps))
 
 
 class InstanceNorm3d(Module):
@@ -245,9 +270,11 @@ class InstanceNorm3d(Module):
         self.track_running_stats = track_running_stats
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import instance_norm
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(instance_norm(_to_tensor(input), eps=self.eps))
 
 
 class LayerNorm(Module):
@@ -262,9 +289,15 @@ class LayerNorm(Module):
         self.elementwise_affine = elementwise_affine
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import layer_norm
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(
+            layer_norm(
+                _to_tensor(input), normalized_shape=self.normalized_shape, eps=self.eps
+            )
+        )
 
 
 class LocalResponseNorm(Module):
@@ -280,9 +313,20 @@ class LocalResponseNorm(Module):
         self.k = k
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.configs import LRNConfig
+        from ml_switcheroo_compiler.ops.nn.normalization import lrn  # pragma: no cover
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap  # pragma: no cover
+
+        # pragma: no cover
+        return _wrap(  # pragma: no cover
+            lrn(
+                _to_tensor(input),
+                config=LRNConfig(
+                    size=self.size, alpha=self.alpha, beta=self.beta, bias=self.k
+                ),
+            )
+        )
 
 
 class RMSNorm(Module):
@@ -297,9 +341,11 @@ class RMSNorm(Module):
         self.elementwise_affine = elementwise_affine
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import rms_normalization
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(rms_normalization(_to_tensor(input), eps=self.eps))
 
 
 class SyncBatchNorm(Module):
@@ -323,6 +369,8 @@ class SyncBatchNorm(Module):
         self.process_group = process_group
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.nn.normalization import batch_normalization
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap
+
+        return _wrap(batch_normalization(_to_tensor(input), eps=self.eps))

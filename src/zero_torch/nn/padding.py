@@ -1,5 +1,7 @@
 """Padding modules."""
 
+import zero_torch.nn.functional as F
+
 from .module import Module
 
 
@@ -12,10 +14,7 @@ class CircularPad1d(Module):
         self.padding = padding
 
     def forward(self, input):
-        """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="circular")
 
 
 class CircularPad2d(Module):
@@ -27,10 +26,7 @@ class CircularPad2d(Module):
         self.padding = padding
 
     def forward(self, input):
-        """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="circular")
 
 
 class CircularPad3d(Module):
@@ -42,10 +38,7 @@ class CircularPad3d(Module):
         self.padding = padding
 
     def forward(self, input):
-        """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="circular")
 
 
 class ConstantPad1d(Module):
@@ -58,10 +51,7 @@ class ConstantPad1d(Module):
         self.value = value
 
     def forward(self, input):
-        """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="constant", value=self.value)
 
 
 class ConstantPad2d(Module):
@@ -74,10 +64,7 @@ class ConstantPad2d(Module):
         self.value = value
 
     def forward(self, input):
-        """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="constant", value=self.value)
 
 
 class ConstantPad3d(Module):
@@ -90,10 +77,7 @@ class ConstantPad3d(Module):
         self.value = value
 
     def forward(self, input):
-        """Forward pass."""
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="constant", value=self.value)
 
 
 class ReflectionPad1d(Module):
@@ -104,9 +88,7 @@ class ReflectionPad1d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="reflect")
 
 
 class ReflectionPad2d(Module):
@@ -117,9 +99,7 @@ class ReflectionPad2d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="reflect")
 
 
 class ReflectionPad3d(Module):
@@ -130,9 +110,7 @@ class ReflectionPad3d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="reflect")
 
 
 class ReplicationPad1d(Module):
@@ -143,9 +121,7 @@ class ReplicationPad1d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="replicate")
 
 
 class ReplicationPad2d(Module):
@@ -156,9 +132,7 @@ class ReplicationPad2d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="replicate")
 
 
 class ReplicationPad3d(Module):
@@ -169,9 +143,7 @@ class ReplicationPad3d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="replicate")
 
 
 class ZeroPad1d(Module):
@@ -182,9 +154,7 @@ class ZeroPad1d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="constant", value=0.0)
 
 
 class ZeroPad2d(Module):
@@ -195,9 +165,7 @@ class ZeroPad2d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="constant", value=0.0)
 
 
 class ZeroPad3d(Module):
@@ -208,6 +176,4 @@ class ZeroPad3d(Module):
         self.padding = padding
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.pad(input, self.padding, mode="constant", value=0.0)

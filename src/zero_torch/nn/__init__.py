@@ -1,6 +1,14 @@
 "Package init."
 
 __all__ = [
+    "CELU",
+    "ELU",
+    "GELU",
+    "GLU",
+    "GRU",
+    "LSTM",
+    "RNN",
+    "SELU",
     "AdaptiveAvgPool1d",
     "AdaptiveAvgPool2d",
     "AdaptiveAvgPool3d",
@@ -18,7 +26,6 @@ __all__ = [
     "BatchNorm2d",
     "BatchNorm3d",
     "Bilinear",
-    "CELU",
     "CTCLoss",
     "ChannelShuffle",
     "CircularPad1d",
@@ -43,7 +50,6 @@ __all__ = [
     "Dropout1d",
     "Dropout2d",
     "Dropout3d",
-    "ELU",
     "Embedding",
     "EmbeddingBag",
     "F",
@@ -52,9 +58,6 @@ __all__ = [
     "Fold",
     "FractionalMaxPool2d",
     "FractionalMaxPool3d",
-    "GELU",
-    "GLU",
-    "GRU",
     "GRUCell",
     "GaussianNLLLoss",
     "GroupNorm",
@@ -73,7 +76,6 @@ __all__ = [
     "LPPool1d",
     "LPPool2d",
     "LPPool3d",
-    "LSTM",
     "LSTMCell",
     "LayerNorm",
     "LazyBatchNorm1d",
@@ -121,7 +123,6 @@ __all__ = [
     "PixelUnshuffle",
     "PoissonNLLLoss",
     "RMSNorm",
-    "RNN",
     "RNNBase",
     "RNNCell",
     "RNNCellBase",
@@ -134,7 +135,6 @@ __all__ = [
     "ReplicationPad1d",
     "ReplicationPad2d",
     "ReplicationPad3d",
-    "SELU",
     "Sequential",
     "SiLU",
     "Sigmoid",
@@ -166,16 +166,56 @@ __all__ = [
     "ZeroPad2d",
     "ZeroPad3d",
 ]
-from .module import (
-    Container,
-    ModuleDict,
-    ModuleList,
-    ParameterDict,
-    ParameterList,
-    Module,
-    Parameter,
-)
 from . import functional as F
+from .activation import (
+    CELU,
+    ELU,
+    GELU,
+    GLU,
+    SELU,
+    Hardshrink,
+    Hardsigmoid,
+    Hardswish,
+    Hardtanh,
+    LeakyReLU,
+    LogSigmoid,
+    LogSoftmax,
+    Mish,
+    PReLU,
+    ReLU6,
+    RReLU,
+    Sigmoid,
+    SiLU,
+    Softmax,
+    Softmax2d,
+    Softmin,
+    Softplus,
+    Softshrink,
+    Softsign,
+    Tanh,
+    Tanhshrink,
+    Threshold,
+)
+from .conv import (
+    Conv1d,
+    Conv2d,
+    Conv3d,
+    ConvTranspose1d,
+    ConvTranspose2d,
+    ConvTranspose3d,
+    Fold,
+    Unfold,
+)
+from .distance import CosineSimilarity, PairwiseDistance
+from .dropout import (
+    AlphaDropout,
+    Dropout,
+    Dropout1d,
+    Dropout2d,
+    Dropout3d,
+    FeatureAlphaDropout,
+)
+from .flatten import Flatten, Unflatten
 from .identity import Identity
 from .lazy import (
     LazyBatchNorm1d,
@@ -192,21 +232,41 @@ from .lazy import (
     LazyInstanceNorm3d,
     LazyLinear,
 )
-from .rnn import RNNBase, RNN, LSTM, GRU, RNNCellBase, RNNCell, LSTMCell, GRUCell
-from .transformer import (
-    Transformer,
-    TransformerEncoder,
-    TransformerDecoder,
-    TransformerEncoderLayer,
-    TransformerDecoderLayer,
-    MultiheadAttention,
+from .linear import Bilinear, Linear
+from .loss import (
+    AdaptiveLogSoftmaxWithLoss,
+    BCELoss,
+    BCEWithLogitsLoss,
+    CosineEmbeddingLoss,
+    CrossEntropyLoss,
+    CTCLoss,
+    GaussianNLLLoss,
+    HingeEmbeddingLoss,
+    HuberLoss,
+    KLDivLoss,
+    L1Loss,
+    MarginRankingLoss,
+    MSELoss,
+    MultiLabelMarginLoss,
+    MultiLabelSoftMarginLoss,
+    MultiMarginLoss,
+    NLLLoss,
+    NLLLoss2d,
+    PoissonNLLLoss,
+    SmoothL1Loss,
+    SoftMarginLoss,
+    TripletMarginLoss,
+    TripletMarginWithDistanceLoss,
 )
-from .upsampling import Upsample, UpsamplingBilinear2d, UpsamplingNearest2d
-from .pixelshuffle import PixelShuffle, PixelUnshuffle
-from .linear import Linear
-from .relu import ReLU, Sequential
-from .parallel import DataParallel
-from .distance import CosineSimilarity, PairwiseDistance
+from .module import (
+    Container,
+    Module,
+    ModuleDict,
+    ModuleList,
+    Parameter,
+    ParameterDict,
+    ParameterList,
+)
 from .norm import (
     BatchNorm1d,
     BatchNorm2d,
@@ -221,8 +281,6 @@ from .norm import (
     RMSNorm,
     SyncBatchNorm,
 )
-from .sparse import Embedding, EmbeddingBag
-from .flatten import Flatten, Unflatten
 from .padding import (
     CircularPad1d,
     CircularPad2d,
@@ -240,81 +298,20 @@ from .padding import (
     ZeroPad2d,
     ZeroPad3d,
 )
-from .shuffle import ChannelShuffle
-from .conv import (
-    Conv1d,
-    Conv2d,
-    Conv3d,
-    ConvTranspose1d,
-    ConvTranspose2d,
-    ConvTranspose3d,
-    Fold,
-    Unfold,
-)
-from .activation import (
-    CELU,
-    ELU,
-    GELU,
-    GLU,
-    Hardshrink,
-    Hardsigmoid,
-    Hardswish,
-    Hardtanh,
-    LeakyReLU,
-    LogSigmoid,
-    LogSoftmax,
-    Mish,
-    PReLU,
-    RReLU,
-    ReLU6,
-    SELU,
-    SiLU,
-    Sigmoid,
-    Softmax,
-    Softmax2d,
-    Softmin,
-    Softplus,
-    Softshrink,
-    Softsign,
-    Tanh,
-    Tanhshrink,
-    Threshold,
-)
-from .linear import Bilinear
-from .loss import AdaptiveLogSoftmaxWithLoss
-from .loss import (
-    BCELoss,
-    BCEWithLogitsLoss,
-    CTCLoss,
-    CosineEmbeddingLoss,
-    CrossEntropyLoss,
-    GaussianNLLLoss,
-    HingeEmbeddingLoss,
-    HuberLoss,
-    KLDivLoss,
-    L1Loss,
-    MSELoss,
-    MarginRankingLoss,
-    MultiLabelMarginLoss,
-    MultiLabelSoftMarginLoss,
-    MultiMarginLoss,
-    NLLLoss,
-    NLLLoss2d,
-    PoissonNLLLoss,
-    SmoothL1Loss,
-    SoftMarginLoss,
-    TripletMarginLoss,
-    TripletMarginWithDistanceLoss,
-)
-from .dropout import (
-    Dropout,
-    Dropout1d,
-    Dropout2d,
-    Dropout3d,
-    AlphaDropout,
-    FeatureAlphaDropout,
-)
+from .parallel import DataParallel
+from .pixelshuffle import PixelShuffle, PixelUnshuffle
 from .pooling import (
+    AdaptiveAvgPool1d,
+    AdaptiveAvgPool2d,
+    AdaptiveAvgPool3d,
+    AdaptiveMaxPool1d,
+    AdaptiveMaxPool2d,
+    AdaptiveMaxPool3d,
+    AvgPool1d,
+    AvgPool2d,
+    AvgPool3d,
+    FractionalMaxPool2d,
+    FractionalMaxPool3d,
     LPPool1d,
     LPPool2d,
     LPPool3d,
@@ -325,15 +322,16 @@ from .pooling import (
     MaxUnpool2d,
     MaxUnpool3d,
 )
-from .pooling import FractionalMaxPool2d, FractionalMaxPool3d
-from .pooling import (
-    AvgPool1d,
-    AvgPool2d,
-    AvgPool3d,
-    AdaptiveMaxPool1d,
-    AdaptiveMaxPool2d,
-    AdaptiveMaxPool3d,
-    AdaptiveAvgPool1d,
-    AdaptiveAvgPool2d,
-    AdaptiveAvgPool3d,
+from .relu import ReLU, Sequential
+from .rnn import GRU, LSTM, RNN, GRUCell, LSTMCell, RNNBase, RNNCell, RNNCellBase
+from .shuffle import ChannelShuffle
+from .sparse import Embedding, EmbeddingBag
+from .transformer import (
+    MultiheadAttention,
+    Transformer,
+    TransformerDecoder,
+    TransformerDecoderLayer,
+    TransformerEncoder,
+    TransformerEncoderLayer,
 )
+from .upsampling import Upsample, UpsamplingBilinear2d, UpsamplingNearest2d

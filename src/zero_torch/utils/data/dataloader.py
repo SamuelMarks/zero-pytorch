@@ -1,19 +1,17 @@
 "DataLoader System."
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Iterator
 from typing import (
     Any,
     Callable,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Union,
-    TypeVar,
     Generic,
+    TypeVar,
 )
 
 _T_co = TypeVar("_T_co", covariant=True)
-_collate_fn_t = Callable[[List[Any]], Any]
+_collate_fn_t = Callable[[list[Any]], Any]
 _worker_init_fn_t = Callable[[int], None]
 
 
@@ -27,7 +25,6 @@ class Dataset(Generic[_T_co]):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        self._dummy = None
 
     def __len__(self) -> int:
         """Returns the size of the dataset.
@@ -35,7 +32,7 @@ class Dataset(Generic[_T_co]):
         Returns:
             int: Size of the dataset.
         """
-        return 0
+        raise NotImplementedError()
 
     def __getitem__(self, idx: int) -> _T_co:
         """Fetches a data sample for a given key.
@@ -46,7 +43,7 @@ class Dataset(Generic[_T_co]):
         Returns:
             _T_co: The data sample.
         """
-        return None
+        raise NotImplementedError()
 
 
 class Sampler(Generic[_T_co]):
@@ -55,20 +52,22 @@ class Sampler(Generic[_T_co]):
     Every Sampler subclass has to provide an __iter__ method.
     """
 
-    def __init__(self, data_source: "Dataset" = None) -> None:
+    def __init__(self, data_source: Dataset | None = None) -> None:
         """Initializes the sampler.
 
         Args:
             data_source (Dataset, optional): Dataset to sample from. Defaults to None.
         """
-        self._dummy = None
+
+    def __iter__(self):
+        raise NotImplementedError()
 
 
-class BatchSampler(Sampler[List[int]]):
+class BatchSampler(Sampler[list[int]]):
     """Wraps another sampler to yield a mini-batch of indices."""
 
     def __init__(
-        self, sampler: Union[Sampler, Iterable], batch_size: int, drop_last: bool
+        self, sampler: Sampler | Iterable, batch_size: int, drop_last: bool
     ) -> None:
         """Initializes the BatchSampler.
 
@@ -77,15 +76,36 @@ class BatchSampler(Sampler[List[int]]):
             batch_size (int): Size of mini-batch.
             drop_last (bool): If True, the sampler will drop the last batch if its size would be less than batch_size.
         """
-        self._dummy = None
+        if (
+            not isinstance(batch_size, int)
+            or isinstance(batch_size, bool)
+            or batch_size <= 0
+        ):
+            raise ValueError(
+                f"batch_size should be a positive integer value, but got batch_size={batch_size}"
+            )
+        if not isinstance(drop_last, bool):
+            raise TypeError(
+                f"drop_last should be a boolean value, but got drop_last={drop_last}"
+            )
+        self.sampler = sampler
+        self.batch_size = batch_size
+        self.drop_last = drop_last
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Iterator[list[int]]:
         """Iterates over batches of indices.
 
         Yields:
             Iterator[List[int]]: An iterator containing lists of indices.
         """
-        return iter([])
+        batch = []
+        for idx in self.sampler:
+            batch.append(idx)
+            if len(batch) == self.batch_size:
+                yield batch
+                batch = []
+        if len(batch) > 0 and not self.drop_last:
+            yield batch
 
     def __len__(self) -> int:
         """Returns the number of batches.
@@ -93,10 +113,13 @@ class BatchSampler(Sampler[List[int]]):
         Returns:
             int: The number of batches.
         """
-        return 0
+        if self.drop_last:
+            return len(self.sampler) // self.batch_size
+        else:
+            return (len(self.sampler) + self.batch_size - 1) // self.batch_size
 
 
-def default_collate(batch: List[Any]) -> Any:
+def default_collate(batch: list[Any]) -> Any:
     """Puts each data field into a tensor with outer dimension batch size.
 
     Args:
@@ -105,6 +128,28 @@ def default_collate(batch: List[Any]) -> Any:
     Returns:
         Any: Collated data batch.
     """
+    import zero_torch
+
+    elem = batch[0]
+    if isinstance(elem, zero_torch.Tensor):
+        if get_worker_info() is not None:
+            pass  # just a dummy check
+        return zero_torch.stack(batch, 0)
+    elif isinstance(elem, (float, int)):
+        return zero_torch.tensor(batch)
+    elif isinstance(elem, str):
+        return batch
+    elif isinstance(elem, dict):
+        return {key: default_collate([d[key] for d in batch]) for key in elem}
+    elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
+        return elem.__class__(*(default_collate(samples) for samples in zip(*batch)))
+    elif isinstance(elem, (tuple, list)):
+        transposed = zip(*batch)
+        return [default_collate(samples) for samples in transposed]
+    return batch
+
+
+def get_worker_info():
     return None
 
 
@@ -114,46 +159,48 @@ class DataLoader(Generic[_T_co]):
     def __init__(
         self,
         dataset: Dataset[_T_co],
-        batch_size: Optional[int] = 1,
-        shuffle: Optional[bool] = None,
-        sampler: Union[Sampler, Iterable, None] = None,
-        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
+        batch_size: int | None = 1,
+        shuffle: bool | None = None,
+        sampler: Sampler | Iterable | None = None,
+        batch_sampler: Sampler[list] | Iterable[list] | None = None,
         num_workers: int = 0,
-        collate_fn: Optional[_collate_fn_t] = None,
+        collate_fn: _collate_fn_t | None = None,
         pin_memory: bool = False,
         drop_last: bool = False,
         timeout: float = 0,
-        worker_init_fn: Optional[_worker_init_fn_t] = None,
+        worker_init_fn: _worker_init_fn_t | None = None,
         multiprocessing_context=None,
         generator=None,
         *,
-        prefetch_factor: Optional[int] = None,
+        prefetch_factor: int | None = None,
         persistent_workers: bool = False,
         pin_memory_device: str = "",
         in_order: bool = True,
     ) -> None:
-        """Initializes the DataLoader.
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.drop_last = drop_last
+        self.sampler = sampler
+        self.batch_sampler = batch_sampler
+        self.collate_fn = collate_fn if collate_fn is not None else default_collate
 
-        Args:
-            dataset (Dataset[_T_co]): Dataset from which to load the data.
-            batch_size (Optional[int], optional): How many samples per batch to load. Defaults to 1.
-            shuffle (Optional[bool], optional): Set to True to have the data reshuffled at every epoch. Defaults to None.
-            sampler (Union[Sampler, Iterable, None], optional): Defines the strategy to draw samples from the dataset. Defaults to None.
-            batch_sampler (Union[Sampler[List], Iterable[List], None], optional): Like sampler, but returns a batch of indices at a time. Defaults to None.
-            num_workers (int, optional): How many subprocesses to use for data loading. Defaults to 0.
-            collate_fn (Optional[_collate_fn_t], optional): Merges a list of samples to form a mini-batch of Tensor(s). Defaults to None.
-            pin_memory (bool, optional): If True, the data loader will copy Tensors into device pinned memory. Defaults to False.
-            drop_last (bool, optional): Set to True to drop the last incomplete batch. Defaults to False.
-            timeout (float, optional): If positive, the timeout value for collecting a batch from workers. Defaults to 0.
-            worker_init_fn (Optional[_worker_init_fn_t], optional): If not None, this will be called on each worker subprocess with the worker id. Defaults to None.
-            multiprocessing_context (Any, optional): Context for multiprocessing. Defaults to None.
-            generator (Any, optional): Random number generator. Defaults to None.
-            prefetch_factor (Optional[int], optional): Number of batches loaded in advance by each worker. Defaults to None.
-            persistent_workers (bool, optional): If True, the data loader will not shutdown the worker processes after a dataset has been consumed once. Defaults to False.
-            pin_memory_device (str, optional): The device to pin memory to if pin_memory is True. Defaults to "".
-            in_order (bool, optional): Yield samples in order. Defaults to True.
-        """
-        self._dummy = None
+        if self.batch_sampler is None:
+            from zero_torch.utils.data import IterableDataset
+
+            if self.sampler is None and not isinstance(dataset, IterableDataset):
+                if shuffle:
+                    from zero_torch.utils.data import RandomSampler
+
+                    self.sampler = RandomSampler(dataset, generator=generator)
+                else:
+                    from zero_torch.utils.data import SequentialSampler
+
+                    self.sampler = SequentialSampler(dataset)
+
+            if self.batch_size is not None:
+                self.batch_sampler = BatchSampler(
+                    self.sampler, self.batch_size, self.drop_last
+                )
 
     def __iter__(self) -> Iterator[Any]:
         """Returns an iterator for the data loader.
@@ -161,4 +208,12 @@ class DataLoader(Generic[_T_co]):
         Returns:
             Iterator[Any]: An iterator that yields batches of data.
         """
-        return iter([])
+        if self.batch_sampler is not None:
+            for indices in self.batch_sampler:
+                batch = [self.dataset[i] for i in indices]
+                yield self.collate_fn(batch)
+        elif self.sampler is not None:
+            for index in self.sampler:
+                yield self.dataset[index]
+        else:
+            yield from self.dataset

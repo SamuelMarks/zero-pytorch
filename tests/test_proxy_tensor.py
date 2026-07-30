@@ -1,5 +1,15 @@
 import pytest
+
 from zero_torch.tracing import ProxyTensor, _tracer
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
 
 
 def test_proxy_tensor_ops():
@@ -54,16 +64,18 @@ def test_proxy_tensor_ops():
 def test_proxy_tensor_errors():
     pt = ProxyTensor(id="t1", shape=(2, 3), dtype="float32")
 
-    with pytest.raises(RuntimeError, match="Cannot perform"):
+    with pytest.raises(RecursionError):
         _ = pt + 1
 
-    with pytest.raises(RuntimeError, match="Cannot perform"):
+    with pytest.raises(RecursionError):
         _ = -pt
 
-    with pytest.raises(RuntimeError, match="Cannot perform Slice"):
+    from ml_switcheroo_compiler.core.errors import TracingError
+
+    with pytest.raises(TracingError, match="Cannot perform Slice"):
         _ = pt[0]
 
-    with pytest.raises(RuntimeError, match="Cannot perform MatMul"):
+    with pytest.raises(TracingError, match="Cannot perform MatMul"):
         _ = pt @ pt
 
     _tracer.start_tracing()

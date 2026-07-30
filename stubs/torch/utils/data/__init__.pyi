@@ -1,45 +1,14 @@
+from collections.abc import Generator, Iterable, Iterator, Sequence, Sized
 from typing import (
     Any,
-    Optional,
     Callable,
-    Iterable,
-    Sequence,
-    Sized,
-    Iterator,
-    Generator,
     TypeVar,
 )
+
 import torch
 
-_R = Any
-_FanMode = Any
-_NonlinearityType = Any
-_Optional = Optional
-_empty = Any
-ParamsT = Any
-_size_1_t = Any
-_size_2_t = Any
-_size_3_t = Any
-_size_any_t = Any
-_size_2_opt_t = Any
-_size_3_opt_t = Any
-_ratio_2_t = Any
-_ratio_3_t = Any
-optional = Any
-UninitializedParameter = Any
-Parameter = Any
-real = Any
-NamedShape = Any
-_ratio_any_t = Any
-_size_any_opt_t = Any
-_size = Any
-iterable = Iterable
-NoneType = type(None)
 _T_co = TypeVar("_T_co", covariant=True)
 _T = TypeVar("_T")
-_collate_fn_t = Any
-_worker_init_fn_t = Any
-_SnapshotState = Any
 
 class BatchSampler:
     def __init__(
@@ -47,21 +16,21 @@ class BatchSampler:
         sampler: Sampler | Iterable = ...,
         batch_size: int = ...,
         drop_last: bool = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class ChainDataset:
-    def __init__(self, datasets: Iterable[IterableDataset] = ...) -> NoneType: ...
+    def __init__(self, datasets: Iterable[IterableDataset] = ...) -> None: ...
 
 class ConcatDataset:
     def __init__(
         self, datasets: list[Dataset[_T_co]] = ..., cumulative_sizes: list[int] = ...
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class DFIterDataPipe:
     def __init__(self, *args, **kwargs) -> Any: ...
 
 class DataChunk:
-    def __init__(self, items: Iterable[_T] = ...) -> NoneType: ...
+    def __init__(self, items: Iterable[_T] = ...) -> None: ...
 
 class DataLoader:
     def __init__(
@@ -72,11 +41,11 @@ class DataLoader:
         sampler: Sampler | Iterable | None = None,
         batch_sampler: Sampler[list] | Iterable[list] | None = None,
         num_workers: int = 0,
-        collate_fn: _collate_fn_t | None = None,
+        collate_fn: Any | None = None,
         pin_memory: bool = False,
         drop_last: bool = False,
         timeout: float = 0,
-        worker_init_fn: _worker_init_fn_t | None = None,
+        worker_init_fn: Any | None = None,
         multiprocessing_context: Any = None,
         generator: Any = None,
         prefetch_factor: int | None = None,
@@ -97,7 +66,7 @@ class DistributedSampler:
         shuffle: bool | None = True,
         seed: int | None = 0,
         drop_last: bool | None = False,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class IterDataPipe:
     def __init__(
@@ -109,7 +78,7 @@ class IterDataPipe:
         repr_hook: Callable | None = "```(None)```",
         _valid_iterator_id: int | None = "```(None)```",
         _number_of_samples_yielded: int = 0,
-        _snapshot_state: _SnapshotState = "_SnapshotState",
+        _snapshot_state: Any = "Any",
         _fast_forward_iterator: Iterator | None = "```(None)```",
     ) -> Any: ...
 
@@ -133,29 +102,29 @@ class RandomSampler:
         replacement: bool = False,
         num_samples: int | None = "```(None)```",
         generator: Generator = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class Sampler:
-    def __init__(self, data_source: Dataset = "```(None)```") -> NoneType: ...
+    def __init__(self, data_source: Dataset = "```(None)```") -> None: ...
 
 class SequentialSampler:
-    def __init__(self, data_source: Sized = ...) -> NoneType: ...
+    def __init__(self, data_source: Sized = ...) -> None: ...
 
 class StackDataset:
-    def __init__(self, datasets: tuple | dict = ..., *args, **kwargs) -> NoneType: ...
+    def __init__(self, datasets: tuple | dict = ..., *args, **kwargs) -> None: ...
 
 class Subset:
     def __init__(
         self, dataset: Dataset[_T_co] = ..., indices: Sequence[int] = ...
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class SubsetRandomSampler:
     def __init__(
         self, indices: Sequence[int] = ..., generator: Generator = "```(None)```"
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class TensorDataset:
-    def __init__(self, *tensors) -> NoneType: ...
+    def __init__(self, *tensors) -> None: ...
 
 class WeightedRandomSampler:
     def __init__(
@@ -164,15 +133,15 @@ class WeightedRandomSampler:
         num_samples: int = ...,
         replacement: bool = True,
         generator: Generator = "```(None)```",
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class functional_datapipe:
     def __init__(
         self, name: str = ..., enable_df_api_tracing: bool = False
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class guaranteed_datapipes_determinism:
-    def __init__(self, prev: bool = ...) -> NoneType: ...
+    def __init__(self, prev: bool = ...) -> None: ...
 
 class non_deterministic:
     def __init__(
@@ -180,7 +149,7 @@ class non_deterministic:
         cls: type[IterDataPipe] | None = "```(None)```",
         deterministic_fn: Callable[[], bool] = ...,
         arg: type[IterDataPipe] | Callable[[], bool] = ...,
-    ) -> NoneType: ...
+    ) -> None: ...
 
 class runtime_validation_disabled:
-    def __init__(self, prev: bool = ...) -> NoneType: ...
+    def __init__(self, prev: bool = ...) -> None: ...

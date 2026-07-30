@@ -30,7 +30,7 @@ def get_test_coverage():
         with open("coverage.json", "r") as f:
             data = json.load(f)
             return data["totals"]["percent_covered"]
-    except Exception:
+    except (RuntimeError, ValueError, TypeError, AttributeError, KeyError, IndexError, ImportError, NotImplementedError):
         return 0.0
 
 
@@ -47,8 +47,8 @@ def get_api_compliance():
             for line in f:
                 if line.startswith("Overall Compliance:"):
                     return float(line.split(":")[1].strip().replace("%", ""))
-    except Exception:
-        pass
+    except (RuntimeError, ValueError, TypeError, AttributeError, KeyError, IndexError, ImportError, NotImplementedError):
+        _pass = True
     return 0.0
 
 

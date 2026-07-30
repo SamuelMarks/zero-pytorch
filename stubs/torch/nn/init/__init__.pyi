@@ -1,39 +1,16 @@
-from typing import Any, Optional, Iterable, TypeVar
+from typing import Any, Optional
+
+from typing_extensions import TypeAlias
+
+_R: TypeAlias = Any
+_Optional = Optional
+from typing import Optional
+
 import torch
 from torch import Tensor
 
-_R = Any
-_FanMode = Any
-_NonlinearityType = Any
-_Optional = Optional
-_empty = Any
-ParamsT = Any
-_size_1_t = Any
-_size_2_t = Any
-_size_3_t = Any
-_size_any_t = Any
-_size_2_opt_t = Any
-_size_3_opt_t = Any
-_ratio_2_t = Any
-_ratio_3_t = Any
-optional = Any
-UninitializedParameter = Any
-Parameter = Any
-real = Any
-NamedShape = Any
-_ratio_any_t = Any
-_size_any_opt_t = Any
-_size = Any
-iterable = Iterable
-NoneType = type(None)
-_T_co = TypeVar("_T_co", covariant=True)
-_T = TypeVar("_T")
-_collate_fn_t = Any
-_worker_init_fn_t = Any
-_SnapshotState = Any
-
 def calculate_gain(
-    nonlinearity: _NonlinearityType = ...,
+    nonlinearity: Any = ...,
     param: _Optional[int | float] = "```(None)```",
 ) -> float: ...
 def constant(*args, **kwargs) -> ~_R: ...
@@ -46,16 +23,16 @@ def kaiming_normal(*args, **kwargs) -> ~_R: ...
 def kaiming_normal_(
     tensor: Tensor = ...,
     a: float = 0,
-    mode: _FanMode = "fan_in",
-    nonlinearity: _NonlinearityType = "leaky_relu",
+    mode: Any = "fan_in",
+    nonlinearity: Any = "leaky_relu",
     generator: _Optional[torch.Generator] = "```(None)```",
 ) -> torch.Tensor: ...
 def kaiming_uniform(*args, **kwargs) -> ~_R: ...
 def kaiming_uniform_(
     tensor: Tensor = ...,
     a: float = 0,
-    mode: _FanMode = "fan_in",
-    nonlinearity: _NonlinearityType = "leaky_relu",
+    mode: Any = "fan_in",
+    nonlinearity: Any = "leaky_relu",
     generator: _Optional[torch.Generator] = "```(None)```",
 ) -> torch.Tensor: ...
 def normal(*args, **kwargs) -> ~_R: ...

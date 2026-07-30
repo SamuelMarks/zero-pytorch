@@ -1,7 +1,9 @@
 "Pooling layers."
 
+from __future__ import annotations
+
 from typing import Any
-from .module import Module
+
 from zero_torch.tensor import Tensor
 
 from .functional_pooling import (
@@ -9,6 +11,7 @@ from .functional_pooling import (
     adaptive_avg_pool2d,
     adaptive_avg_pool3d,
 )
+from .module import Module
 
 
 class AdaptiveAvgPool1d(Module):
@@ -358,7 +361,9 @@ class AvgPool3d(Module):
 class MaxPool1d(Module):
     """Applies a 1D max pooling over an input signal composed of several input planes."""
 
-    def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
+    def __init__(
+        self, kernel_size: int, stride: int | None = None, padding: int = 0
+    ) -> None:
         super().__init__()
         self.kernel_size = kernel_size
         self.stride = stride
@@ -373,15 +378,15 @@ class MaxPool1d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import max_pool1d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return max_pool1d(input, self.kernel_size, self.stride, self.padding)
 
 
 class FractionalMaxPool2d(Module):
     """Applies a 2D fractional max pooling."""
 
-    def __init__(self, kernel_size: int, output_size: int = None) -> None:
+    def __init__(self, kernel_size: int, output_size: int | None = None) -> None:
         """Initialize FractionalMaxPool2d.
 
         Args:
@@ -401,15 +406,19 @@ class FractionalMaxPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import fractional_max_pool2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return fractional_max_pool2d(
+            input, kernel_size=self.kernel_size, output_size=self.output_size
+        )
 
 
 class MaxPool2d(Module):
     """Applies a 2D max pooling."""
 
-    def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
+    def __init__(
+        self, kernel_size: int, stride: int | None = None, padding: int = 0
+    ) -> None:
         super().__init__()
         self.kernel_size = kernel_size
         self.stride = stride
@@ -424,15 +433,15 @@ class MaxPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import max_pool2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return max_pool2d(input, self.kernel_size, self.stride, self.padding)
 
 
 class FractionalMaxPool3d(Module):
     """Applies a 3D fractional max pooling."""
 
-    def __init__(self, kernel_size: int, output_size: int = None) -> None:
+    def __init__(self, kernel_size: int, output_size: int | None = None) -> None:
         """Initialize FractionalMaxPool3d.
 
         Args:
@@ -452,15 +461,19 @@ class FractionalMaxPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import fractional_max_pool3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return fractional_max_pool3d(
+            input, kernel_size=self.kernel_size, output_size=self.output_size
+        )
 
 
 class MaxPool3d(Module):
     """Applies a 3D max pooling."""
 
-    def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
+    def __init__(
+        self, kernel_size: int, stride: int | None = None, padding: int = 0
+    ) -> None:
         super().__init__()
         self.kernel_size = kernel_size
         self.stride = stride
@@ -475,15 +488,17 @@ class MaxPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import max_pool3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return max_pool3d(input, self.kernel_size, self.stride, self.padding)
 
 
 class LPPool1d(Module):
     """Applies a 1D power-average pooling."""
 
-    def __init__(self, norm_type: float, kernel_size: int, stride: int = None) -> None:
+    def __init__(
+        self, norm_type: float, kernel_size: int, stride: int | None = None
+    ) -> None:
         """Initialize LPPool1d.
 
         Args:
@@ -505,15 +520,17 @@ class LPPool1d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import lp_pool1d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return lp_pool1d(input, self.norm_type, self.kernel_size, self.stride)
 
 
 class LPPool2d(Module):
     """Applies a 2D power-average pooling."""
 
-    def __init__(self, norm_type: float, kernel_size: int, stride: int = None) -> None:
+    def __init__(
+        self, norm_type: float, kernel_size: int, stride: int | None = None
+    ) -> None:
         """Initialize LPPool2d.
 
         Args:
@@ -535,15 +552,17 @@ class LPPool2d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import lp_pool2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return lp_pool2d(input, self.norm_type, self.kernel_size, self.stride)
 
 
 class LPPool3d(Module):
     """Applies a 3D power-average pooling."""
 
-    def __init__(self, norm_type: float, kernel_size: int, stride: int = None) -> None:
+    def __init__(
+        self, norm_type: float, kernel_size: int, stride: int | None = None
+    ) -> None:
         """Initialize LPPool3d.
 
         Args:
@@ -565,15 +584,17 @@ class LPPool3d(Module):
         Returns:
             Tensor: Pooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import lp_pool3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return lp_pool3d(input, self.norm_type, self.kernel_size, self.stride)
 
 
 class MaxUnpool1d(Module):
     """Computes a partial inverse of MaxPool1d."""
 
-    def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
+    def __init__(
+        self, kernel_size: int, stride: int | None = None, padding: int = 0
+    ) -> None:
         """Initialize MaxUnpool1d.
 
         Args:
@@ -595,15 +616,24 @@ class MaxUnpool1d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import max_unpool1d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return max_unpool1d(
+            input,
+            indices,
+            self.kernel_size,
+            self.stride,
+            self.padding,
+            output_size=output_size,
+        )
 
 
 class MaxUnpool2d(Module):
     """Computes a partial inverse of MaxPool2d."""
 
-    def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
+    def __init__(
+        self, kernel_size: int, stride: int | None = None, padding: int = 0
+    ) -> None:
         """Initialize MaxUnpool2d.
 
         Args:
@@ -625,15 +655,24 @@ class MaxUnpool2d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import max_unpool2d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return max_unpool2d(
+            input,
+            indices,
+            self.kernel_size,
+            self.stride,
+            self.padding,
+            output_size=output_size,
+        )
 
 
 class MaxUnpool3d(Module):
     """Computes a partial inverse of MaxPool3d."""
 
-    def __init__(self, kernel_size: int, stride: int = None, padding: int = 0) -> None:
+    def __init__(
+        self, kernel_size: int, stride: int | None = None, padding: int = 0
+    ) -> None:
         """Initialize MaxUnpool3d.
 
         Args:
@@ -655,6 +694,13 @@ class MaxUnpool3d(Module):
         Returns:
             Tensor: Unpooled tensor.
         """
-        import ml_switcheroo_compiler.core.errors
+        from .functional_pooling import max_unpool3d
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return max_unpool3d(
+            input,
+            indices,
+            self.kernel_size,
+            self.stride,
+            self.padding,
+            output_size=output_size,
+        )

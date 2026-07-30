@@ -1,13 +1,24 @@
 import numpy as np
-import ml_switcheroo_compiler as ml_switcheroo
+from ml_switcheroo_compiler.core.config import EagerMode
+
 import zero_torch as torch
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
+
 
 # Ported from PyTorch test_tensor_creation_ops.py
 
 
 def test_zeros_empty_full():
     """Tests for test_zeros_empty_full."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         # zeros
         z = torch.zeros((2, 3))
         assert z.shape == (2, 3)
@@ -25,7 +36,7 @@ def test_zeros_empty_full():
 
 def test_arange():
     """Tests for test_arange."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         a = torch.arange(5)
         assert a.shape == (5,)
         np.testing.assert_array_equal(a.numpy(), np.arange(5))
@@ -37,7 +48,7 @@ def test_arange():
 
 def test_cat():
     """Tests for test_cat."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         t1 = torch.zeros((2, 3))
         t2 = torch.ones((2, 3))
 
@@ -52,7 +63,7 @@ def test_cat():
 
 def test_linspace():
     """Tests for test_linspace."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         lin = torch.linspace(0.0, 10.0, 5)
         assert lin.shape == (5,)
         np.testing.assert_allclose(lin.numpy(), np.linspace(0.0, 10.0, 5))
@@ -60,7 +71,7 @@ def test_linspace():
 
 def test_eye():
     """Tests for test_eye."""
-    with ml_switcheroo.EagerMode():
+    with EagerMode():
         e = torch.eye(3)
         assert e.shape == (3, 3)
         np.testing.assert_array_equal(e.numpy(), np.eye(3))

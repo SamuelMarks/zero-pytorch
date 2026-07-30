@@ -11,9 +11,15 @@ class PixelShuffle(Module):
         self.upscale_factor = upscale_factor
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.shape.manipulation import depth_to_space
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap  # pragma: no cover
+
+        # pragma: no cover
+        input_t = _to_tensor(input)  # pragma: no cover
+        return _wrap(
+            depth_to_space(input_t, block_size=self.upscale_factor)
+        )  # pragma: no cover
 
 
 class PixelUnshuffle(Module):
@@ -24,6 +30,12 @@ class PixelUnshuffle(Module):
         self.downscale_factor = downscale_factor
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
+        from ml_switcheroo_compiler.ops.shape.manipulation import space_to_depth
 
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        from zero_torch.tensor import _to_tensor, _wrap  # pragma: no cover
+
+        # pragma: no cover
+        input_t = _to_tensor(input)  # pragma: no cover
+        return _wrap(
+            space_to_depth(input_t, block_size=self.downscale_factor)
+        )  # pragma: no cover

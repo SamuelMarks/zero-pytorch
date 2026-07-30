@@ -1,8 +1,18 @@
 """Tests for View semantics."""
 
 import numpy as np
+
 from zero_torch import Tensor
 from zero_torch.tracing import _tracer
+
+try:
+    from ml_switcheroo_compiler.core.errors import (
+        ShapeMismatchError,
+        UnimplementedMathError,
+    )
+except ImportError:
+    UnimplementedMathError = Exception
+    ShapeMismatchError = Exception
 
 
 def test_view():

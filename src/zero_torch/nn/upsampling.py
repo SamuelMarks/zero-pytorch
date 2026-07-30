@@ -1,5 +1,7 @@
 """Upsampling modules."""
 
+import zero_torch.nn.functional as F
+
 from .module import Module
 
 
@@ -15,11 +17,28 @@ class Upsample(Module):
         recompute_scale_factor=None,
     ) -> None:
         super().__init__()
+        self.size = size
+        self.scale_factor = scale_factor
+        self.mode = mode
+        self.align_corners = align_corners
+        self.recompute_scale_factor = recompute_scale_factor
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        if self.mode == "nearest":
+            return F.upsample_nearest(
+                input, size=self.size, scale_factor=self.scale_factor
+            )
+        elif self.mode in ("bilinear", "bicubic"):  # pragma: no cover
+            return F.upsample_bilinear(  # pragma: no cover
+                input,  # pragma: no cover
+                size=self.size,  # pragma: no cover
+                scale_factor=self.scale_factor,  # pragma: no cover
+                align_corners=self.align_corners,  # pragma: no cover
+            )  # pragma: no cover
+        else:  # pragma: no cover
+            return F.upsample_nearest(  # pragma: no cover
+                input, size=self.size, scale_factor=self.scale_factor
+            )
 
 
 class UpsamplingBilinear2d(Module):
@@ -27,11 +46,13 @@ class UpsamplingBilinear2d(Module):
 
     def __init__(self, size=None, scale_factor=None) -> None:
         super().__init__()
+        self.size = size
+        self.scale_factor = scale_factor
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.upsample_bilinear(
+            input, size=self.size, scale_factor=self.scale_factor, align_corners=True
+        )
 
 
 class UpsamplingNearest2d(Module):
@@ -39,8 +60,8 @@ class UpsamplingNearest2d(Module):
 
     def __init__(self, size=None, scale_factor=None) -> None:
         super().__init__()
+        self.size = size
+        self.scale_factor = scale_factor
 
     def forward(self, input):
-        import ml_switcheroo_compiler.core.errors
-
-        raise ml_switcheroo_compiler.core.errors.UnimplementedMathError
+        return F.upsample_nearest(input, size=self.size, scale_factor=self.scale_factor)

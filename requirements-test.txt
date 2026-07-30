@@ -6,3 +6,5 @@ numpy
 typing_extensions
 torch
 torchvision
+mlx; sys_platform == 'darwin' and platform_machine == 'arm64'
+cupy-cuda12x; sys_platform == 'linux'

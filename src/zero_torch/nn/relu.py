@@ -1,8 +1,10 @@
 "ReLU and Sequential modules."
 
 from typing import Any
-from .module import Module
+
 from zero_torch.tensor import Tensor
+
+from .module import Module
 
 
 class ReLU(Module):
@@ -11,7 +13,7 @@ class ReLU(Module):
     def __init__(
         self,
         inplace: bool = False,
-        __constants__=["inplace"],
+        __constants__=None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -23,7 +25,10 @@ class ReLU(Module):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        pass
+        if __constants__ is None:
+            __constants__ = ["inplace"]
+        super().__init__()
+        self.inplace = inplace
 
     def forward(self, input: Tensor) -> Tensor:
         """Forward pass applying ReLU.
@@ -34,7 +39,10 @@ class ReLU(Module):
         Returns:
             Tensor: A tensor with the ReLU function applied element-wise.
         """
-        pass
+        import zero_torch.nn.functional as F
+
+        # Eager mode zero_torch doesn't have inplace relu out of the box so just fallback to normal
+        return F.relu(input, inplace=self.inplace)
 
 
 class Sequential(Module):
@@ -50,7 +58,13 @@ class Sequential(Module):
         Args:
             *args: Modules to add to the sequential container.
         """
-        pass
+        super().__init__()
+        if len(args) == 1 and isinstance(args[0], dict):
+            for key, module in args[0].items():  # pragma: no cover
+                self.add_module(key, module)  # pragma: no cover
+        else:
+            for idx, module in enumerate(args):
+                self.add_module(str(idx), module)  # pragma: no cover
 
     def forward(self, input: Any) -> Any:
         """Forward pass through all modules in sequence.
@@ -61,4 +75,6 @@ class Sequential(Module):
         Returns:
             Any: The output of the final module in the sequence.
         """
-        pass
+        for module in self._modules.values():
+            input = module(input)  # pragma: no cover
+        return input
