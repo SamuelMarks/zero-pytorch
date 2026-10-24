@@ -1,18 +1,20 @@
+"""Tests for `Tensor` methods (`item`, `tolist`, `numpy`, `repr`, `str`)."""
+
+from __future__ import annotations
+
 import pytest
+from ml_switcheroo_compiler.core.tensor import (
+    Tensor as _SwitcherooTensor,
+)
+from ml_switcheroo_compiler.core.tensor import (
+    TensorConfig as _TensorConfig,
+)
 
 from zero_torch.tensor import Tensor
 
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
 
-
-def test_tensor_item():
+def test_tensor_item() -> None:
+    """Verifies `Tensor.item()` on single-element tensors and error on multi-element tensors."""
     t1 = Tensor(42.0)
     assert t1.item() == 42.0
 
@@ -27,9 +29,9 @@ def test_tensor_item():
         t4.item()
 
 
-def test_tensor_tolist():
+def test_tensor_tolist() -> None:
+    """Verifies `Tensor.tolist()` across 0D, 1D, 2D, and 3D tensors."""
     t1 = Tensor([[1, 2], [3, 4]])
-    print("TYPE IN TEST:", type(t1._tensor.data))
     assert t1.tolist() == [[1, 2], [3, 4]]
 
     t2 = Tensor([])
@@ -38,21 +40,19 @@ def test_tensor_tolist():
     t3 = Tensor(5)
     assert t3.tolist() == 5
 
-    # 3D tensor tolist
     t4 = Tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
     assert t4.tolist() == [[[1, 2], [3, 4]], [[5, 6], [7, 8]]]
 
 
-def test_tensor_numpy():
+def test_tensor_numpy() -> None:
+    """Verifies `Tensor.numpy()` returns a NumPy array matching the tensor data."""
     t1 = Tensor([1.0, 2.0, 3.0])
-    try:
-        arr = t1.numpy()
-        assert list(arr) == [1.0, 2.0, 3.0]
-    except RuntimeError as e:
-        assert "NumPy is not installed" in str(e)
+    arr = t1.numpy()
+    assert list(arr) == [1.0, 2.0, 3.0]
 
 
-def test_tensor_repr_str():
+def test_tensor_repr_str() -> None:
+    """Verifies `str(tensor)` and `repr(tensor)` formatting."""
     t1 = Tensor([1.23456, 2.0])
     s = str(t1)
     assert "tensor" in s
@@ -66,23 +66,15 @@ def test_tensor_repr_str():
     t3 = Tensor(5.0)
     assert "tensor" in str(t3)
 
-    # Nested and long formatting
     t4 = Tensor([[[1], [2]], [[3], [4]]])
-    assert str(t4) is not None
+    assert "tensor" in str(t4)
 
-    # Test flat flattening condition
     t5 = Tensor([1, [2], [3, 4]])
     assert "tensor" in repr(t5)
 
 
-def test_tensor_pure_python_paths():
-    from ml_switcheroo_compiler.core.tensor import (
-        Tensor as _SwitcherooTensor,
-    )
-    from ml_switcheroo_compiler.core.tensor import (
-        TensorConfig as _TensorConfig,
-    )
-
+def test_tensor_pure_python_paths() -> None:
+    """Verifies `Tensor.tolist()` and `Tensor.item()` when backed by pure Python list data."""
     t_data = _SwitcherooTensor(
         data=[1, 2, 3, 4], config=_TensorConfig(shape=(2, 2), dtype=None, device="cpu")
     )
@@ -90,7 +82,6 @@ def test_tensor_pure_python_paths():
     assert t.tolist() == [[1, 2], [3, 4]]
     assert "tensor" in repr(t)
 
-    # test item pure python path
     t_data2 = _SwitcherooTensor(
         data=[42.0], config=_TensorConfig(shape=(1,), dtype=None, device="cpu")
     )
@@ -105,7 +96,8 @@ def test_tensor_pure_python_paths():
         t3.item()
 
 
-def test_tensor_threshold():
+def test_tensor_threshold() -> None:
+    """Verifies `repr(tensor)` truncates tensors with more than 1000 elements."""
     t_data = [i for i in range(1005)]
     t = Tensor(t_data)
     assert "..." in repr(t)

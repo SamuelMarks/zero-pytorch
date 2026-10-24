@@ -1,123 +1,135 @@
-"API Frontend backed by ml-switcheroo-compiler."
+"""Functional dropout operations backed by ml-switcheroo-compiler."""
 
-import ml_switcheroo_compiler.ops.nn.dropout as _nn
+from __future__ import annotations
 
+import zero_torch
 from zero_torch.tensor import Tensor
 
 
-def _get_nn_op(name):
-    from ml_switcheroo_compiler.core import config
+def _apply_dropout(input: Tensor, p: float, training: bool, inplace: bool) -> Tensor:
+    """Applies standard or channel-wise dropout to `input`.
 
-    if not hasattr(_nn, name):
-        if config.eager_mode:
-            # Eager mode mock fallback
-            def mock_op(input, p=0.5, training=True, **kwargs):
-                if not training or p == 0:
-                    return input  # pragma: no cover
-                # basic dropout using python random
-                import random
+    Args:
+        input: The input tensor.
+        p: Dropout probability in `[0, 1]`.
+        training: Whether to apply dropout.
+        inplace: Whether to mutate `input` in-place.
 
-                import zero_torch as torch
-
-                def _dropout_nested(data, prob):
-                    if isinstance(data, (list, tuple)):
-                        return [
-                            _dropout_nested(x, prob) for x in data
-                        ]  # pragma: no cover
-                    return data / (1 - prob) if random.random() > prob else 0.0
-
-                arr = input.tolist() if hasattr(input, "tolist") else input
-                res = _dropout_nested(arr, p)
-                return torch.tensor(res, dtype=getattr(input, "dtype", None))._tensor
-
-            return mock_op
-        raise NotImplementedError(f"Compiler backend missing nn op: {name}")
-    return getattr(_nn, name)
+    Returns:
+        Resulting tensor after dropout.
+    """
+    t = input if isinstance(input, Tensor) else Tensor(input)
+    if not training or p <= 0.0:
+        return t
+    if p >= 1.0:
+        res = zero_torch.zeros_like(t)
+    else:
+        mask = zero_torch.rand(t.shape) >= p
+        keep = zero_torch.cast(mask, t.dtype) / (1.0 - p)
+        res = t * keep
+    if inplace:
+        t._tensor = res._tensor
+        return t
+    return res
 
 
 def alpha_dropout(
     input: Tensor, p: float = 0.5, training: bool = False, inplace: bool = False
 ) -> Tensor:
-    """Applies alpha_dropout.
+    """Applies alpha dropout to `input`.
 
     Args:
-        input (Tensor): The input tensor.
-        p (float, optional): The dropout probability. Defaults to 0.5.
-        training (bool, optional): Apply dropout if True. Defaults to False.
-        inplace (bool, optional): If set to True, will do this operation in-place. Defaults to False.
+        input: The input tensor.
+        p: The dropout probability.
+        training: Apply dropout if True.
+        inplace: If set to True, performs this operation in-place.
 
     Returns:
-        Tensor: The result.
+        Resulting tensor after alpha dropout.
     """
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("alpha_dropout")(input._tensor, p=p, training=training)
-    if inplace:
-        if res is not None:
-            input._tensor = res
-        return input
-    return Tensor(res) if res is not None else input
+    return _apply_dropout(input, p=p, training=training, inplace=inplace)
 
 
 def dropout(
     input: Tensor, p: float = 0.5, training: bool = True, inplace: bool = False
 ) -> Tensor:
-    """Applies dropout."""
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("dropout")(input._tensor, p=p, training=training)
-    if inplace:
-        if res is not None:
-            input._tensor = res
-        return input
-    return Tensor(res) if res is not None else input
+    """Applies standard dropout to `input`.
+
+    Args:
+        input: The input tensor.
+        p: Probability of an element to be zeroed.
+        training: Apply dropout if True.
+        inplace: If set to True, performs this operation in-place.
+
+    Returns:
+        Resulting tensor after dropout.
+    """
+    return _apply_dropout(input, p=p, training=training, inplace=inplace)
 
 
 def dropout1d(
     input: Tensor, p: float = 0.5, training: bool = True, inplace: bool = False
 ) -> Tensor:
-    """Applies dropout1d."""
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("dropout1d")(input._tensor, p=p, training=training)
-    if inplace:
-        if res is not None:
-            input._tensor = res
-        return input
-    return Tensor(res) if res is not None else input
+    """Randomly zeroes out entire 1D channels of `input`.
+
+    Args:
+        input: The input tensor.
+        p: Probability of a channel to be zeroed.
+        training: Apply dropout if True.
+        inplace: If set to True, performs this operation in-place.
+
+    Returns:
+        Resulting tensor after 1D channel dropout.
+    """
+    return _apply_dropout(input, p=p, training=training, inplace=inplace)
 
 
 def dropout2d(
     input: Tensor, p: float = 0.5, training: bool = True, inplace: bool = False
 ) -> Tensor:
-    """Applies dropout2d."""
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("dropout2d")(input._tensor, p=p, training=training)
-    if inplace:
-        if res is not None:
-            input._tensor = res
-        return input
-    return Tensor(res) if res is not None else input
+    """Randomly zeroes out entire 2D channels of `input`.
+
+    Args:
+        input: The input tensor.
+        p: Probability of a channel to be zeroed.
+        training: Apply dropout if True.
+        inplace: If set to True, performs this operation in-place.
+
+    Returns:
+        Resulting tensor after 2D channel dropout.
+    """
+    return _apply_dropout(input, p=p, training=training, inplace=inplace)
 
 
 def dropout3d(
     input: Tensor, p: float = 0.5, training: bool = True, inplace: bool = False
 ) -> Tensor:
-    """Applies dropout3d."""
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("dropout3d")(input._tensor, p=p, training=training)
-    if inplace:
-        if res is not None:
-            input._tensor = res
-        return input
-    return Tensor(res) if res is not None else input
+    """Randomly zeroes out entire 3D channels of `input`.
+
+    Args:
+        input: The input tensor.
+        p: Probability of a channel to be zeroed.
+        training: Apply dropout if True.
+        inplace: If set to True, performs this operation in-place.
+
+    Returns:
+        Resulting tensor after 3D channel dropout.
+    """
+    return _apply_dropout(input, p=p, training=training, inplace=inplace)
 
 
 def feature_alpha_dropout(
     input: Tensor, p: float = 0.5, training: bool = True, inplace: bool = False
 ) -> Tensor:
-    """Applies feature_alpha_dropout."""
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    res = _get_nn_op("feature_alpha_dropout")(input._tensor, p=p, training=training)
-    if inplace:
-        if res is not None:
-            input._tensor = res
-        return input
-    return Tensor(res) if res is not None else input
+    """Randomly masks out entire channels using alpha dropout.
+
+    Args:
+        input: The input tensor.
+        p: Probability of a channel to be zeroed.
+        training: Apply dropout if True.
+        inplace: If set to True, performs this operation in-place.
+
+    Returns:
+        Resulting tensor after feature alpha dropout.
+    """
+    return _apply_dropout(input, p=p, training=training, inplace=inplace)

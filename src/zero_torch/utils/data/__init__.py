@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator, Iterable, Iterator, Sequence, Sized
-from typing import (
-    Any,
-    Callable,
-    TypeVar,
-)
+import math
+import random
+from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
+from typing import TypeVar
 
+from zero_torch._types import CollateValue, OpArg
 from zero_torch.tensor import Tensor
 
 from .dataloader import BatchSampler, DataLoader, Dataset, Sampler
@@ -38,83 +37,193 @@ __all__ = [
     "non_deterministic",
     "runtime_validation_disabled",
 ]
-_T_co = TypeVar("_T_co", covariant=True)
+_T_co = TypeVar("_T_co", bound=CollateValue, covariant=True)
 
 
 class IterableDataset(Dataset[_T_co]):
     """An iterable Dataset."""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: OpArg, **kwargs: OpArg) -> None:
         """Initializes the IterableDataset.
 
         Args:
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        self._dummy = None
+        super().__init__(*args, **kwargs)
 
-    def __iter__(self):
-        raise NotImplementedError()
+    def __iter__(self) -> Iterator[_T_co]:
+        """Returns an iterator over the dataset elements.
+
+        Returns:
+            Iterator over dataset items.
+        """
+        raise NotImplementedError
 
 
-class ChainDataset(IterableDataset):
+class ChainDataset(IterableDataset[_T_co]):
     """Dataset for chaining multiple IterableDatasets."""
 
-    def __init__(self, datasets: Iterable[Dataset]) -> None:
+    def __init__(self, datasets: Iterable[Dataset[_T_co]]) -> None:
         """Initializes the ChainDataset.
 
         Args:
-            datasets (Iterable[Dataset]): datasets to be chained together.
+            datasets: Iterable of datasets to be chained together.
         """
-        self._dummy = None
+        super().__init__()
+        self.datasets: list[Dataset[_T_co]] = list(datasets)
+
+    def __iter__(self) -> Iterator[_T_co]:
+        """Iterates sequentially over all chained datasets.
+
+        Yields:
+            Items from each dataset in `self.datasets`.
+        """
+        for d in self.datasets:
+            if isinstance(d, IterableDataset):
+                yield from d
+            else:
+                for i in range(len(d)):
+                    yield d[i]
+
+    def __len__(self) -> int:
+        """Returns the sum of lengths of all chained datasets.
+
+        Returns:
+            Total number of items across all datasets.
+        """
+        return sum(len(d) for d in self.datasets)
 
 
 class ConcatDataset(Dataset[_T_co]):
     """Dataset as a concatenation of multiple datasets."""
 
     def __init__(
-        self, datasets: list[Dataset[_T_co]], cumulative_sizes: list[int]
+        self, datasets: list[Dataset[_T_co]], cumulative_sizes: list[int] | None = None
     ) -> None:
         """Initializes the ConcatDataset.
 
         Args:
-            datasets (List[Dataset[_T_co]]): list of datasets to be concatenated.
-            cumulative_sizes (List[int]): list of cumulative sizes of the datasets.
+            datasets: List of datasets to be concatenated.
+            cumulative_sizes: Optional list of cumulative sizes of the datasets.
         """
-        self._dummy = None
+        super().__init__()
+        self.datasets: list[Dataset[_T_co]] = list(datasets)
+        if cumulative_sizes is not None:
+            self.cumulative_sizes: list[int] = list(cumulative_sizes)
+        else:
+            acc: list[int] = []
+            running = 0
+            for d in self.datasets:
+                try:
+                    running += len(d)
+                except NotImplementedError:
+                    running += 0
+                acc.append(running)
+            self.cumulative_sizes = acc
+
+    def __len__(self) -> int:
+        """Returns the total length of the concatenated dataset.
+
+        Returns:
+            Total sample count.
+        """
+        return self.cumulative_sizes[-1] if self.cumulative_sizes else 0
+
+    def __getitem__(self, idx: int) -> _T_co:
+        """Fetches the item at `idx` from the appropriate constituent dataset.
+
+        Args:
+            idx: Index in `[-len(self), len(self))`.
+
+        Returns:
+            Sample at `idx`.
+        """
+        total = len(self)
+        if idx < 0:
+            if -idx > total:
+                raise ValueError(
+                    "absolute value of index should not exceed dataset length"
+                )
+            idx = total + idx
+        if idx >= total or idx < 0:
+            raise IndexError("ConcatDataset index out of range")
+        dataset_idx = next(
+            i for i, cum_sz in enumerate(self.cumulative_sizes) if idx < cum_sz
+        )
+        sample_idx = (
+            idx if dataset_idx == 0 else idx - self.cumulative_sizes[dataset_idx - 1]
+        )
+        return self.datasets[dataset_idx][sample_idx]
 
 
 class DFIterDataPipe:
-    """Iterable-style DataPipe."""
+    """DataFrame-oriented iterable-style DataPipe."""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initializes the DataPipe.
+    def __init__(self, *args: OpArg, **kwargs: OpArg) -> None:
+        """Initializes the DFIterDataPipe.
 
         Args:
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        self._dummy = None
+        self.args: tuple[OpArg, ...] = args
+        self.kwargs: dict[str, OpArg] = dict(kwargs)
 
 
 class DataChunk:
-    """Built-in mutable sequence."""
+    """Container wrapping a chunk of items yielded by a DataPipe."""
 
-    def __init__(self, items: Iterable[Any]) -> None:
+    def __init__(self, items: Iterable[CollateValue]) -> None:
         """Initializes the DataChunk.
 
         Args:
-            items (Iterable[Any]): Iterable of items to populate the chunk.
+            items: Iterable of items to populate the chunk.
         """
-        self._dummy = None
+        self.items: list[CollateValue] = list(items)
+
+    def __iter__(self) -> Iterator[CollateValue]:
+        """Iterates over the items in the chunk.
+
+        Returns:
+            Iterator over `self.items`.
+        """
+        return iter(self.items)
+
+    def __len__(self) -> int:
+        """Returns the number of items in the chunk.
+
+        Returns:
+            Length of `self.items`.
+        """
+        return len(self.items)
+
+    def __getitem__(self, idx: int) -> CollateValue:
+        """Returns the item at `idx` in the chunk.
+
+        Args:
+            idx: Item index.
+
+        Returns:
+            Item at `idx`.
+        """
+        return self.items[idx]
+
+    def raw_iterator(self) -> Iterator[CollateValue]:
+        """Returns a raw iterator over the underlying items.
+
+        Returns:
+            Iterator over `self.items`.
+        """
+        return iter(self.items)
 
 
-class DistributedSampler(Sampler):
-    """Sampler that restricts data loading to a subset of the dataset."""
+class DistributedSampler(Sampler[int]):
+    """Sampler that restricts data loading to a subset of the dataset across distributed workers."""
 
     def __init__(
         self,
-        dataset: Dataset,
+        dataset: Dataset[_T_co],
         num_replicas: int | None = None,
         rank: int | None = None,
         shuffle: bool | None = True,
@@ -124,14 +233,65 @@ class DistributedSampler(Sampler):
         """Initializes DistributedSampler.
 
         Args:
-            dataset (Dataset): Dataset used for sampling.
-            num_replicas (Optional[int], optional): Number of processes participating in distributed training. Defaults to None.
-            rank (Optional[int], optional): Rank of the current process within num_replicas. Defaults to None.
-            shuffle (Optional[bool], optional): If True, sampler will shuffle the indices. Defaults to True.
-            seed (Optional[int], optional): Random seed. Defaults to 0.
-            drop_last (Optional[bool], optional): If True, then the sampler will drop the tail of the data. Defaults to False.
+            dataset: Dataset used for sampling.
+            num_replicas: Number of processes participating in distributed training.
+            rank: Rank of the current process within `num_replicas`.
+            shuffle: If True, sampler will shuffle the indices.
+            seed: Random seed used to shuffle the sampler.
+            drop_last: If True, drops the tail of the data to make it evenly divisible.
         """
-        self._dummy = None
+        super().__init__(dataset)
+        self.dataset: Dataset[_T_co] = dataset
+        self.num_replicas: int = num_replicas if num_replicas is not None else 1
+        self.rank: int = rank if rank is not None else 0
+        self.epoch: int = 0
+        self.drop_last: bool = bool(drop_last)
+        self.shuffle: bool = True if shuffle is None else shuffle
+        self.seed: int = seed if seed is not None else 0
+
+    def __iter__(self) -> Iterator[int]:
+        """Yields distributed shard indices for `self.rank`.
+
+        Returns:
+            Iterator over shard indices.
+        """
+        ds_len = len(self.dataset)
+        indices = list(range(ds_len))
+        if self.shuffle:
+            rng = random.Random(self.seed + self.epoch)
+            rng.shuffle(indices)
+        if self.drop_last:
+            num_samples = ds_len // self.num_replicas
+            total_size = num_samples * self.num_replicas
+            indices = indices[:total_size]
+        else:
+            num_samples = math.ceil(ds_len / self.num_replicas)
+            total_size = num_samples * self.num_replicas
+            padding_size = total_size - len(indices)
+            indices += (indices * math.ceil(padding_size / max(1, len(indices))))[
+                :padding_size
+            ]
+        subsampled = indices[self.rank : total_size : self.num_replicas]
+        return iter(subsampled)
+
+    def __len__(self) -> int:
+        """Returns the number of samples assigned to each replica.
+
+        Returns:
+            Sample count per replica.
+        """
+        ds_len = len(self.dataset)
+        if self.drop_last:
+            return ds_len // self.num_replicas
+        return math.ceil(ds_len / self.num_replicas)
+
+    def set_epoch(self, epoch: int) -> None:
+        """Sets the epoch for this sampler to ensure deterministic shuffling across epochs.
+
+        Args:
+            epoch: Epoch number.
+        """
+        self.epoch = epoch
 
 
 class IterDataPipe:
@@ -139,32 +299,42 @@ class IterDataPipe:
 
     def __init__(
         self,
-        functions: dict[str, Callable] | None = None,
-        reduce_ex_hook: Callable | None = None,
-        getstate_hook: Callable | None = None,
-        str_hook: Callable | None = None,
-        repr_hook: Callable | None = None,
+        functions: dict[str, Callable[[CollateValue], CollateValue]] | None = None,
+        reduce_ex_hook: Callable[[int], CollateValue] | None = None,
+        getstate_hook: Callable[[], CollateValue] | None = None,
+        str_hook: Callable[[], str] | None = None,
+        repr_hook: Callable[[], str] | None = None,
         _valid_iterator_id: int | None = None,
         _number_of_samples_yielded: int = 0,
-        _snapshot_state: Any = "'_SnapshotState'",
-        _fast_forward_iterator: Iterator | None = None,
+        _snapshot_state: str = "'_SnapshotState'",
+        _fast_forward_iterator: Iterator[CollateValue] | None = None,
     ) -> None:
         """Initializes the IterDataPipe.
 
         Args:
-            functions (Dict[str, Callable], optional): Functions dictionary. Defaults to {}.
-            reduce_ex_hook (Optional[Callable], optional): Hook for reduce_ex. Defaults to None.
-            getstate_hook (Optional[Callable], optional): Hook for getstate. Defaults to None.
-            str_hook (Optional[Callable], optional): Hook for str. Defaults to None.
-            repr_hook (Optional[Callable], optional): Hook for repr. Defaults to None.
-            _valid_iterator_id (Optional[int], optional): Internal iterator ID. Defaults to None.
-            _number_of_samples_yielded (int, optional): Internal sample count. Defaults to 0.
-            _snapshot_state (Any, optional): Internal snapshot state. Defaults to "'_SnapshotState'".
-            _fast_forward_iterator (Optional[Iterator], optional): Internal fast forward iterator. Defaults to None.
+            functions: Dictionary of registered datapipe functions.
+            reduce_ex_hook: Custom hook for `__reduce_ex__`.
+            getstate_hook: Custom hook for `__getstate__`.
+            str_hook: Custom hook for `__str__`.
+            repr_hook: Custom hook for `__repr__`.
+            _valid_iterator_id: Internal valid iterator identifier.
+            _number_of_samples_yielded: Count of samples yielded by this pipe.
+            _snapshot_state: Internal snapshot state string.
+            _fast_forward_iterator: Optional fast-forward iterator.
         """
-        if functions is None:
-            functions = {}
-        self._dummy = None
+        _ = (
+            reduce_ex_hook,
+            getstate_hook,
+            str_hook,
+            repr_hook,
+            _valid_iterator_id,
+            _number_of_samples_yielded,
+            _snapshot_state,
+            _fast_forward_iterator,
+        )
+        self.functions: dict[str, Callable[[CollateValue], CollateValue]] = (
+            functions if functions is not None else {}
+        )
 
 
 class MapDataPipe:
@@ -172,27 +342,28 @@ class MapDataPipe:
 
     def __init__(
         self,
-        functions: dict[str, Callable] | None = None,
-        reduce_ex_hook: Callable | None = None,
-        getstate_hook: Callable | None = None,
-        str_hook: Callable | None = None,
-        repr_hook: Callable | None = None,
+        functions: dict[str, Callable[[CollateValue], CollateValue]] | None = None,
+        reduce_ex_hook: Callable[[int], CollateValue] | None = None,
+        getstate_hook: Callable[[], CollateValue] | None = None,
+        str_hook: Callable[[], str] | None = None,
+        repr_hook: Callable[[], str] | None = None,
     ) -> None:
         """Initializes the MapDataPipe.
 
         Args:
-            functions (Dict[str, Callable], optional): Functions dictionary. Defaults to {}.
-            reduce_ex_hook (Optional[Callable], optional): Hook for reduce_ex. Defaults to None.
-            getstate_hook (Optional[Callable], optional): Hook for getstate. Defaults to None.
-            str_hook (Optional[Callable], optional): Hook for str. Defaults to None.
-            repr_hook (Optional[Callable], optional): Hook for repr. Defaults to None.
+            functions: Dictionary of registered datapipe functions.
+            reduce_ex_hook: Custom hook for `__reduce_ex__`.
+            getstate_hook: Custom hook for `__getstate__`.
+            str_hook: Custom hook for `__str__`.
+            repr_hook: Custom hook for `__repr__`.
         """
-        if functions is None:
-            functions = {}
-        self._dummy = None
+        _ = (reduce_ex_hook, getstate_hook, str_hook, repr_hook)
+        self.functions: dict[str, Callable[[CollateValue], CollateValue]] = (
+            functions if functions is not None else {}
+        )
 
 
-class RandomSampler(Sampler):
+class RandomSampler(Sampler[int]):
     """Samples elements randomly."""
 
     def __init__(
@@ -200,92 +371,130 @@ class RandomSampler(Sampler):
         data_source: Sized,
         replacement: bool = False,
         num_samples: int | None = None,
-        generator: Generator | None = None,
+        generator: Callable[[], float] | None = None,
     ) -> None:
         """Initializes the RandomSampler.
 
         Args:
-            data_source (Sized): Dataset to sample from.
-            replacement (bool, optional): Samples are drawn on-demand with replacement if True. Defaults to False.
-            num_samples (Optional[int], optional): Number of samples to draw. Defaults to None.
-            generator (Generator, optional): Generator used in sampling. Defaults to None.
+            data_source: Dataset to sample from.
+            replacement: Samples are drawn on-demand with replacement if True.
+            num_samples: Number of samples to draw; defaults to `len(data_source)`.
+            generator: Generator used in sampling.
         """
-        self.data_source = data_source
-        self.replacement = replacement
-        self.num_samples = num_samples if num_samples is not None else len(data_source)
+        super().__init__(data_source)
+        self.data_source: Sized = data_source
+        self.replacement: bool = replacement
+        self.num_samples: int = (
+            num_samples if num_samples is not None else len(data_source)
+        )
+        self.generator: Callable[[], float] | None = generator
 
-    def __iter__(self):
-        import random
+    def __iter__(self) -> Iterator[int]:
+        """Yields random sample indices.
 
+        Yields:
+            Random integer indices in `[0, len(data_source))`.
+        """
         n = len(self.data_source)
         if self.replacement:
-            for _ in range(self.num_samples):  # pragma: no cover
-                yield random.randint(0, n - 1)  # pragma: no cover
+            for _ in range(self.num_samples):
+                yield random.randint(0, n - 1)
         else:
             indices = list(range(n))
             random.shuffle(indices)
             yield from indices[: self.num_samples]
 
-    def __len__(self):
-        return self.num_samples  # pragma: no cover
+    def __len__(self) -> int:
+        """Returns the number of samples drawn.
+
+        Returns:
+            Total sample count.
+        """
+        return self.num_samples
 
 
-class SequentialSampler(Sampler):
+class SequentialSampler(Sampler[int]):
     """Samples elements sequentially, always in the same order."""
 
     def __init__(self, data_source: Sized) -> None:
         """Initializes the SequentialSampler.
 
         Args:
-            data_source (Sized): Dataset to sample from.
+            data_source: Dataset to sample from.
         """
-        self.data_source = data_source
+        super().__init__(data_source)
+        self.data_source: Sized = data_source
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int]:
+        """Returns an iterator over sequential indices `0..len(data_source)-1`.
+
+        Returns:
+            Sequential index iterator.
+        """
         return iter(range(len(self.data_source)))
 
-    def __len__(self):
-        return len(self.data_source)  # pragma: no cover
+    def __len__(self) -> int:
+        """Returns the length of `data_source`.
+
+        Returns:
+            Number of elements in `data_source`.
+        """
+        return len(self.data_source)
 
 
-class StackDataset(Dataset):
+class StackDataset(Dataset[CollateValue]):
     """Dataset as a stacking of multiple datasets."""
 
     def __init__(
         self,
-        *args: Dataset,
-        datasets: tuple | dict | None = None,
-        **kwargs: Dataset,
+        *args: Dataset[CollateValue],
+        datasets: tuple[Dataset[CollateValue], ...]
+        | dict[str, Dataset[CollateValue]]
+        | None = None,
+        **kwargs: Dataset[CollateValue],
     ) -> None:
         """Initializes the StackDataset.
 
         Args:
-            *args: Datasets to stack.
-            datasets (Optional[Union[Tuple, Dict]], optional): Tuple or dict of datasets. Defaults to None.
-            **kwargs: Additional datasets to stack.
+            *args: Positional datasets to stack.
+            datasets: Explicit tuple or dict of datasets to stack.
+            **kwargs: Keyword datasets to stack.
         """
+        super().__init__()
         if datasets is None:
             if not args and not kwargs:
                 raise ValueError("No datasets provided")
-            self.datasets = args if args else kwargs  # pragma: no cover
-        else:  # pragma: no cover
-            self.datasets = datasets  # pragma: no cover
+            self.datasets: (
+                tuple[Dataset[CollateValue], ...] | dict[str, Dataset[CollateValue]]
+            ) = args if args else kwargs
+        else:
+            self.datasets = datasets
 
-    def __iter__(self):
-        import random  # pragma: no cover
+    def __getitem__(
+        self, idx: int
+    ) -> tuple[CollateValue, ...] | dict[str, CollateValue]:
+        """Fetches the stacked sample at `idx` across all constituent datasets.
 
-        # pragma: no cover
-        n = len(self.data_source)  # pragma: no cover
-        if self.replacement:  # pragma: no cover
-            for _ in range(self.num_samples):  # pragma: no cover
-                yield random.randint(0, n - 1)  # pragma: no cover
-        else:  # pragma: no cover
-            indices = list(range(n))  # pragma: no cover
-            random.shuffle(indices)  # pragma: no cover
-            yield from indices[: self.num_samples]  # pragma: no cover
+        Args:
+            idx: Sample index.
 
-    def __len__(self):
-        return self.num_samples  # pragma: no cover
+        Returns:
+            Tuple or dict of samples at `idx`.
+        """
+        if isinstance(self.datasets, dict):
+            return {k: ds[idx] for k, ds in self.datasets.items()}
+        return tuple(ds[idx] for ds in self.datasets)
+
+    def __len__(self) -> int:
+        """Returns the length of the stacked datasets.
+
+        Returns:
+            Length of the first constituent dataset.
+        """
+        if isinstance(self.datasets, dict):
+            first = next(iter(self.datasets.values()))
+            return len(first)
+        return len(self.datasets[0])
 
 
 class Subset(Dataset[_T_co]):
@@ -295,138 +504,188 @@ class Subset(Dataset[_T_co]):
         """Initializes the Subset dataset.
 
         Args:
-            dataset (Dataset[_T_co]): The whole Dataset.
-            indices (Sequence[int]): Indices in the whole set selected for subset.
+            dataset: The whole Dataset.
+            indices: Indices in the whole set selected for subset.
         """
-        self.dataset = dataset
-        self.indices = indices
+        super().__init__()
+        self.dataset: Dataset[_T_co] = dataset
+        self.indices: Sequence[int] = indices
 
     def __getitem__(self, idx: int) -> _T_co:
-        """Fetches the item from the subset.
+        """Fetches the item at subset index `idx`.
 
         Args:
-            idx (int): The index.
+            idx: Subset index.
 
         Returns:
-            _T_co: The subset item.
+            The item from the underlying dataset at `self.indices[idx]`.
         """
         return self.dataset[self.indices[idx]]
 
     def __len__(self) -> int:
-        """Returns the length of the subset.
+        """Returns the number of elements in the subset.
 
         Returns:
-            int: The length of the subset.
+            Length of `self.indices`.
         """
-        return len(self.indices)  # pragma: no cover
+        return len(self.indices)
 
 
-class SubsetRandomSampler(Sampler):
+class SubsetRandomSampler(Sampler[int]):
     """Samples elements randomly from a given list of indices, without replacement."""
 
     def __init__(
-        self, indices: Sequence[int], generator: Generator | None = None
+        self,
+        indices: Sequence[int],
+        generator: Callable[[], float] | None = None,
     ) -> None:
         """Initializes the SubsetRandomSampler.
 
         Args:
-            indices (Sequence[int]): A sequence of indices.
-            generator (Generator, optional): Generator used in sampling. Defaults to None.
+            indices: Sequence of indices to sample from.
+            generator: Optional random generator used in sampling.
         """
-        self.indices = indices
-        self.generator = generator
+        super().__init__()
+        self.indices: Sequence[int] = indices
+        self.generator: Callable[[], float] | None = generator
 
-    def __iter__(self):
-        """Iterates over the subset of indices randomly.
+    def __iter__(self) -> Iterator[int]:
+        """Iterates over the subset of indices in random order.
 
         Returns:
-            Iterator[int]: An iterator over the shuffled indices.
+            Iterator over shuffled indices.
         """
-        import random  # pragma: no cover
-
-        # pragma: no cover
-        indices = list(self.indices)  # pragma: no cover
-        random.shuffle(indices)  # pragma: no cover
-        return iter(indices)  # pragma: no cover
+        shuffled = list(self.indices)
+        random.shuffle(shuffled)
+        return iter(shuffled)
 
     def __len__(self) -> int:
-        """Returns the length of the subset.
+        """Returns the number of indices in the subset.
 
         Returns:
-            int: The length of the subset.
+            Length of `self.indices`.
         """
-        return len(self.indices)  # pragma: no cover
+        return len(self.indices)
 
 
-class TensorDataset(Dataset):
+class TensorDataset(Dataset[tuple[Tensor, ...]]):
     """Dataset wrapping tensors."""
 
-    def __init__(self, *tensors: tuple[Tensor, ...]) -> None:
+    def __init__(self, *tensors: Tensor) -> None:
         """Initializes the TensorDataset.
 
         Args:
             *tensors: Tensors that have the same size of the first dimension.
         """
-        self.tensors = tensors
+        super().__init__()
+        self.tensors: tuple[Tensor, ...] = tensors
 
     def __getitem__(self, index: int) -> tuple[Tensor, ...]:
-        """Fetches the item from the tensor dataset.
+        """Fetches a tuple of tensor slices at `index`.
 
         Args:
-            index (int): The index.
+            index: Sample index along dimension 0.
 
         Returns:
-            Tuple[Tensor, ...]: A tuple of tensors.
+            Tuple of tensor elements at `index`.
         """
-        return tuple(tensor[index] for tensor in self.tensors)
+        out: list[Tensor] = []
+        for t in self.tensors:
+            lst = t.tolist()
+            out.append(Tensor(lst[index]) if isinstance(lst, list) else t)
+        return tuple(out)
 
     def __len__(self) -> int:
-        """Returns the length of the dataset.
+        """Returns the size of the first dimension of the tensors.
 
         Returns:
-            int: The length of the dataset.
+            Dataset length.
         """
-        return len(self.tensors[0]) if len(self.tensors) > 0 else 0  # pragma: no cover
+        return len(self.tensors[0]) if len(self.tensors) > 0 else 0
 
 
-class WeightedRandomSampler(Sampler):
-    """Samples elements from [0,..,len(weights)-1] with given probabilities."""
+class WeightedRandomSampler(Sampler[int]):
+    """Samples elements from `[0, .., len(weights)-1]` with given probabilities."""
 
     def __init__(
         self,
-        weights: Tensor,
+        weights: Sequence[float] | Tensor,
         num_samples: int,
         replacement: bool = True,
-        generator: Generator | None = None,
+        generator: Callable[[], float] | None = None,
     ) -> None:
         """Initializes the WeightedRandomSampler.
 
         Args:
-            weights (Tensor): A sequence of weights.
-            num_samples (int): Number of samples to draw.
-            replacement (bool, optional): If True, samples are drawn with replacement. Defaults to True.
-            generator (Generator, optional): Generator used in sampling. Defaults to None.
+            weights: Sequence or Tensor of weights (not necessarily summing to one).
+            num_samples: Number of samples to draw.
+            replacement: If True, samples are drawn with replacement.
+            generator: Generator used in sampling.
         """
-        self._dummy = None
+        super().__init__()
+        self.weights: Sequence[float] | Tensor = weights
+        self.num_samples: int = num_samples
+        self.replacement: bool = replacement
+        self.generator: Callable[[], float] | None = generator
+
+    def __iter__(self) -> Iterator[int]:
+        """Yields weighted random indices.
+
+        Returns:
+            Iterator over sampled indices.
+        """
+        if isinstance(self.weights, Tensor):
+            raw_list = self.weights.tolist()
+            w_list: list[float] = (
+                [float(x) for x in raw_list if isinstance(x, (int, float))]
+                if isinstance(raw_list, list)
+                else [float(raw_list)]
+                if isinstance(raw_list, (int, float))
+                else []
+            )
+        else:
+            w_list = [float(w) for w in self.weights]
+        population = list(range(len(w_list)))
+        if self.replacement:
+            chosen = random.choices(population, weights=w_list, k=self.num_samples)
+            return iter(chosen)
+        selected: list[int] = []
+        avail_pop = list(population)
+        avail_w = list(w_list)
+        for _ in range(min(self.num_samples, len(avail_pop))):
+            pick = random.choices(avail_pop, weights=avail_w, k=1)[0]
+            pos = avail_pop.index(pick)
+            selected.append(pick)
+            avail_pop.pop(pos)
+            avail_w.pop(pos)
+        return iter(selected)
+
+    def __len__(self) -> int:
+        """Returns the number of samples drawn.
+
+        Returns:
+            Total sample count `self.num_samples`.
+        """
+        return self.num_samples
 
 
 def functional_datapipe(name: str, enable_df_api_tracing: bool = False) -> None:
-    """Decorator to register a function as a datapipe.
+    """Registers a function as a functional DataPipe.
 
     Args:
-        name (str): The name of the datapipe.
-        enable_df_api_tracing (bool, optional): Enables tracing. Defaults to False.
+        name: The name of the datapipe.
+        enable_df_api_tracing: Whether to enable DataFrame API tracing.
     """
-    return
+    _ = (name, enable_df_api_tracing)
 
 
 def guaranteed_datapipes_determinism(prev: bool) -> None:
-    """Context manager to guarantee determinism in datapipes.
+    """Context helper to guarantee determinism in DataPipes.
 
     Args:
-        prev (bool): Previous state.
+        prev: Previous determinism flag state.
     """
-    return
+    _ = prev
 
 
 def non_deterministic(
@@ -435,20 +694,20 @@ def non_deterministic(
     deterministic_fn: Callable[[], bool],
     arg: type[IterDataPipe] | Callable[[], bool],
 ) -> None:
-    """Marks a datapipe as non-deterministic.
+    """Marks an IterDataPipe class as non-deterministic.
 
     Args:
-        cls (type[IterDataPipe] | None, optional): Datapipe class. Defaults to None.
-        deterministic_fn (Callable[[], bool]): Function returning boolean.
-        arg (type[IterDataPipe] | Callable[[], bool]): Target argument.
+        cls: Optional IterDataPipe class to mark.
+        deterministic_fn: Callback returning whether determinism is required.
+        arg: Target class or callback argument.
     """
-    return
+    _ = (cls, deterministic_fn, arg)
 
 
 def runtime_validation_disabled(prev: bool) -> None:
-    """Context manager to disable runtime validation.
+    """Context helper to disable DataPipe runtime validation.
 
     Args:
-        prev (bool): Previous state.
+        prev: Previous validation state flag.
     """
-    return
+    _ = prev

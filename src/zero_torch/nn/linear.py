@@ -1,60 +1,62 @@
-"Linear module."
+"""Linear module."""
 
-from typing import Any
+from __future__ import annotations
 
+import zero_torch
+import zero_torch.nn.functional as F
+from zero_torch._types import DeviceLike, DTypeLike, OpArg
 from zero_torch.tensor import Tensor
 
-from .module import Module
+from .module import Module, Parameter
 
 
 class Linear(Module):
-    """Applies an affine linear transformation to the incoming data."""
+    """Applies an affine linear transformation to the incoming data: `y = xA^T + b`."""
 
     def __init__(
         self,
         in_features: int,
         out_features: int,
         bias: bool = True,
-        device: Any = None,
-        dtype: Any = None,
-        *args: Any,
-        **kwargs: Any,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
+        *args: OpArg,
+        **kwargs: OpArg,
     ) -> None:
-        """Initialize Linear module.
+        """Initializes the Linear module.
 
         Args:
-            in_features (int): Size of each input sample.
-            out_features (int): Size of each output sample.
-            bias (bool, optional): If set to False, the layer will not learn an additive bias. Defaults to True.
-            device (Any, optional): The device on which to create the parameters. Defaults to None.
-            dtype (Any, optional): The data type to use for parameters. Defaults to None.
+            in_features: Size of each input sample.
+            out_features: Size of each output sample.
+            bias: If set to False, the layer will not learn an additive bias.
+            device: Desired device of the parameters.
+            dtype: Desired data type of the parameters.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        _ = (device, dtype, args, kwargs)
         super().__init__()
-        import zero_torch
-
-        from .module import Parameter
-
-        self.weight = Parameter(zero_torch.ones((out_features, in_features)))
-        self.bias = Parameter(zero_torch.ones((out_features,)))
+        self.in_features: int = in_features
+        self.out_features: int = out_features
+        self.weight: Parameter = Parameter(zero_torch.ones((out_features, in_features)))
+        self.bias: Parameter | None = (
+            Parameter(zero_torch.ones((out_features,))) if bias else None
+        )
 
     def forward(self, input: Tensor) -> Tensor:
-        """Forward pass of the linear module.
+        """Applies the linear transformation to `input`.
 
         Args:
-            input (Tensor): The input tensor to the linear layer.
+            input: Input tensor of shape `(*, in_features)`.
 
         Returns:
-            Tensor: The output tensor resulting from the linear transformation.
+            Output tensor of shape `(*, out_features)`.
         """
-        import zero_torch.nn.functional as F
-
         return F.linear(input, self.weight, self.bias)
 
 
 class Bilinear(Module):
-    """Applies a bilinear transformation to the incoming data."""
+    """Applies a bilinear transformation to the incoming data: `y = x_1^T A x_2 + b`."""
 
     def __init__(
         self,
@@ -62,46 +64,39 @@ class Bilinear(Module):
         in2_features: int,
         out_features: int,
         bias: bool = True,
-        device=None,
-        dtype=None,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
     ) -> None:
         """Initializes the Bilinear module.
 
         Args:
-            in1_features (int): size of each first input sample
-            in2_features (int): size of each second input sample
-            out_features (int): size of each output sample
-            bias (bool, optional): If set to False, the layer will not learn an additive bias. Default: True
-            device: device.
-            dtype: dtype.
+            in1_features: Size of each first input sample.
+            in2_features: Size of each second input sample.
+            out_features: Size of each output sample.
+            bias: If set to False, the layer will not learn an additive bias.
+            device: Desired device of the parameters.
+            dtype: Desired data type of the parameters.
         """
+        _ = (device, dtype)
         super().__init__()
-        self.in1_features = in1_features
-        self.in2_features = in2_features
-        self.out_features = out_features
-
-        import zero_torch
-
-        from .module import Parameter
-
-        self.weight = Parameter(
+        self.in1_features: int = in1_features
+        self.in2_features: int = in2_features
+        self.out_features: int = out_features
+        self.weight: Parameter = Parameter(
             zero_torch.ones((out_features, in1_features, in2_features))
         )
-        if bias:
-            self.bias = Parameter(zero_torch.ones((out_features,)))
-        else:
-            self.bias = None  # pragma: no cover
+        self.bias: Parameter | None = (
+            Parameter(zero_torch.ones((out_features,))) if bias else None
+        )
 
     def forward(self, input1: Tensor, input2: Tensor) -> Tensor:
-        """Forward pass.
+        """Applies the bilinear transformation to `input1` and `input2`.
 
         Args:
-            input1 (Tensor): input tensor 1.
-            input2 (Tensor): input tensor 2.
+            input1: First input tensor of shape `(*, in1_features)`.
+            input2: Second input tensor of shape `(*, in2_features)`.
 
         Returns:
-            Tensor: output.
+            Output tensor of shape `(*, out_features)`.
         """
-        import zero_torch.nn.functional as F
-
         return F.bilinear(input1, input2, self.weight, self.bias)

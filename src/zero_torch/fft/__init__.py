@@ -2,26 +2,9 @@
 
 from __future__ import annotations
 
+from ml_switcheroo_compiler.ops.base import get_op
+
 from zero_torch.tensor import Tensor, _wrap
-
-try:
-    import ml_switcheroo_compiler.ops.generated.missing_ops_misc as _missing_ops_misc
-    import ml_switcheroo_compiler.ops.signal as _ops
-except ImportError:  # pragma: no cover
-
-    class _MockFFT:  # pragma: no cover
-        pass
-
-    _ops = _MockFFT()  # pragma: no cover
-    _missing_ops_misc = _MockFFT()  # pragma: no cover
-
-
-def _get_op(name):
-    if hasattr(_ops, name):
-        return getattr(_ops, name)
-    if hasattr(_missing_ops_misc, name):
-        return getattr(_missing_ops_misc, name)
-    raise NotImplementedError(f"Compiler backend missing fft op: {name}")
 
 
 def fft(
@@ -29,10 +12,19 @@ def fft(
     n: int | None = None,
     dim: int = -1,
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the 1D discrete Fourier transform."""
-    return _wrap(_get_op("fft")(input._tensor, n=n, axis=dim, norm=norm, **kwargs))
+    """Computes the one-dimensional discrete Fourier transform of input.
+
+    Args:
+        input: The input tensor.
+        n: Signal length. If given, the input will either be zero-padded or trimmed to this length.
+        dim: The dimension along which to take the one dimensional FFT.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The complex-valued 1D FFT output tensor.
+    """
+    return _wrap(get_op("Fft")()(input._tensor, n=n, axis=dim, norm=norm))
 
 
 def ifft(
@@ -40,10 +32,19 @@ def ifft(
     n: int | None = None,
     dim: int = -1,
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the 1D inverse discrete Fourier transform."""
-    return _wrap(_get_op("ifft")(input._tensor, n=n, axis=dim, norm=norm, **kwargs))
+    """Computes the one-dimensional inverse discrete Fourier transform of input.
+
+    Args:
+        input: The input tensor.
+        n: Signal length.
+        dim: The dimension along which to take the one dimensional IFFT.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The 1D inverse FFT output tensor.
+    """
+    return _wrap(get_op("Ifft")()(input._tensor, n=n, axis=dim, norm=norm))
 
 
 def rfft(
@@ -51,10 +52,19 @@ def rfft(
     n: int | None = None,
     dim: int = -1,
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the 1D real-to-complex discrete Fourier transform."""
-    return _wrap(_get_op("rfft")(input._tensor, n=n, axis=dim, norm=norm, **kwargs))
+    """Computes the one-dimensional discrete Fourier transform of real-valued input.
+
+    Args:
+        input: The real-valued input tensor.
+        n: Signal length.
+        dim: The dimension along which to take the one dimensional real FFT.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The complex-valued 1D real FFT output tensor.
+    """
+    return _wrap(get_op("Rfft")()(input._tensor, n=n, axis=dim, norm=norm))
 
 
 def irfft(
@@ -62,115 +72,228 @@ def irfft(
     n: int | None = None,
     dim: int = -1,
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the 1D complex-to-real inverse discrete Fourier transform."""
-    return _wrap(_get_op("irfft")(input._tensor, n=n, axis=dim, norm=norm, **kwargs))
+    """Computes the inverse of rfft.
+
+    Args:
+        input: The input tensor representing a half-Hermitian spectrum.
+        n: Output signal length.
+        dim: The dimension along which to take the one dimensional inverse real FFT.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The real-valued 1D inverse FFT output tensor.
+    """
+    return _wrap(get_op("Irfft")()(input._tensor, n=n, axis=dim, norm=norm))
 
 
 def fft2(
     input: Tensor,
-    s: tuple | None = None,
-    dim: tuple = (-2, -1),
+    s: tuple[int, ...] | None = None,
+    dim: tuple[int, ...] = (-2, -1),
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the 2D discrete Fourier transform."""
-    return _wrap(_get_op("fft2")(input._tensor, s=s, axes=dim, norm=norm, **kwargs))
+    """Computes the 2-dimensional discrete Fourier transform of input.
+
+    Args:
+        input: The input tensor.
+        s: Signal size in the transformed dimensions.
+        dim: Dimensions to be transformed.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The 2D FFT output tensor.
+    """
+    return _wrap(get_op("Fft2")()(input._tensor, s=s, axes=dim, norm=norm))
 
 
 def ifft2(
     input: Tensor,
-    s: tuple | None = None,
-    dim: tuple = (-2, -1),
+    s: tuple[int, ...] | None = None,
+    dim: tuple[int, ...] = (-2, -1),
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the 2D inverse discrete Fourier transform."""
-    return _wrap(_get_op("ifft2")(input._tensor, s=s, axes=dim, norm=norm, **kwargs))
+    """Computes the 2-dimensional inverse discrete Fourier transform of input.
+
+    Args:
+        input: The input tensor.
+        s: Signal size in the transformed dimensions.
+        dim: Dimensions to be transformed.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The 2D inverse FFT output tensor.
+    """
+    return _wrap(get_op("Ifft2")()(input._tensor, s=s, axes=dim, norm=norm))
 
 
 def rfft2(
     input: Tensor,
-    s: tuple | None = None,
-    dim: tuple = (-2, -1),
+    s: tuple[int, ...] | None = None,
+    dim: tuple[int, ...] = (-2, -1),
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the 2D real-to-complex discrete Fourier transform."""
-    return _wrap(_get_op("rfft2")(input._tensor, s=s, axes=dim, norm=norm, **kwargs))
+    """Computes the 2-dimensional discrete Fourier transform of real input.
+
+    Args:
+        input: The real-valued input tensor.
+        s: Signal size in the transformed dimensions.
+        dim: Dimensions to be transformed.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The 2D real FFT output tensor.
+    """
+    return _wrap(get_op("Rfft2")()(input._tensor, s=s, axes=dim, norm=norm))
 
 
 def irfft2(
     input: Tensor,
-    s: tuple | None = None,
-    dim: tuple = (-2, -1),
+    s: tuple[int, ...] | None = None,
+    dim: tuple[int, ...] = (-2, -1),
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the 2D complex-to-real inverse discrete Fourier transform."""
-    return _wrap(_get_op("irfft2")(input._tensor, s=s, axes=dim, norm=norm, **kwargs))
+    """Computes the inverse of rfft2.
+
+    Args:
+        input: The input tensor.
+        s: Signal size in the transformed dimensions.
+        dim: Dimensions to be transformed.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The 2D inverse real FFT output tensor.
+    """
+    return _wrap(get_op("Irfft2")()(input._tensor, s=s, axes=dim, norm=norm))
 
 
 def fftn(
     input: Tensor,
-    s: tuple | None = None,
-    dim: tuple | None = None,
+    s: tuple[int, ...] | None = None,
+    dim: tuple[int, ...] | None = None,
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the N dimensional discrete Fourier transform."""
-    return _wrap(_get_op("fftn")(input._tensor, s=s, axes=dim, norm=norm, **kwargs))
+    """Computes the N-dimensional discrete Fourier transform of input.
+
+    Args:
+        input: The input tensor.
+        s: Signal size in the transformed dimensions.
+        dim: Dimensions to be transformed.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The N-D FFT output tensor.
+    """
+    return _wrap(get_op("Fftn")()(input._tensor, s=s, axes=dim, norm=norm))
 
 
 def ifftn(
     input: Tensor,
-    s: tuple | None = None,
-    dim: tuple | None = None,
+    s: tuple[int, ...] | None = None,
+    dim: tuple[int, ...] | None = None,
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the N dimensional inverse discrete Fourier transform."""
-    return _wrap(_get_op("ifftn")(input._tensor, s=s, axes=dim, norm=norm, **kwargs))
+    """Computes the N-dimensional inverse discrete Fourier transform of input.
+
+    Args:
+        input: The input tensor.
+        s: Signal size in the transformed dimensions.
+        dim: Dimensions to be transformed.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The N-D inverse FFT output tensor.
+    """
+    return _wrap(get_op("Ifftn")()(input._tensor, s=s, axes=dim, norm=norm))
 
 
 def rfftn(
     input: Tensor,
-    s: tuple | None = None,
-    dim: tuple | None = None,
+    s: tuple[int, ...] | None = None,
+    dim: tuple[int, ...] | None = None,
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the N dimensional real-to-complex discrete Fourier transform."""
-    return _wrap(_get_op("rfftn")(input._tensor, s=s, axes=dim, norm=norm, **kwargs))
+    """Computes the N-dimensional discrete Fourier transform of real input.
+
+    Args:
+        input: The real-valued input tensor.
+        s: Signal size in the transformed dimensions.
+        dim: Dimensions to be transformed.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The N-D real FFT output tensor.
+    """
+    return _wrap(get_op("Rfftn")()(input._tensor, s=s, axes=dim, norm=norm))
 
 
 def irfftn(
     input: Tensor,
-    s: tuple | None = None,
-    dim: tuple | None = None,
+    s: tuple[int, ...] | None = None,
+    dim: tuple[int, ...] | None = None,
     norm: str | None = None,
-    **kwargs,
 ) -> Tensor:
-    """Computes the N dimensional inverse of a real-to-complex discrete Fourier transform."""
-    return _wrap(_get_op("irfftn")(input._tensor, s=s, axes=dim, norm=norm, **kwargs))
+    """Computes the inverse of rfftn.
+
+    Args:
+        input: The input tensor.
+        s: Signal size in the transformed dimensions.
+        dim: Dimensions to be transformed.
+        norm: Normalization mode ('forward', 'backward', or 'ortho').
+
+    Returns:
+        The N-D inverse real FFT output tensor.
+    """
+    return _wrap(get_op("Irfftn")()(input._tensor, s=s, axes=dim, norm=norm))
 
 
-def fftfreq(n: int, d: float = 1.0, **kwargs) -> Tensor:
-    """Computes the discrete Fourier Transform sample frequencies."""
-    return _wrap(_get_op("fftfreq")(n, d=d, **kwargs))
+def fftfreq(n: int, d: float = 1.0) -> Tensor:
+    """Computes the discrete Fourier Transform sample frequencies for a signal of size n.
+
+    Args:
+        n: The FFT length.
+        d: The sampling length scale (spacing between individual samples).
+
+    Returns:
+        1D tensor of length n containing the sample frequencies.
+    """
+    return _wrap(get_op("Fftfreq")()(n, d=d))
 
 
-def rfftfreq(n: int, d: float = 1.0, **kwargs) -> Tensor:
-    """Computes the discrete Fourier Transform sample frequencies for rfft."""
-    return _wrap(_get_op("rfftfreq")(n, d=d, **kwargs))
+def rfftfreq(n: int, d: float = 1.0) -> Tensor:
+    """Computes the sample frequencies for rfft with a signal of size n.
+
+    Args:
+        n: The real FFT length.
+        d: The sampling length scale (spacing between individual samples).
+
+    Returns:
+        1D tensor containing the positive sample frequencies.
+    """
+    return _wrap(get_op("Rfftfreq")()(n, d=d))
 
 
-def fftshift(input: Tensor, dim=None) -> Tensor:
-    """Shifts the zero-frequency component to the center of the spectrum."""
-    return _wrap(_get_op("fftshift")(input._tensor, axes=dim))
+def fftshift(input: Tensor, dim: int | tuple[int, ...] | None = None) -> Tensor:
+    """Shifts the zero-frequency component to the center of the spectrum.
+
+    Args:
+        input: The input tensor.
+        dim: The dimensions over which to shift.
+
+    Returns:
+        The shifted spectrum tensor.
+    """
+    return _wrap(get_op("Fftshift")()(input._tensor, axes=dim))
 
 
-def ifftshift(input: Tensor, dim=None) -> Tensor:
-    """The inverse of fftshift."""
-    return _wrap(_get_op("ifftshift")(input._tensor, axes=dim))
+def ifftshift(input: Tensor, dim: int | tuple[int, ...] | None = None) -> Tensor:
+    """The inverse of fftshift.
+
+    Args:
+        input: The tensor in fftshift order.
+        dim: The dimensions over which to shift.
+
+    Returns:
+        The unshifted spectrum tensor.
+    """
+    return _wrap(get_op("Ifftshift")()(input._tensor, axes=dim))

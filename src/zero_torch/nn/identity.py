@@ -1,6 +1,9 @@
-"Identity module."
+"""Identity module."""
 
-from typing import Any
+from __future__ import annotations
+
+from zero_torch._types import OpArg
+from zero_torch.tensor import Tensor
 
 from .module import Module
 
@@ -8,21 +11,22 @@ from .module import Module
 class Identity(Module):
     """A placeholder identity operator that is argument-insensitive."""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize the Identity module.
+    def __init__(self, *args: OpArg, **kwargs: OpArg) -> None:
+        """Initializes the Identity module.
 
         Args:
-            *args: Variable length argument list. Ignored.
-            **kwargs: Arbitrary keyword arguments. Ignored.
+            *args: Ignored positional arguments.
+            **kwargs: Ignored keyword arguments.
         """
+        super().__init__(*args, **kwargs)
 
-    def forward(self, input: Any) -> Any:
-        """Forward pass of the identity module.
+    def forward(self, input: Tensor) -> Tensor:
+        """Returns the `input` tensor unmodified.
 
         Args:
-            input (Any): The input data.
+            input: Input tensor.
 
         Returns:
-            Any: The input data unmodified.
+            The input tensor unmodified.
         """
         return input

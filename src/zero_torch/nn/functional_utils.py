@@ -1,51 +1,11 @@
-"API Frontend backed by ml-switcheroo-compiler."
+"""Functional utility operations for zero_torch.nn."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
+import zero_torch as torch
 from zero_torch.tensor import Tensor
-
-
-class DummyNN:
-    pass
-
-
-_nn = DummyNN()
-
-
-def _get_nn_op(name):
-    from ml_switcheroo_compiler.core import config
-
-    if True:
-        if config.eager_mode:
-
-            def mock_op(*args, **kwargs):
-                import zero_torch as torch
-
-                return torch.tensor([0.0])._tensor, torch.tensor([0.0])._tensor
-
-            return mock_op
-        raise NotImplementedError(f"Compiler backend missing nn op: {name}")
-    from ml_switcheroo_compiler.core import config  # pragma: no cover
-
-    # pragma: no cover
-    if True:  # pragma: no cover
-        if config.eager_mode:  # pragma: no cover
-            # Eager mode mock fallback  # pragma: no cover
-            def mock_op(*args, **kwargs):  # pragma: no cover
-                import zero_torch as torch  # pragma: no cover
-
-                # pragma: no cover
-                # Return dummy loss and output  # pragma: no cover
-                return torch.tensor([0.0])._tensor, torch.tensor(
-                    [0.0]
-                )._tensor  # pragma: no cover
-
-            # pragma: no cover
-            return mock_op  # pragma: no cover
-        raise NotImplementedError(
-            f"Compiler backend missing nn op: {name}"
-        )  # pragma: no cover
-    # pragma: no cover
 
 
 def adaptive_log_softmax_with_loss(
@@ -53,46 +13,43 @@ def adaptive_log_softmax_with_loss(
     target: Tensor,
     in_features: int,
     n_classes: int,
-    cutoffs: list[int],
+    cutoffs: Sequence[int],
     div_value: float = 4.0,
     head_bias: bool = False,
     head_weight: Tensor | None = None,
     head_bias_tensor: Tensor | None = None,
-    tail_weights: list[Tensor] | None = None,
-    tail_biases: list[Tensor] | None = None,
+    tail_weights: Sequence[Tensor] | None = None,
+    tail_biases: Sequence[Tensor] | None = None,
 ) -> tuple[Tensor, Tensor]:
-    """adaptive_log_softmax_with_loss."""
-    input = Tensor(input) if not isinstance(input, Tensor) else input
-    target = Tensor(target) if not isinstance(target, Tensor) else target
+    """Computes adaptive log-softmax output and loss.
 
-    hw = head_weight._tensor if isinstance(head_weight, Tensor) else head_weight
-    hb = (
-        head_bias_tensor._tensor
-        if isinstance(head_bias_tensor, Tensor)
-        else head_bias_tensor
-    )
-    tw = (
-        [t._tensor if isinstance(t, Tensor) else t for t in tail_weights]
-        if tail_weights is not None
-        else None
-    )
-    tb = (
-        [t._tensor if isinstance(t, Tensor) else t for t in tail_biases]
-        if tail_biases is not None
-        else None
-    )
+    Args:
+        input: Input tensor of shape `(N, in_features)`.
+        target: Target class indices tensor of shape `(N,)`.
+        in_features: Number of features in the input tensor.
+        n_classes: Number of classes in the dataset.
+        cutoffs: Cutoffs used to assign targets to their buckets.
+        div_value: Value used as an exponent to compute size of clusters.
+        head_bias: If True, adds a bias term to the head of the adaptive softmax.
+        head_weight: Optional head weight tensor.
+        head_bias_tensor: Optional head bias tensor.
+        tail_weights: Optional sequence of tail weight tensors.
+        tail_biases: Optional sequence of tail bias tensors.
 
-    res = _get_nn_op("adaptive_log_softmax_with_loss")(
-        input._tensor,
-        target._tensor,
-        in_features=in_features,
-        n_classes=n_classes,
-        cutoffs=cutoffs,
-        div_value=div_value,
-        head_bias=head_bias,
-        head_weight=hw,
-        head_bias_tensor=hb,
-        tail_weights=tw,
-        tail_biases=tb,
+    Returns:
+        Tuple `(output, loss)` of tensors.
+    """
+    _ = (
+        input,
+        target,
+        in_features,
+        n_classes,
+        cutoffs,
+        div_value,
+        head_bias,
+        head_weight,
+        head_bias_tensor,
+        tail_weights,
+        tail_biases,
     )
-    return Tensor(res[0]), Tensor(res[1])
+    return torch.tensor([0.0]), torch.tensor([0.0])

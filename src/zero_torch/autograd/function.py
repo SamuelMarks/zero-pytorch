@@ -1,20 +1,28 @@
 """Autograd function module."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
+from zero_torch._types import OpArg, TensorLike
+
+if TYPE_CHECKING:
+    from zero_torch.tensor import Tensor
 
 
 class Context:
     """Context object passed to forward and backward methods."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes Context."""
-        self.saved_tensors: tuple[Any, ...] = ()
+        self.saved_tensors: tuple[TensorLike, ...] = ()
 
-    def save_for_backward(self, *tensors: Any) -> None:
+    def save_for_backward(self, *tensors: TensorLike) -> None:
         """Saves given tensors for a future call to backward.
 
         Args:
-            *tensors: Tensors to save.
+            *tensors: Tensors or scalars to save for the backward pass.
         """
         self.saved_tensors = tensors
 
@@ -23,19 +31,18 @@ class Function:
     """Base class to create custom autograd Functions."""
 
     @classmethod
-    def apply(cls, *args, **kwargs):
+    def apply(cls, *args: TensorLike, **kwargs: OpArg) -> Tensor:
         """Applies the custom autograd function.
 
         Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
+            *args: Positional input tensors or scalars.
+            **kwargs: Keyword arguments forwarded to `forward`.
 
         Returns:
-            Any: The result of the forward pass.
+            Output tensor(s) produced by `forward`.
         """
         ctx = Context()
 
-        # Check if we need to track gradients
         from zero_torch.tensor import Tensor
 
         from .grad_mode import is_grad_enabled
@@ -48,74 +55,87 @@ class Function:
 
         if needs_grad:
             if isinstance(result, Tensor):
-                result.grad_fn = cls(ctx, args)
+                fn = cls(ctx, args)
+                fn.output_tensors = [result]
+                result.grad_fn = fn
                 result.requires_grad = True
-            elif isinstance(result, (tuple, list)):  # pragma: no cover
-                for r in result:  # pragma: no cover
-                    if isinstance(r, Tensor):  # pragma: no cover
-                        r.grad_fn = cls(ctx, args)  # pragma: no cover
-                        r.requires_grad = True  # pragma: no cover
+            else:
+                for idx, r in enumerate(result):
+                    if isinstance(r, Tensor):
+                        fn = cls(ctx, args)
+                        fn.output_nr = idx
+                        fn.output_tensors = [r]
+                        r.grad_fn = fn
+                        r.requires_grad = True
 
         return result
 
-    def __init__(self, ctx, args):
-        """Initializes the function instance.
+    def __init__(self, ctx: Context, args: Sequence[TensorLike]) -> None:
+        """Initializes the function node instance.
 
         Args:
-            ctx: The context object.
-            args: The arguments passed to apply.
+            ctx: The context object storing saved tensors.
+            args: The input arguments passed to `apply`.
         """
-        self.ctx = ctx
-        self.next_functions = []
+        self.ctx: Context = ctx
+        self.output_nr: int = 0
+        self.output_tensors: list[Tensor] = []
+        self.next_functions: list[tuple[Function | Tensor | None, int]] = []
         from zero_torch.tensor import Tensor
 
         for arg in args:
             if isinstance(arg, Tensor):
                 if arg.requires_grad:
                     if arg.grad_fn is not None:
-                        self.next_functions.append(
-                            (arg.grad_fn, 0)
-                        )  # assuming single output for now
+                        self.next_functions.append((arg.grad_fn, arg.grad_fn.output_nr))
                     else:
-                        self.next_functions.append((arg, 0))  # leaf node
+                        self.next_functions.append((arg, 0))
+                else:
+                    self.next_functions.append((None, 0))
             else:
-                self.next_functions.append((None, 0))  # pragma: no cover
+                self.next_functions.append((None, 0))
 
-    def __call__(self, *args, **kwargs):
-        """Calls the backward method.
+    def __call__(
+        self, *args: Tensor, **kwargs: OpArg
+    ) -> Tensor | tuple[Tensor | None, ...] | None:
+        """Calls the backward method on this autograd node.
 
         Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
+            *args: Upstream output gradients.
+            **kwargs: Optional keyword arguments for backward.
 
         Returns:
-            Any: The gradients.
+            Computed input gradients.
         """
         return self.__class__.backward(self.ctx, *args, **kwargs)
 
     @staticmethod
-    def forward(ctx: Context, *args, **kwargs) -> Any:
-        """Performs the operation.
+    def forward(ctx: Context, *args: TensorLike, **kwargs: OpArg) -> Tensor:
+        """Performs the forward operation.
 
         Args:
-            ctx (Context): The context object.
-            *args: Variable length argument list.
+            ctx: The context object.
+            *args: Positional input tensors or scalars.
             **kwargs: Arbitrary keyword arguments.
 
-        Raises:
-            NotImplementedError: Must be implemented by subclass.
+        Returns:
+            Output tensor produced by the operation.
         """
+        _ = (ctx, args, kwargs)
         raise NotImplementedError
 
     @staticmethod
-    def backward(ctx: Context, *grad_outputs: Any) -> Any:
-        """Defines a formula for differentiating the operation.
+    def backward(
+        ctx: Context, *grad_outputs: Tensor
+    ) -> Tensor | tuple[Tensor | None, ...] | None:
+        """Defines the formula for differentiating the operation.
 
         Args:
-            ctx (Context): The context object.
-            *grad_outputs: Gradients w.r.t. the outputs.
+            ctx: The context object.
+            *grad_outputs: Gradients w.r.t. the forward outputs.
 
-        Raises:
-            NotImplementedError: Must be implemented by subclass.
+        Returns:
+            Gradients w.r.t. the forward inputs.
         """
+        _ = (ctx, grad_outputs)
         raise NotImplementedError

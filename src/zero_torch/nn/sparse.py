@@ -1,6 +1,11 @@
 """Sparse modules."""
 
-from .module import Module
+from __future__ import annotations
+
+import zero_torch
+from zero_torch.tensor import Tensor
+
+from .module import Module, Parameter
 
 
 class Embedding(Module):
@@ -10,92 +15,147 @@ class Embedding(Module):
         self,
         num_embeddings: int,
         embedding_dim: int,
-        padding_idx=None,
-        max_norm=None,
-        norm_type=2.0,
-        scale_grad_by_freq=False,
-        sparse=False,
-        _weight=None,
-        device=None,
-        dtype=None,
+        padding_idx: int | None = None,
+        max_norm: float | None = None,
+        norm_type: float = 2.0,
+        scale_grad_by_freq: bool = False,
+        sparse: bool = False,
+        _weight: Tensor | None = None,
+        device: str | None = None,
+        dtype: str | None = None,
     ) -> None:
-        """Initializes Embedding."""
+        """Initializes Embedding.
+
+        Args:
+            num_embeddings: Size of the dictionary of embeddings.
+            embedding_dim: The size of each embedding vector.
+            padding_idx: If specified, the entries at padding_idx do not contribute to the gradient.
+            max_norm: If given, each embedding vector with norm larger than max_norm is renormalized.
+            norm_type: The p of the p-norm to compute for the max_norm option.
+            scale_grad_by_freq: If given, this will scale gradients by the inverse of frequency of the words.
+            sparse: If True, gradient w.r.t. weight matrix will be a sparse tensor.
+            _weight: Optional pre-initialized weight tensor.
+            device: Desired device of the weight parameter.
+            dtype: Desired data type of the weight parameter.
+        """
         super().__init__()
-        self.num_embeddings = num_embeddings
-        self.embedding_dim = embedding_dim
-        self.padding_idx = padding_idx
-        self.max_norm = max_norm
-        self.norm_type = norm_type
-        self.scale_grad_by_freq = scale_grad_by_freq
-        self.sparse = sparse
+        self.num_embeddings: int = num_embeddings
+        self.embedding_dim: int = embedding_dim
+        self.padding_idx: int | None = padding_idx
+        self.max_norm: float | None = max_norm
+        self.norm_type: float = norm_type
+        self.scale_grad_by_freq: bool = scale_grad_by_freq
+        self.sparse: bool = sparse
+        self.device: str | None = device
+        self.dtype: str | None = dtype
+        if _weight is None:
+            self.weight: Parameter = Parameter(
+                zero_torch.randn(num_embeddings, embedding_dim)
+            )
+        else:
+            self.weight = Parameter(_weight)
 
-    def forward(self, input):
-        from ml_switcheroo_compiler.ops.nn.nlp import embedding
+    def forward(self, input: Tensor) -> Tensor:
+        """Looks up embedding vectors for the given input indices.
 
-        from zero_torch.tensor import _to_tensor, _wrap  # pragma: no cover
+        Args:
+            input: Tensor containing indices into the embedding matrix.
 
-        if not hasattr(self, "weight"):  # pragma: no cover
-            raise ValueError("weight not initialized")  # pragma: no cover
-        return _wrap(
-            embedding(_to_tensor(input), _to_tensor(self.weight))
-        )  # pragma: no cover
+        Returns:
+            Embedded tensor of shape (*input.shape, embedding_dim).
+        """
+        return zero_torch.nn.functional.embedding(
+            input,
+            self.weight,
+            padding_idx=self.padding_idx,
+            max_norm=self.max_norm,
+            norm_type=self.norm_type,
+            scale_grad_by_freq=self.scale_grad_by_freq,
+            sparse=self.sparse,
+        )
 
 
 class EmbeddingBag(Module):
-    """Computes sums or means of 'bags' of embeddings."""
+    """Computes sums, means, or maxes of bags of embeddings."""
 
     def __init__(
         self,
         num_embeddings: int,
         embedding_dim: int,
-        max_norm=None,
-        norm_type=2.0,
-        scale_grad_by_freq=False,
-        mode="mean",
-        sparse=False,
-        _weight=None,
-        include_last_offset=False,
-        padding_idx=None,
-        device=None,
-        dtype=None,
+        max_norm: float | None = None,
+        norm_type: float = 2.0,
+        scale_grad_by_freq: bool = False,
+        mode: str = "mean",
+        sparse: bool = False,
+        _weight: Tensor | None = None,
+        include_last_offset: bool = False,
+        padding_idx: int | None = None,
+        device: str | None = None,
+        dtype: str | None = None,
     ) -> None:
-        """Initializes EmbeddingBag."""
+        """Initializes EmbeddingBag.
+
+        Args:
+            num_embeddings: Size of the dictionary of embeddings.
+            embedding_dim: The size of each embedding vector.
+            max_norm: If given, each embedding vector with norm larger than max_norm is renormalized.
+            norm_type: The p of the p-norm to compute for the max_norm option.
+            scale_grad_by_freq: If given, this will scale gradients by the inverse of frequency of the words.
+            mode: Reduction mode: 'sum', 'mean', or 'max'.
+            sparse: If True, gradient w.r.t. weight matrix will be a sparse tensor.
+            _weight: Optional pre-initialized weight tensor.
+            include_last_offset: If True, offsets has one additional element where the last element is the size of input.
+            padding_idx: If specified, the entries at padding_idx do not contribute to the gradient.
+            device: Desired device of the weight parameter.
+            dtype: Desired data type of the weight parameter.
+        """
         super().__init__()
-        self.num_embeddings = num_embeddings
-        self.embedding_dim = embedding_dim
-        self.max_norm = max_norm
-        self.norm_type = norm_type
-        self.scale_grad_by_freq = scale_grad_by_freq
-        self.mode = mode
-        self.sparse = sparse
-        self.include_last_offset = include_last_offset
-        self.padding_idx = padding_idx
-
-    def forward(self, input, offsets=None, per_sample_weights=None):
-        from ml_switcheroo_compiler.ops import embedding_bag
-
-        from zero_torch.tensor import _to_tensor, _wrap  # pragma: no cover
-
-        if not hasattr(self, "weight"):  # pragma: no cover
-            raise ValueError("weight not initialized")  # pragma: no cover
-        # pragma: no cover
-        input_t = _to_tensor(input)  # pragma: no cover
-        weight_t = _to_tensor(self.weight)  # pragma: no cover
-        offsets_t = (
-            _to_tensor(offsets) if offsets is not None else None
-        )  # pragma: no cover
-        # pragma: no cover
-        # PyTorch EmbeddingBag applies per_sample_weights to embeddings before reduction  # pragma: no cover
-        # ml_switcheroo_compiler.ops.embedding_bag doesn't support per_sample_weights directly  # pragma: no cover
-        # but zero_torch is API frontend, we route to compiler. If the compiler gets updated  # pragma: no cover
-        # to support it later, it will just work or we do manual math.  # pragma: no cover
-        # For now, we will pass offsets and mode.  # pragma: no cover
-        return _wrap(  # pragma: no cover
-            embedding_bag(
-                weight_t,
-                input_t,
-                offsets=offsets_t,
-                mode=self.mode,
-                padding_idx=self.padding_idx,
+        self.num_embeddings: int = num_embeddings
+        self.embedding_dim: int = embedding_dim
+        self.max_norm: float | None = max_norm
+        self.norm_type: float = norm_type
+        self.scale_grad_by_freq: bool = scale_grad_by_freq
+        self.mode: str = mode
+        self.sparse: bool = sparse
+        self.include_last_offset: bool = include_last_offset
+        self.padding_idx: int | None = padding_idx
+        self.device: str | None = device
+        self.dtype: str | None = dtype
+        if _weight is None:
+            self.weight: Parameter = Parameter(
+                zero_torch.randn(num_embeddings, embedding_dim)
             )
-        )
+        else:
+            self.weight = Parameter(_weight)
+
+    def forward(
+        self,
+        input: Tensor,
+        offsets: Tensor | None = None,
+        per_sample_weights: Tensor | None = None,
+    ) -> Tensor:
+        """Computes bag reductions over embeddings looked up by input indices.
+
+        Args:
+            input: Tensor containing bags of indices into the embedding matrix.
+            offsets: Only used when input is 1D. Determines the starting index position of each bag.
+            per_sample_weights: Tensor of float/double weights, or None to indicate all weights should be taken to be 1.
+
+        Returns:
+            Aggregated embedding tensor of shape (num_bags, embedding_dim).
+        """
+        _ = offsets
+        embedded = zero_torch.nn.functional.embedding(input, self.weight)
+        if per_sample_weights is not None:
+            embedded = embedded * zero_torch.unsqueeze(per_sample_weights, -1)
+        if len(embedded.shape) >= 3:
+            if self.mode == "sum":
+                return zero_torch.sum(embedded, axis=1)
+            if self.mode == "max":
+                return zero_torch.max(embedded, axis=1)
+            return zero_torch.mean(embedded, axis=1)
+        if self.mode == "sum":
+            return zero_torch.unsqueeze(zero_torch.sum(embedded, axis=0), 0)
+        if self.mode == "max":
+            return zero_torch.unsqueeze(zero_torch.max(embedded, axis=0), 0)
+        return zero_torch.unsqueeze(zero_torch.mean(embedded, axis=0), 0)

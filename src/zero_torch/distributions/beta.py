@@ -1,26 +1,71 @@
+"""Beta distribution."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
 import zero_torch as torch
+from zero_torch.tensor import Tensor
 
 from .exp_family import ExponentialFamily
 from .utils import _broadcast_shape
 
 
 class Beta(ExponentialFamily):
-    """Beta distribution."""
+    """Beta probability distribution."""
 
-    has_rsample = True
+    has_rsample: bool = True
 
-    def __init__(self, concentration1, concentration0, validate_args=None):
-        """Initializes the distribution."""
-        self.concentration1 = concentration1
-        self.concentration0 = concentration0
+    def __init__(
+        self,
+        concentration1: Tensor,
+        concentration0: Tensor,
+        validate_args: bool | None = None,
+    ) -> None:
+        """Initializes the Beta distribution.
+
+        Args:
+            concentration1: First concentration parameter (`alpha`).
+            concentration0: Second concentration parameter (`beta`).
+            validate_args: Whether to validate parameter constraints.
+        """
+        self.concentration1: Tensor = concentration1
+        self.concentration0: Tensor = concentration0
         batch_shape = _broadcast_shape(concentration1.shape, concentration0.shape)
         super().__init__(batch_shape, validate_args=validate_args)
 
-    def rsample(self, sample_shape=None):
-        """Generates a sample_shape shaped reparameterized sample."""
+    @property
+    def mean(self) -> Tensor:
+        """Returns the mean of the Beta distribution (`c1 / (c1 + c0)`).
+
+        Returns:
+            Mean tensor.
+        """
+        return self.concentration1 / (self.concentration1 + self.concentration0)
+
+    @property
+    def variance(self) -> Tensor:
+        """Returns the variance of the Beta distribution.
+
+        Returns:
+            Variance tensor.
+        """
+        total = self.concentration1 + self.concentration0
+        return (self.concentration1 * self.concentration0) / (
+            (total**2) * (total + 1.0)
+        )
+
+    def rsample(self, sample_shape: Sequence[int] | None = None) -> Tensor:
+        """Generates a `sample_shape` shaped reparameterized sample.
+
+        Args:
+            sample_shape: Shape of samples to draw.
+
+        Returns:
+            Sampled tensor in `(0, 1)`.
+        """
         if sample_shape is None:
             sample_shape = ()
-        # Use Gamma approximations to sample Beta: X = G1 / (G1 + G0)
         from .gamma import Gamma
 
         g1 = Gamma(self.concentration1, torch.ones_like(self.concentration1)).rsample(
@@ -31,12 +76,16 @@ class Beta(ExponentialFamily):
         )
         return g1 / (g1 + g0)
 
-    def log_prob(self, value):
-        """Returns the log of the probability density function evaluated at `value`."""
-        # log(value^(c1-1) * (1-value)^(c0-1) / B(c1, c0))
-        # B(c1, c0) = Gamma(c1) * Gamma(c0) / Gamma(c1 + c0)
-        # log B(c1, c0) = gammaln(c1) + gammaln(c0) - gammaln(c1 + c0)
-        log_B = (
+    def log_prob(self, value: Tensor) -> Tensor:
+        """Returns the log of the probability density function evaluated at `value`.
+
+        Args:
+            value: Value tensor in `(0, 1)`.
+
+        Returns:
+            Log probability density tensor.
+        """
+        log_b = (
             torch.special.gammaln(self.concentration1)
             + torch.special.gammaln(self.concentration0)
             - torch.special.gammaln(self.concentration1 + self.concentration0)
@@ -44,5 +93,5 @@ class Beta(ExponentialFamily):
         return (
             (self.concentration1 - 1) * torch.log(value)
             + (self.concentration0 - 1) * torch.log(1 - value)
-            - log_B
+            - log_b
         )

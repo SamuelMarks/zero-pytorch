@@ -1,203 +1,206 @@
-"""Module."""
+"""Dropout modules."""
 
-from typing import Any
+from __future__ import annotations
 
+from zero_torch._types import OpArg
 from zero_torch.tensor import Tensor
 
+from .functional_dropout import (
+    alpha_dropout,
+    dropout,
+    dropout1d,
+    dropout2d,
+    dropout3d,
+    feature_alpha_dropout,
+)
 from .module import Module
 
 
 class Dropout(Module):
-    """During training, randomly zeroes some of the elements of the input tensor with probability p."""
+    """During training, randomly zeroes some of the elements of the input tensor with probability `p`."""
 
     def __init__(
-        self, p: float = 0.5, inplace: bool = False, *args: Any, **kwargs: Any
+        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
     ) -> None:
-        """Initialize the dropout layer.
+        """Initializes the Dropout layer.
 
         Args:
-            p (float, optional): Probability of an element to be zeroed. Defaults to 0.5.
-            inplace (bool, optional): If set to True, will do this operation in-place. Defaults to False.
+            p: Probability of an element to be zeroed.
+            inplace: If True, performs the operation in-place.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        _ = (args, kwargs)
         super().__init__()
-        self.p = p
-        self.inplace = inplace
+        self.p: float = p
+        self.inplace: bool = inplace
 
     def forward(self, input: Tensor) -> Tensor:
-        """Forward pass for dropout.
+        """Applies dropout to `input`.
 
         Args:
-            input (Tensor): The input tensor.
+            input: Input tensor.
 
         Returns:
-            Tensor: The output tensor with elements randomly zeroed out.
+            Output tensor with elements randomly zeroed during training.
         """
-        from .functional_dropout import dropout
-
         return dropout(input, p=self.p, training=self.training, inplace=self.inplace)
 
 
 class Dropout1d(Module):
-    """Randomly zero out entire channels (a channel is a 1D feature map)."""
+    """Randomly zero out entire 1D channels."""
 
     def __init__(
-        self, p: Any = 0.5, inplace: Any = False, *args: Any, **kwargs: Any
+        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
     ) -> None:
-        """Initialize the 1D dropout layer.
+        """Initializes the Dropout1d layer.
 
         Args:
-            p (Any, optional): Probability of a channel to be zeroed. Defaults to 0.5.
-            inplace (Any, optional): If set to True, will do this operation in-place. Defaults to False.
+            p: Probability of a channel to be zeroed.
+            inplace: If True, performs the operation in-place.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        _ = (args, kwargs)
         super().__init__()
-        self.p = p
-        self.inplace = inplace
+        self.p: float = p
+        self.inplace: bool = inplace
 
     def forward(self, input: Tensor) -> Tensor:
-        """Forward pass for 1D dropout.
+        """Applies 1D channel dropout to `input`.
 
         Args:
-            input (Tensor): The input tensor.
+            input: Input tensor.
 
         Returns:
-            Tensor: The output tensor with channels randomly zeroed out.
+            Output tensor with 1D channels randomly zeroed during training.
         """
-        from .functional_dropout import dropout1d
-
         return dropout1d(input, p=self.p, training=self.training, inplace=self.inplace)
 
 
 class Dropout2d(Module):
-    """Randomly zero out entire channels (a channel is a 2D feature map)."""
+    """Randomly zero out entire 2D channels."""
 
     def __init__(
-        self, p: Any = 0.5, inplace: Any = False, *args: Any, **kwargs: Any
+        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
     ) -> None:
-        """Initialize the 2D dropout layer.
+        """Initializes the Dropout2d layer.
 
         Args:
-            p (Any, optional): Probability of a channel to be zeroed. Defaults to 0.5.
-            inplace (Any, optional): If set to True, will do this operation in-place. Defaults to False.
+            p: Probability of a channel to be zeroed.
+            inplace: If True, performs the operation in-place.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        _ = (args, kwargs)
         super().__init__()
-        self.p = p
-        self.inplace = inplace
+        self.p: float = p
+        self.inplace: bool = inplace
 
     def forward(self, input: Tensor) -> Tensor:
-        """Forward pass for 2D dropout.
+        """Applies 2D channel dropout to `input`.
 
         Args:
-            input (Tensor): The input tensor.
+            input: Input tensor.
 
         Returns:
-            Tensor: The output tensor with channels randomly zeroed out.
+            Output tensor with 2D channels randomly zeroed during training.
         """
-        from .functional_dropout import dropout2d
-
         return dropout2d(input, p=self.p, training=self.training, inplace=self.inplace)
 
 
 class Dropout3d(Module):
-    """Randomly zero out entire channels (a channel is a 3D feature map)."""
+    """Randomly zero out entire 3D channels."""
 
     def __init__(
-        self, p: Any = 0.5, inplace: Any = False, *args: Any, **kwargs: Any
+        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
     ) -> None:
-        """Initialize the 3D dropout layer.
+        """Initializes the Dropout3d layer.
 
         Args:
-            p (Any, optional): Probability of a channel to be zeroed. Defaults to 0.5.
-            inplace (Any, optional): If set to True, will do this operation in-place. Defaults to False.
+            p: Probability of a channel to be zeroed.
+            inplace: If True, performs the operation in-place.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        _ = (args, kwargs)
         super().__init__()
-        self.p = p
-        self.inplace = inplace
+        self.p: float = p
+        self.inplace: bool = inplace
 
     def forward(self, input: Tensor) -> Tensor:
-        """Forward pass for 3D dropout.
+        """Applies 3D channel dropout to `input`.
 
         Args:
-            input (Tensor): The input tensor.
+            input: Input tensor.
 
         Returns:
-            Tensor: The output tensor with channels randomly zeroed out.
+            Output tensor with 3D channels randomly zeroed during training.
         """
-        from .functional_dropout import dropout3d
-
         return dropout3d(input, p=self.p, training=self.training, inplace=self.inplace)
 
 
 class AlphaDropout(Module):
-    """Applies Alpha Dropout over the input. Alpha Dropout is a type of Dropout that maintains the self-normalizing property."""
+    """Applies Alpha Dropout over the input, maintaining self-normalizing properties."""
 
     def __init__(
-        self, p: float = 0.5, inplace: Any = False, *args: Any, **kwargs: Any
+        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
     ) -> None:
-        """Initialize the alpha dropout layer.
+        """Initializes the AlphaDropout layer.
 
         Args:
-            p (float, optional): Probability of an element to be dropped. Defaults to 0.5.
-            inplace (Any, optional): If set to True, will do this operation in-place. Defaults to False.
+            p: Probability of an element to be dropped.
+            inplace: If True, performs the operation in-place.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        _ = (args, kwargs)
         super().__init__()
-        self.p = p
-        self.inplace = inplace
+        self.p: float = p
+        self.inplace: bool = inplace
 
     def forward(self, input: Tensor) -> Tensor:
-        """Forward pass for alpha dropout.
+        """Applies alpha dropout to `input`.
 
         Args:
-            input (Tensor): The input tensor.
+            input: Input tensor.
 
         Returns:
-            Tensor: The output tensor with alpha dropout applied.
+            Output tensor with alpha dropout applied.
         """
-        from .functional_dropout import alpha_dropout
-
         return alpha_dropout(
             input, p=self.p, training=self.training, inplace=self.inplace
         )
 
 
 class FeatureAlphaDropout(Module):
-    """Randomly masks out entire channels (a channel is a feature map) with Alpha Dropout."""
+    """Randomly masks out entire channels with Alpha Dropout."""
 
     def __init__(
-        self, p: Any = 0.5, inplace: Any = None, *args: Any, **kwargs: Any
+        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
     ) -> None:
-        """Initialize the feature alpha dropout layer.
+        """Initializes the FeatureAlphaDropout layer.
 
         Args:
-            p (Any, optional): Probability of a channel to be zeroed. Defaults to 0.5.
-            inplace (Any, optional): If set to True, will do this operation in-place. Defaults to None.
+            p: Probability of a channel to be zeroed.
+            inplace: If True, performs the operation in-place.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        _ = (args, kwargs)
         super().__init__()
-        self.p = p
-        self.inplace = inplace
+        self.p: float = p
+        self.inplace: bool = bool(inplace)
 
     def forward(self, input: Tensor) -> Tensor:
-        """Forward pass for feature alpha dropout.
+        """Applies feature alpha dropout to `input`.
 
         Args:
-            input (Tensor): The input tensor.
+            input: Input tensor.
 
         Returns:
-            Tensor: The output tensor with feature alpha dropout applied.
+            Output tensor with feature alpha dropout applied.
         """
-        from .functional_dropout import feature_alpha_dropout
-
         return feature_alpha_dropout(
             input, p=self.p, training=self.training, inplace=self.inplace
         )

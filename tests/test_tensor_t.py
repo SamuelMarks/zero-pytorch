@@ -1,20 +1,15 @@
+"""Tests for `Tensor.T` transpose property in eager and tracing modes."""
+
+from __future__ import annotations
+
 import numpy as np
 
 from zero_torch.tensor import Tensor
 from zero_torch.tracing import _tracer
 
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
 
-
-def test_tensor_t():
-    """Tests for test_tensor_t."""
+def test_tensor_t() -> None:
+    """Verifies `Tensor.T` on 2D and 1D tensors in eager mode."""
     t = Tensor(np.ones((2, 3)))
     t2 = t.T
     assert t2.shape == (3, 2)
@@ -23,8 +18,8 @@ def test_tensor_t():
     assert t1d.T.shape == (2,)
 
 
-def test_tensor_t_traced():
-    """Tests for test_tensor_t_traced."""
+def test_tensor_t_traced() -> None:
+    """Verifies `Tensor.T` on traced tensors."""
     t = Tensor(np.ones((2, 3)))
     _tracer.start_tracing()
 

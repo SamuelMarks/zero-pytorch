@@ -1,29 +1,25 @@
+"""Tests for `ProxyTensor` symbolic graph tracing operations and error handling."""
+
+from __future__ import annotations
+
 import pytest
+from ml_switcheroo_compiler.core.errors import TracingError
+from ml_switcheroo_compiler.ir.core import IRNode
 
 from zero_torch.tracing import ProxyTensor, _tracer
 
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
 
-
-def test_proxy_tensor_ops():
+def test_proxy_tensor_ops() -> None:
+    """Verifies `ProxyTensor` unary, binary, bitwise, indexing, and matmul tracing ops."""
     _tracer.start_tracing()
     pt = ProxyTensor(id="t1", shape=(2, 3), dtype="float32")
     ProxyTensor(id="t2", shape=(2, 3), dtype="float32")
 
-    # Unary
     _ = -pt
     _ = +pt
     _ = abs(pt)
     _ = ~pt
 
-    # Binary with scalar
     _ = pt + 1
     _ = 1 + pt
     _ = pt - 1
@@ -38,7 +34,6 @@ def test_proxy_tensor_ops():
     _ = pt % 2
     _ = 2 % pt
 
-    # Bitwise
     pt_int = ProxyTensor(id="ti1", shape=(2,), dtype="int32")
     _ = pt_int & 1
     _ = 1 & pt_int
@@ -51,17 +46,16 @@ def test_proxy_tensor_ops():
     _ = pt_int >> 1
     _ = 1 >> pt_int
 
-    # Getitem
     _ = pt[0]
 
-    # Matmul
     pt_mat2 = ProxyTensor(id="t3", shape=(3, 4), dtype="float32")
     _ = pt @ pt_mat2
 
     _tracer.stop_tracing()
 
 
-def test_proxy_tensor_errors():
+def test_proxy_tensor_errors() -> None:
+    """Verifies `ProxyTensor` raises appropriate errors when tracing is inactive or types mismatch."""
     pt = ProxyTensor(id="t1", shape=(2, 3), dtype="float32")
 
     with pytest.raises(RecursionError):
@@ -69,8 +63,6 @@ def test_proxy_tensor_errors():
 
     with pytest.raises(RecursionError):
         _ = -pt
-
-    from ml_switcheroo_compiler.core.errors import TracingError
 
     with pytest.raises(TracingError, match="Cannot perform Slice"):
         _ = pt[0]
@@ -84,8 +76,7 @@ def test_proxy_tensor_errors():
     _tracer.stop_tracing()
 
 
-def test_add_node_error():
-    from ml_switcheroo_compiler.ir.core import IRNode
-
-    with pytest.raises(RuntimeError, match="Cannot add node: not currently tracing"):
-        _tracer.add_node(IRNode(id="x", op_type="Add", inputs=[]))
+def test_add_node_error() -> None:
+    """Verifies `_tracer.add_node` is a no-op when `active_graph` is None."""
+    _tracer.add_node(IRNode(id="x", op_type="Add", inputs=[]))
+    assert _tracer.active_graph is None

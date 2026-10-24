@@ -1,56 +1,45 @@
+"""Ported neural network (`zero_torch.nn`) module and functional tests."""
+
+from __future__ import annotations
+
 import numpy as np
 from ml_switcheroo_compiler.core.config import EagerMode
 
 import zero_torch as torch
 import zero_torch.nn.functional as F
 from zero_torch import nn
-
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
+from zero_torch.tensor import Tensor
 
 
-def test_module_lifecycle():
-    """Tests for test_module_lifecycle.
-
-    Args:
-        *args: arguments
-        **kwargs: keyword arguments
-
-    Returns:
-        Any: returns
-    """
+def test_module_lifecycle() -> None:
+    """Verifies `nn.Module` parameter/buffer registration, `state_dict`, and `forward`."""
 
     class MyModule(nn.Module):
-        """Tests for MyModule."""
+        """Test module with a Linear layer and registered running_mean buffer."""
 
-        def __init__(self):
-            """Tests for __init__."""
+        running_mean: Tensor | None
+
+        def __init__(self) -> None:
+            """Initializes MyModule."""
             super().__init__()
             self.linear = nn.Linear(3, 4)
             self.register_buffer("running_mean", torch.zeros(4))
 
-        def forward(self, x):
-            """Tests for forward.
+        def forward(self, x: Tensor) -> Tensor:
+            """Applies the linear transformation and adds `running_mean`.
 
             Args:
-                *args: arguments
-                **kwargs: keyword arguments
+                x: Input tensor of shape `(*, 3)`.
 
             Returns:
-                Any: returns
+                Output tensor of shape `(*, 4)`.
             """
+            assert self.running_mean is not None
             return self.linear(x) + self.running_mean
 
     with EagerMode():
         m = MyModule()
 
-        # Check state_dict
         sd = m.state_dict()
         assert "linear.weight" in sd
         assert "linear.bias" in sd
@@ -58,22 +47,19 @@ def test_module_lifecycle():
         assert sd["linear.weight"].shape == (4, 3)
         assert sd["running_mean"].shape == (4,)
 
-        # Check parameters
         params = list(m.parameters())
         assert len(params) == 2
 
-        # Check buffers
         buffers = list(m.buffers())
         assert len(buffers) == 1
 
-        # Check forward pass
         x = torch.ones((2, 3))
         out = m(x)
         assert out.shape == (2, 4)
 
 
-def test_functional_linear():
-    """Tests for test_functional_linear."""
+def test_functional_linear() -> None:
+    """Verifies `F.linear` matrix multiplication and bias addition."""
     with EagerMode():
         x = torch.ones((2, 3))
         w = torch.ones((4, 3)) * 2.0
@@ -81,17 +67,15 @@ def test_functional_linear():
 
         out = F.linear(x, w, b)
         assert out.shape == (2, 4)
-        np.testing.assert_allclose(out.numpy(), 7.0)
+        np.testing.assert_allclose(out.tolist(), 7.0)
 
 
-def test_conv2d():
-    """Tests for test_conv2d."""
+def test_conv2d() -> None:
+    """Verifies `nn.Conv2d` forward pass with deterministic weights."""
     with EagerMode():
-        # (N, C, H, W)
         x = torch.ones((2, 3, 5, 5))
         conv = nn.Conv2d(3, 4, kernel_size=3, padding=1)
 
-        # Set weights deterministically
         conv.weight = nn.Parameter(torch.ones((4, 3, 3, 3)))
         conv.bias = nn.Parameter(torch.zeros(4))
 
@@ -99,18 +83,30 @@ def test_conv2d():
         assert out.shape == (2, 4, 5, 5)
 
 
-def test_batchnorm2d():
-    """Tests for test_batchnorm2d."""
+def test_batchnorm2d() -> None:
+    """Verifies `nn.BatchNorm2d` affine parameter registration and forward shape."""
     with EagerMode():
-        pass
+        bn = nn.BatchNorm2d(3)
+        assert bn.weight is not None and bn.weight.shape == (3,)
+        assert bn.bias is not None and bn.bias.shape == (3,)
+        assert bn.running_mean is not None and bn.running_mean.shape == (3,)
+        assert bn.running_var is not None and bn.running_var.shape == (3,)
+        x = torch.ones((2, 3, 4, 4))
+        out = bn(x)
+        assert out.shape == (2, 3, 4, 4)
 
 
-def test_losses():
-    """Tests for test_losses."""
+def test_losses() -> None:
+    """Verifies `nn.MSELoss` and `nn.CrossEntropyLoss` non-zero loss evaluation."""
     with EagerMode():
         pred = torch.tensor([[0.5, -0.5], [1.0, 2.0]])
-        # MSE
         target_mse = torch.tensor([[0.0, 0.0], [1.0, 2.0]])
         mse = nn.MSELoss()
         loss_mse = mse(pred, target_mse)
         assert loss_mse.shape == ()
+        np.testing.assert_allclose(loss_mse.tolist(), 0.125, rtol=1e-4)
+
+        ce = nn.CrossEntropyLoss()
+        loss_ce = ce(pred, torch.tensor([0, 1]))
+        assert loss_ce.shape == ()
+        assert loss_ce.item() != 0.0

@@ -1,139 +1,63 @@
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
+"""Ported sparse tensor (`zero_torch.sparse`) tests."""
 
-import pytest
+from __future__ import annotations
+
+import ml_switcheroo_compiler
 from ml_switcheroo_compiler.core.config import EagerMode
 
 import zero_torch as torch
-
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
+from zero_torch.tracing import _tracer
 
 
-def test_sparse_parity():
+def test_sparse_parity() -> None:
+    """Verifies `sparse_coo_tensor`, `sparse.add`, and `sparse.mm` in eager mode."""
     with EagerMode():
-        # Eager mode mock returns dense zeros, testing the path
         indices = [[0, 1, 1], [2, 0, 2]]
         values = [3.0, 4.0, 5.0]
         st = torch.sparse_coo_tensor(indices, values, (2, 3))
         assert st.shape == (2, 3)
 
-        # Testing fallback path
         st2 = torch.sparse_coo_tensor(indices, values)
         assert st2.shape == (2, 3)
 
         st3 = torch.sparse_coo_tensor(indices, values, (3, 3, 3))
         assert st3.shape == (3, 3, 3)
 
-        indices_empty = [[], []]
-        values_empty = []
+        indices_1d = [[0, 2]]
+        st_1d = torch.sparse_coo_tensor(indices_1d, [1.0, 2.0], (4,))
+        assert st_1d.shape == (4,)
+
+        indices_3d = [[0, 1], [1, 0], [0, 1]]
+        st_3d = torch.sparse_coo_tensor(indices_3d, [1.0, 2.0], (2, 2, 2))
+        assert st_3d.shape == (2, 2, 2)
+
+        indices_empty: list[list[int]] = [[], []]
+        values_empty: list[float] = []
         st4 = torch.sparse_coo_tensor(indices_empty, values_empty)
         assert st4.shape == ()
 
-        # add and mm calls
-        # In EagerMode, if compiler has eager fallbacks it will be called, otherwise it might raise NotImplementedError or similar
-        try:
-            torch.sparse.add(st, st)
-        except (
-            RuntimeError,
-            ValueError,
-            TypeError,
-            AttributeError,
-            KeyError,
-            IndexError,
-            ImportError,
-            NotImplementedError,
-            UnimplementedMathError,
-            ShapeMismatchError,
-        ):
-            _pass = True
+        res_add = torch.sparse.add(st, st)
+        assert res_add.shape == (2, 3)
 
-        try:
-            torch.sparse.mm(st, st)
-        except (
-            RuntimeError,
-            ValueError,
-            TypeError,
-            AttributeError,
-            KeyError,
-            IndexError,
-            ImportError,
-            NotImplementedError,
-            UnimplementedMathError,
-            ShapeMismatchError,
-        ):
-            _pass = True
-
-        # test missing op
-        with pytest.raises(NotImplementedError):
-            torch.sparse._get_op("nonexistent_op")
-
-        # test success op
-        torch.sparse._ops.nonexistent_op = lambda: None
-        assert torch.sparse._get_op("nonexistent_op")() is None
+        sq = torch.sparse_coo_tensor([[0, 1], [0, 1]], [2.0, 3.0], (2, 2))
+        res_mm = torch.sparse.mm(sq, sq)
+        assert res_mm.shape == (2, 2)
 
 
-def test_sparse_proxy():
-    import ml_switcheroo_compiler
-
-    # Force eager mode off for this test since conftest sets it to True
+def test_sparse_proxy() -> None:
+    """Verifies `sparse_coo_tensor`, `sparse.add`, and `sparse.mm` in graph tracing mode."""
     prev = ml_switcheroo_compiler.core.config.eager_mode
     ml_switcheroo_compiler.core.config.eager_mode = False
+    _tracer.start_tracing()
     try:
         indices = [[0, 1, 1], [2, 0, 2]]
         values = [3.0, 4.0, 5.0]
         st = torch.sparse_coo_tensor(indices, values, (2, 3))
         assert st.shape == (2, 3)
+        res_add = torch.sparse.add(st, st)
+        assert res_add is not None
+        res_mm = torch.sparse.mm(st, st)
+        assert res_mm is not None
     finally:
+        _tracer.stop_tracing()
         ml_switcheroo_compiler.core.config.eager_mode = prev
-
-
-def test_sparse_edge_cases():
-    import importlib
-    import sys
-    from unittest.mock import patch
-
-    # Test ImportError
-    with patch.dict(sys.modules, {"ml_switcheroo_compiler.ops.sparse": None}):
-        import zero_torch.sparse
-
-        importlib.reload(zero_torch.sparse)
-
-        # Test not found ops
-        # Test not found ops fallbacks
-        import ml_switcheroo_compiler
-
-        prev = ml_switcheroo_compiler.core.config.eager_mode
-        ml_switcheroo_compiler.core.config.eager_mode = False
-        try:
-            with pytest.raises(
-                NotImplementedError,
-                match="Compiler backend missing sparse op: sparse_add",
-            ):
-                zero_torch.sparse.add(torch.tensor(1), torch.tensor(1))
-
-            with pytest.raises(
-                NotImplementedError, match="Compiler backend missing sparse op: smm"
-            ):
-                zero_torch.sparse.mm(torch.tensor([[1]]), torch.tensor([[1]]))
-        finally:
-            ml_switcheroo_compiler.core.config.eager_mode = prev
-
-    # Reload normally
-    importlib.reload(zero_torch.sparse)
-    st = zero_torch.sparse.sparse_coo_tensor(
-        [[0, 1, 1], [2, 0, 2]], [3.0, 4.0, 5.0], (2, 3)
-    )
-    assert st.shape == (2, 3)

@@ -1,28 +1,38 @@
 """Shuffle modules."""
 
+from __future__ import annotations
+
+import zero_torch
+from zero_torch.tensor import Tensor
+
 from .module import Module
 
 
 class ChannelShuffle(Module):
-    """Divides and rearranges the channels in a tensor."""
+    """Divides and rearranges the channels in a tensor into `groups` groups."""
 
     def __init__(self, groups: int) -> None:
-        """Initializes ChannelShuffle."""
-        super().__init__()
-        self.groups = groups
+        """Initializes ChannelShuffle.
 
-    def forward(self, input):
-        """Forward pass."""
+        Args:
+            groups: Number of groups to divide channels into.
+        """
+        super().__init__()
+        self.groups: int = groups
+
+    def forward(self, input: Tensor) -> Tensor:
+        """Applies channel shuffle to `input`.
+
+        Args:
+            input: Input tensor of shape `(N, C, *)`.
+
+        Returns:
+            Channel-shuffled tensor of the same shape as `input`.
+        """
         b, c, *dims = input.shape
         channels_per_group = c // self.groups
-
-        # Reshape to (b, groups, channels_per_group, *dims)
         view_shape = (b, self.groups, channels_per_group) + tuple(dims)
-        input = input.view(*view_shape)
-
-        # Transpose groups and channels_per_group
-        input = input.transpose(1, 2).contiguous()
-
-        # Flatten back to original shape
-        out_shape = (b, -1) + tuple(dims)  # pragma: no cover
-        return input.view(*out_shape)  # pragma: no cover
+        reshaped = input.view(*view_shape)
+        transposed = zero_torch.transpose(reshaped, 1, 2).contiguous()
+        out_shape = (b, c) + tuple(dims)
+        return transposed.view(*out_shape)

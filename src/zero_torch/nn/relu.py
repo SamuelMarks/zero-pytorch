@@ -1,80 +1,81 @@
-"ReLU and Sequential modules."
+"""ReLU and Sequential modules."""
 
-from typing import Any
+from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
+import zero_torch.nn.functional as F
+from zero_torch._types import OpArg
 from zero_torch.tensor import Tensor
 
 from .module import Module
 
 
 class ReLU(Module):
-    """Applies the rectified linear unit function element-wise."""
+    """Applies the rectified linear unit function element-wise: `ReLU(x) = max(0, x)`."""
 
     def __init__(
         self,
         inplace: bool = False,
-        __constants__=None,
-        *args: Any,
-        **kwargs: Any,
+        __constants__: Sequence[str] | None = None,
+        *args: OpArg,
+        **kwargs: OpArg,
     ) -> None:
-        """Initialize ReLU module.
+        """Initializes ReLU module.
 
         Args:
-            inplace (bool, optional): If set to True, will do this operation in-place. Defaults to False.
-            __constants__ (list, optional): List of constants. Defaults to ["inplace"].
+            inplace: If True, performs the operation in-place.
+            __constants__: Optional constant attribute names.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        if __constants__ is None:
-            __constants__ = ["inplace"]
+        _ = (args, kwargs)
         super().__init__()
-        self.inplace = inplace
+        self.__constants__: list[str] = (
+            list(__constants__) if __constants__ is not None else ["inplace"]
+        )
+        self.inplace: bool = inplace
 
     def forward(self, input: Tensor) -> Tensor:
-        """Forward pass applying ReLU.
+        """Applies ReLU element-wise to `input`.
 
         Args:
-            input (Tensor): The input tensor.
+            input: Input tensor.
 
         Returns:
-            Tensor: A tensor with the ReLU function applied element-wise.
+            Output tensor with ReLU applied.
         """
-        import zero_torch.nn.functional as F
-
-        # Eager mode zero_torch doesn't have inplace relu out of the box so just fallback to normal
         return F.relu(input, inplace=self.inplace)
 
 
 class Sequential(Module):
-    """A sequential container.
+    """A sequential container of child modules executed in order."""
 
-    Modules will be added to it in the order they are passed in the constructor.
-    Alternatively, an OrderedDict of modules can be passed in.
-    """
-
-    def __init__(self, *args: Any) -> None:
-        """Initialize Sequential module.
+    def __init__(self, *args: Module | Mapping[str, Module]) -> None:
+        """Initializes Sequential module.
 
         Args:
-            *args: Modules to add to the sequential container.
+            *args: Modules (or a single mapping of named modules) to add in sequence.
         """
         super().__init__()
-        if len(args) == 1 and isinstance(args[0], dict):
-            for key, module in args[0].items():  # pragma: no cover
-                self.add_module(key, module)  # pragma: no cover
+        if len(args) == 1 and isinstance(args[0], Mapping):
+            for key, mod in args[0].items():
+                self.add_module(key, mod)
         else:
-            for idx, module in enumerate(args):
-                self.add_module(str(idx), module)  # pragma: no cover
+            for idx, arg in enumerate(args):
+                assert isinstance(arg, Module)
+                self.add_module(str(idx), arg)
 
-    def forward(self, input: Any) -> Any:
-        """Forward pass through all modules in sequence.
+    def forward(self, input: Tensor) -> Tensor:
+        """Executes all child modules in sequence on `input`.
 
         Args:
-            input (Any): The input data.
+            input: Input tensor to the first module.
 
         Returns:
-            Any: The output of the final module in the sequence.
+            Output tensor of the final module in the sequence.
         """
-        for module in self._modules.values():
-            input = module(input)  # pragma: no cover
-        return input
+        out = input
+        for child_mod in self._modules.values():
+            out = child_mod(out)
+        return out

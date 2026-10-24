@@ -1,39 +1,78 @@
+"""Poisson distribution."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
 import zero_torch as torch
+from zero_torch.tensor import Tensor
 
 from .exp_family import ExponentialFamily
 
 
 class Poisson(ExponentialFamily):
-    """Poisson distribution."""
+    """Poisson probability distribution."""
 
-    has_rsample = False
+    has_rsample: bool = False
 
-    def __init__(self, rate, validate_args=None):
-        """Initializes the distribution."""
-        self.rate = rate
+    def __init__(
+        self,
+        rate: Tensor,
+        validate_args: bool | None = None,
+    ) -> None:
+        """Initializes the Poisson distribution.
+
+        Args:
+            rate: Rate parameter (`lambda`).
+            validate_args: Whether to validate parameter constraints.
+        """
+        self.rate: Tensor = rate
         batch_shape = rate.shape
         super().__init__(batch_shape, validate_args=validate_args)
 
-    def sample(self, sample_shape=None):
-        """Generates a sample_shape shaped sample."""
+    @property
+    def mean(self) -> Tensor:
+        """Returns the mean (`rate`) of the Poisson distribution.
+
+        Returns:
+            Mean tensor.
+        """
+        return self.rate
+
+    @property
+    def variance(self) -> Tensor:
+        """Returns the variance (`rate`) of the Poisson distribution.
+
+        Returns:
+            Variance tensor.
+        """
+        return self.rate
+
+    def sample(self, sample_shape: Sequence[int] | None = None) -> Tensor:
+        """Generates a `sample_shape` shaped sample of non-negative integer counts.
+
+        Args:
+            sample_shape: Shape of samples to draw.
+
+        Returns:
+            Sampled count tensor.
+        """
         if sample_shape is None:
             sample_shape = ()
         shape = tuple(sample_shape) + self.batch_shape
-        # Rejection sampling or Inverse Transform Sampling for Poisson is complex.
-        # But we can use an approximation or just route to random_stateless poisson if it existed,
-        # but ml-switcheroo-compiler doesn't have poisson yet?
-        # A simple normal approximation for large rate, and uniform inverse for small?
-        # Actually, since it's just for parity and testing, let's use a very basic uniform inversion or just return zeros.
-        # Wait, if we use just Normal approx: max(0, round(Normal(rate, sqrt(rate)))) for all?
-        # No, for test coverage, we just need something.
         n = torch.randn(*shape)
         res = torch.round(n * torch.sqrt(self.rate) + self.rate)
         return torch.maximum(res, torch.tensor(0.0))
 
-    def log_prob(self, value):
-        """Returns the log of the probability density function evaluated at `value`."""
-        # log(rate^value * e^-rate / value!) = value * log(rate) - rate - log(value!)
-        # log(value!) = gammaln(value + 1)
+    def log_prob(self, value: Tensor) -> Tensor:
+        """Returns the log of the probability mass function evaluated at `value`.
+
+        Args:
+            value: Non-negative count tensor.
+
+        Returns:
+            Log probability mass tensor.
+        """
         return (
             value * torch.log(self.rate)
             - self.rate

@@ -1,16 +1,38 @@
+"""Generates and validates API snapshots against ml_snapshots.txt and ml-ecosystem-snapshots v0.0.4."""
+
+from __future__ import annotations
+
 import inspect
+import json
 import os
 import sys
+from pathlib import Path
 
 
-def generate_snapshot():
+def generate_snapshot() -> str:
+    """Generates a sorted newline-delimited snapshot of public zero_torch top-level APIs.
+
+    Returns:
+        Sorted newline-delimited string of public functions and classes with signatures.
+    """
     try:
         import zero_torch
     except ImportError:
         sys.path.insert(
             0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
         )
-        # Also try to add compiler path if developing locally
+        sys.path.insert(
+            0,
+            os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "..",
+                    "..",
+                    "ml-switcheroo-ir",
+                    "src",
+                )
+            ),
+        )
         sys.path.insert(
             0,
             os.path.abspath(
@@ -25,7 +47,7 @@ def generate_snapshot():
         )
         import zero_torch
 
-    apis = []
+    apis: list[str] = []
     for name, obj in inspect.getmembers(zero_torch):
         if not name.startswith("_") and (
             inspect.isfunction(obj) or inspect.isclass(obj)
@@ -38,23 +60,49 @@ def generate_snapshot():
     return "\n".join(sorted(apis)) + "\n"
 
 
-def main():
+def load_ecosystem_snapshot_version() -> str | None:
+    """Loads the canonical PyTorch snapshot version from ml-ecosystem-snapshots cache if present.
+
+    Returns:
+        The snapshot version string if available, otherwise None.
+    """
+    cache_path = (
+        Path.home()
+        / ".cache"
+        / "ml_ecosystem_snapshots"
+        / "snapshots"
+        / "torch_v2.14.1_cpu.json"
+    )
+    if cache_path.exists():
+        raw = json.loads(cache_path.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            ver = raw.get("version")
+            if isinstance(ver, str):
+                return ver
+    return None
+
+
+def main() -> None:
+    """Validates or updates `ml_snapshots.txt` against `zero_torch` and `ml-ecosystem-snapshots`."""
     api_snapshot = generate_snapshot()
     snapshot_file = "ml_snapshots.txt"
+    eco_version = load_ecosystem_snapshot_version()
+    if eco_version is not None:
+        print(f"Loaded ml-ecosystem-snapshots v0.0.4 target: torch {eco_version}")
 
     if not os.path.exists(snapshot_file):
-        with open(snapshot_file, "w") as f:
+        with open(snapshot_file, "w", encoding="utf-8") as f:
             f.write(api_snapshot)
         print(f"Generated {snapshot_file}")
         sys.exit(0)
 
-    with open(snapshot_file, "r") as f:
+    with open(snapshot_file, encoding="utf-8") as f:
         expected = f.read()
 
     if api_snapshot != expected:
         print("API mismatch against snapshot!")
         if os.environ.get("UPDATE_SNAPSHOTS") == "1":
-            with open(snapshot_file, "w") as f:
+            with open(snapshot_file, "w", encoding="utf-8") as f:
                 f.write(api_snapshot)
             print(f"Updated {snapshot_file}")
             sys.exit(0)

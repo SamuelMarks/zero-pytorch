@@ -1,103 +1,89 @@
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
+"""Ported special functions (`zero_torch.special`) parity tests."""
 
+from __future__ import annotations
+
+import numpy as np
 import pytest
+import torch as real_torch
 from ml_switcheroo_compiler.core.config import EagerMode
+from ml_switcheroo_compiler.core.errors import UnimplementedMathError
 
 import zero_torch as torch
 from zero_torch.tensor import Tensor
 
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
 
-
-def test_special_parity():
+def test_special_parity() -> None:
+    """Verifies `zero_torch.special` functions against `torch.special`."""
     with EagerMode():
-        t = Tensor([1.0, 2.0, 3.0])
+        arr = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+        t = Tensor(arr)
+        rt = real_torch.tensor(arr)
         t2 = Tensor([0.5, 1.5, 2.5])
         n = Tensor([1, 2, 3])
 
-        funcs = [
-            ("bessel_j0", [t]),
-            ("bessel_j1", [t]),
-            ("bessel_y0", [t]),
-            ("bessel_y1", [t]),
-            ("modified_bessel_i0", [t]),
-            ("modified_bessel_i1", [t]),
-            ("modified_bessel_k0", [t]),
-            ("modified_bessel_k1", [t]),
-            ("erfcx", [t]),
-            ("ndtr", [t]),
-            ("ndtri", [t]),
-            ("gammaln", [t]),
-            ("polygamma", [1, t]),
-            ("multigammaln", [t, 2]),
-            ("zeta", [t, t2]),
-            ("chebyshev_polynomial_t", [t, n]),
-            ("hermite_polynomial_h", [t, n]),
-            ("laguerre_polynomial_l", [t, n]),
-            ("legendre_polynomial_p", [t, n]),
-        ]
+        np.testing.assert_allclose(
+            torch.special.bessel_j0(t).tolist(),
+            real_torch.special.bessel_j0(rt).tolist(),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            torch.special.bessel_j1(t).tolist(),
+            real_torch.special.bessel_j1(rt).tolist(),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            torch.special.erfcx(t).tolist(),
+            real_torch.special.erfcx(rt).tolist(),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            torch.special.ndtr(t).tolist(),
+            real_torch.special.ndtr(rt).tolist(),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            torch.special.gammaln(t).tolist(),
+            real_torch.special.gammaln(rt).tolist(),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            torch.special.multigammaln(t, 2).tolist(),
+            real_torch.special.multigammaln(rt, 2).tolist(),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        assert torch.special.ndtri(Tensor([0.25, 0.5, 0.75])).shape == (3,)
+        assert torch.special.polygamma(1, t).shape == (3,)
+        assert torch.special.zeta(t, t2).shape == (3,)
 
-        for func_name, args in funcs:
-            try:
-                getattr(torch.special, func_name)(*args)
-            except NotImplementedError:
-                _pass = True
-            except (
-                RuntimeError,
-                ValueError,
-                TypeError,
-                AttributeError,
-                KeyError,
-                IndexError,
-                ImportError,
-                UnimplementedMathError,
-                ShapeMismatchError,
-            ):
-                _pass = True
+        assert torch.special.bessel_y0(t).shape == (3,)
+        assert torch.special.bessel_y1(t).shape == (3,)
 
-        # test missing op
-        with pytest.raises(NotImplementedError):
-            torch.special._get_op("nonexistent_op")
+        np.testing.assert_allclose(
+            torch.special.modified_bessel_i0(t).tolist(),
+            real_torch.special.modified_bessel_i0(rt).tolist(),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            torch.special.modified_bessel_i1(t).tolist(),
+            real_torch.special.modified_bessel_i1(rt).tolist(),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        assert torch.special.modified_bessel_k0(t).shape == (3,)
+        assert torch.special.modified_bessel_k1(t).shape == (3,)
 
-        # test success op
-        torch.special._ops.nonexistent_op = lambda: None
-        assert torch.special._get_op("nonexistent_op")() is None
-
-
-def test_special_import_fallback(monkeypatch):
-    import builtins
-    import importlib
-
-    import zero_torch.special
-
-    original_import = builtins.__import__
-
-    def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
-        if (
-            name == "ml_switcheroo_compiler.ops.unary.special"
-            or name == "ml_switcheroo_compiler.ops.binary.special"
-        ):
-            raise ImportError("Mocked ImportError")
-        return original_import(name, globals, locals, fromlist, level)
-
-    monkeypatch.setattr(builtins, "__import__", mock_import)
-
-    importlib.reload(zero_torch.special)
-
-    # Check that it fell back
-    assert hasattr(zero_torch.special._ops, "__class__")
-    assert zero_torch.special._ops.__class__.__name__ == "_MockSpecial"
+        for poly_fn in [
+            torch.special.chebyshev_polynomial_t,
+            torch.special.hermite_polynomial_h,
+            torch.special.laguerre_polynomial_l,
+            torch.special.legendre_polynomial_p,
+        ]:
+            with pytest.raises(UnimplementedMathError):
+                poly_fn(t, n)

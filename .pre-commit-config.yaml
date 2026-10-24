@@ -15,9 +15,30 @@ repos:
         types: [python]
         pass_filenames: false
 
+      - id: check-typing-and-docs
+        name: Check Typing and Docstrings
+        entry: env PYTHONPATH=src:../ml-switcheroo-ir/src:../ml-switcheroo-compiler/src python3 scripts/check_typing_and_docs.py
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: interrogate
+        name: Interrogate Docstrings
+        entry: interrogate -v --fail-under 100 src/zero_torch scripts tests
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: mypy
+        name: Mypy Strict Type Check
+        entry: env PYTHONPATH=src:../ml-switcheroo-ir/src:../ml-switcheroo-compiler/src mypy --strict src/zero_torch scripts tests
+        language: system
+        types: [python]
+        pass_filenames: false
+
       - id: pytest-coverage
         name: Run Pytest Coverage
-        entry: bash -c "PYTHONPATH=../ml-switcheroo-compiler/src:src pytest --cov=. --cov-report=term-missing"
+        entry: bash -c "PYTHONPATH=../ml-switcheroo-ir/src:../ml-switcheroo-compiler/src:src pytest --cov=src/zero_torch --cov-branch --cov-report=term-missing --cov-fail-under=100"
         language: system
         types: [python]
         pass_filenames: false
@@ -36,17 +57,16 @@ repos:
         files: ^src/.*\.py$
         pass_filenames: false
 
-
       - id: check-api-compliance
         name: Check API Conformance
-        entry: env PYTHONPATH=src:../ml-switcheroo-compiler/src python3 scripts/check_compliance.py
+        entry: env PYTHONPATH=src:../ml-switcheroo-ir/src:../ml-switcheroo-compiler/src python3 scripts/check_compliance.py
         language: system
         files: ^(SEMANTIC_PLAN\.md|src/.*\.py)$
         pass_filenames: false
 
       - id: check-api-snapshots
         name: Check API Snapshots
-        entry: env PYTHONPATH=src:../ml-switcheroo-compiler/src python3 scripts/check_api_snapshots.py
+        entry: env PYTHONPATH=src:../ml-switcheroo-ir/src:../ml-switcheroo-compiler/src python3 scripts/check_api_snapshots.py
         language: system
         files: ^(src/.*\.py|ml_snapshots\.txt)$
         pass_filenames: false

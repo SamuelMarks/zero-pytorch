@@ -2,58 +2,87 @@
 
 from __future__ import annotations
 
-from .module import Module
+from collections.abc import Sequence
+
+from ml_switcheroo_compiler.ops.reductions.frontend import fold, unfold
+
+import zero_torch
+import zero_torch.nn.functional as F
+from zero_torch._types import (
+    DeviceLike,
+    DTypeLike,
+    PaddingArg1d,
+    PaddingArg2d,
+    PaddingArg3d,
+    Size1d,
+    Size2d,
+    Size3d,
+)
+from zero_torch.tensor import Tensor, _to_tensor, _wrap
+
+from .module import Module, Parameter
 
 
 class Conv1d(Module):
-    """Applies a 1D convolution over an input signal."""
+    """Applies a 1D convolution over an input signal composed of several input planes."""
 
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
+        kernel_size: Size1d,
+        stride: Size1d = 1,
+        padding: PaddingArg1d = 0,
+        dilation: Size1d = 1,
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = "zeros",
-        device=None,
-        dtype=None,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
     ) -> None:
-        """Initializes Conv1d."""
+        """Initializes Conv1d.
+
+        Args:
+            in_channels: Number of channels in the input signal.
+            out_channels: Number of channels produced by the convolution.
+            kernel_size: Size of the convolving kernel.
+            stride: Stride of the convolution.
+            padding: Padding added to both sides of the input.
+            dilation: Spacing between kernel elements.
+            groups: Number of blocked connections from input channels to output channels.
+            bias: If True, adds a learnable bias to the output.
+            padding_mode: Padding mode (`'zeros'`, `'reflect'`, `'replicate'`, `'circular'`).
+            device: Desired device of the parameters.
+            dtype: Desired data type of the parameters.
+        """
+        _ = (device, dtype)
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.dilation = dilation
-        self.groups = groups
+        self.in_channels: int = in_channels
+        self.out_channels: int = out_channels
+        self.kernel_size: Size1d = kernel_size
+        self.stride: Size1d = stride
+        self.padding: PaddingArg1d = padding
+        self.dilation: Size1d = dilation
+        self.groups: int = groups
+        self.padding_mode: str = padding_mode
 
-        self.padding_mode = padding_mode
-        import zero_torch
-
-        from .module import Parameter
-
-        if isinstance(kernel_size, int):
-            k = (kernel_size,)
-        else:
-            k = kernel_size
-        self.weight = Parameter(
+        k = (kernel_size,) if isinstance(kernel_size, int) else kernel_size
+        self.weight: Parameter = Parameter(
             zero_torch.zeros((out_channels, in_channels // groups, k[0]))
         )
-        self.bias: Parameter | None
-        if bias:
-            self.bias = Parameter(zero_torch.zeros((out_channels,)))
-        else:
-            self.bias = None  # pragma: no cover
+        self.bias: Parameter | None = (
+            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+        )
 
-    def forward(self, input):
-        """Forward pass."""
-        import zero_torch.nn.functional as F
+    def forward(self, input: Tensor) -> Tensor:
+        """Applies 1D convolution to `input`.
 
+        Args:
+            input: Input tensor of shape `(N, C_in, L_in)`.
+
+        Returns:
+            Convolved tensor of shape `(N, C_out, L_out)`.
+        """
         return F.conv1d(
             input,
             self.weight,
@@ -66,54 +95,65 @@ class Conv1d(Module):
 
 
 class Conv2d(Module):
-    """Applies a 2D convolution over an input signal."""
+    """Applies a 2D convolution over an input signal composed of several input planes."""
 
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
+        kernel_size: Size2d,
+        stride: Size2d = 1,
+        padding: PaddingArg2d = 0,
+        dilation: Size2d = 1,
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = "zeros",
-        device=None,
-        dtype=None,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
     ) -> None:
-        """Initializes Conv2d."""
+        """Initializes Conv2d.
+
+        Args:
+            in_channels: Number of channels in the input image.
+            out_channels: Number of channels produced by the convolution.
+            kernel_size: Size of the convolving kernel.
+            stride: Stride of the convolution.
+            padding: Padding added to all four sides of the input.
+            dilation: Spacing between kernel elements.
+            groups: Number of blocked connections from input channels to output channels.
+            bias: If True, adds a learnable bias to the output.
+            padding_mode: Padding mode (`'zeros'`, `'reflect'`, `'replicate'`, `'circular'`).
+            device: Desired device of the parameters.
+            dtype: Desired data type of the parameters.
+        """
+        _ = (device, dtype)
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.dilation = dilation
-        self.groups = groups
+        self.in_channels: int = in_channels
+        self.out_channels: int = out_channels
+        self.kernel_size: Size2d = kernel_size
+        self.stride: Size2d = stride
+        self.padding: PaddingArg2d = padding
+        self.dilation: Size2d = dilation
+        self.groups: int = groups
+        self.padding_mode: str = padding_mode
 
-        self.padding_mode = padding_mode
-        import zero_torch
-
-        from .module import Parameter
-
-        if isinstance(kernel_size, int):
-            k = (kernel_size, kernel_size)
-        else:
-            k = kernel_size
-        self.weight = Parameter(
+        k = (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
+        self.weight: Parameter = Parameter(
             zero_torch.zeros((out_channels, in_channels // groups, k[0], k[1]))
         )
-        self.bias: Parameter | None
-        if bias:
-            self.bias = Parameter(zero_torch.zeros((out_channels,)))
-        else:
-            self.bias = None  # pragma: no cover
+        self.bias: Parameter | None = (
+            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+        )
 
-    def forward(self, input):
-        """Forward pass."""
-        import zero_torch.nn.functional as F
+    def forward(self, input: Tensor) -> Tensor:
+        """Applies 2D convolution to `input`.
 
+        Args:
+            input: Input tensor of shape `(N, C_in, H_in, W_in)`.
+
+        Returns:
+            Convolved tensor of shape `(N, C_out, H_out, W_out)`.
+        """
         return F.conv2d(
             input,
             self.weight,
@@ -126,54 +166,69 @@ class Conv2d(Module):
 
 
 class Conv3d(Module):
-    """Applies a 3D convolution over an input signal."""
+    """Applies a 3D convolution over an input signal composed of several input planes."""
 
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
+        kernel_size: Size3d,
+        stride: Size3d = 1,
+        padding: PaddingArg3d = 0,
+        dilation: Size3d = 1,
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = "zeros",
-        device=None,
-        dtype=None,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
     ) -> None:
-        """Initializes Conv3d."""
+        """Initializes Conv3d.
+
+        Args:
+            in_channels: Number of channels in the input volume.
+            out_channels: Number of channels produced by the convolution.
+            kernel_size: Size of the convolving kernel.
+            stride: Stride of the convolution.
+            padding: Padding added to all six sides of the input.
+            dilation: Spacing between kernel elements.
+            groups: Number of blocked connections from input channels to output channels.
+            bias: If True, adds a learnable bias to the output.
+            padding_mode: Padding mode (`'zeros'`, `'reflect'`, `'replicate'`, `'circular'`).
+            device: Desired device of the parameters.
+            dtype: Desired data type of the parameters.
+        """
+        _ = (device, dtype)
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.dilation = dilation
-        self.groups = groups
+        self.in_channels: int = in_channels
+        self.out_channels: int = out_channels
+        self.kernel_size: Size3d = kernel_size
+        self.stride: Size3d = stride
+        self.padding: PaddingArg3d = padding
+        self.dilation: Size3d = dilation
+        self.groups: int = groups
+        self.padding_mode: str = padding_mode
 
-        self.padding_mode = padding_mode
-        import zero_torch
-
-        from .module import Parameter
-
-        if isinstance(kernel_size, int):
-            k = (kernel_size, kernel_size, kernel_size)
-        else:
-            k = kernel_size
-        self.weight = Parameter(
+        k = (
+            (kernel_size, kernel_size, kernel_size)
+            if isinstance(kernel_size, int)
+            else kernel_size
+        )
+        self.weight: Parameter = Parameter(
             zero_torch.zeros((out_channels, in_channels // groups, k[0], k[1], k[2]))
         )
-        self.bias: Parameter | None
-        if bias:
-            self.bias = Parameter(zero_torch.zeros((out_channels,)))
-        else:
-            self.bias = None  # pragma: no cover
+        self.bias: Parameter | None = (
+            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+        )
 
-    def forward(self, input):
-        """Forward pass."""
-        import zero_torch.nn.functional as F
+    def forward(self, input: Tensor) -> Tensor:
+        """Applies 3D convolution to `input`.
 
+        Args:
+            input: Input tensor of shape `(N, C_in, D_in, H_in, W_in)`.
+
+        Returns:
+            Convolved tensor of shape `(N, C_out, D_out, H_out, W_out)`.
+        """
         return F.conv3d(
             input,
             self.weight,
@@ -186,40 +241,72 @@ class Conv3d(Module):
 
 
 class ConvTranspose1d(Module):
-    """Applies a 1D transposed convolution operator."""
+    """Applies a 1D transposed convolution operator over an input signal."""
 
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size,
-        stride=1,
-        padding=0,
-        output_padding=0,
+        kernel_size: Size1d,
+        stride: Size1d = 1,
+        padding: Size1d = 0,
+        output_padding: Size1d = 0,
         groups: int = 1,
         bias: bool = True,
-        dilation=1,
+        dilation: Size1d = 1,
         padding_mode: str = "zeros",
-        device=None,
-        dtype=None,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
     ) -> None:
-        """Initializes ConvTranspose1d."""
+        """Initializes ConvTranspose1d.
+
+        Args:
+            in_channels: Number of channels in the input signal.
+            out_channels: Number of channels produced by the convolution.
+            kernel_size: Size of the convolving kernel.
+            stride: Stride of the convolution.
+            padding: Implicit zero-padding awareness.
+            output_padding: Additional size added to one side of the output shape.
+            groups: Number of blocked connections.
+            bias: If True, adds a learnable bias to the output.
+            dilation: Spacing between kernel elements.
+            padding_mode: Padding mode (`'zeros'`).
+            device: Desired device of the parameters.
+            dtype: Desired data type of the parameters.
+        """
+        _ = (device, dtype)
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.output_padding = output_padding
-        self.groups = groups
+        self.in_channels: int = in_channels
+        self.out_channels: int = out_channels
+        self.kernel_size: Size1d = kernel_size
+        self.stride: Size1d = stride
+        self.padding: Size1d = padding
+        self.output_padding: Size1d = output_padding
+        self.groups: int = groups
+        self.dilation: Size1d = dilation
+        self.padding_mode: str = padding_mode
 
-        self.dilation = dilation
-        self.padding_mode = padding_mode
+        k = (kernel_size,) if isinstance(kernel_size, int) else kernel_size
+        self.weight: Parameter = Parameter(
+            zero_torch.zeros((in_channels, out_channels // groups, k[0]))
+        )
+        self.bias: Parameter | None = (
+            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+        )
 
-    def forward(self, input, output_size=None):
-        """Forward pass."""
-        import zero_torch.nn.functional as F
+    def forward(
+        self, input: Tensor, output_size: Sequence[int] | None = None
+    ) -> Tensor:
+        """Applies 1D transposed convolution to `input`.
 
+        Args:
+            input: Input tensor.
+            output_size: Optional target output spatial size.
+
+        Returns:
+            Transposed convolved tensor.
+        """
+        _ = output_size
         return F.conv_transpose1d(
             input,
             self.weight,
@@ -233,40 +320,72 @@ class ConvTranspose1d(Module):
 
 
 class ConvTranspose2d(Module):
-    """Applies a 2D transposed convolution operator."""
+    """Applies a 2D transposed convolution operator over an input image."""
 
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size,
-        stride=1,
-        padding=0,
-        output_padding=0,
+        kernel_size: Size2d,
+        stride: Size2d = 1,
+        padding: Size2d = 0,
+        output_padding: Size2d = 0,
         groups: int = 1,
         bias: bool = True,
-        dilation=1,
+        dilation: Size2d = 1,
         padding_mode: str = "zeros",
-        device=None,
-        dtype=None,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
     ) -> None:
-        """Initializes ConvTranspose2d."""
+        """Initializes ConvTranspose2d.
+
+        Args:
+            in_channels: Number of channels in the input image.
+            out_channels: Number of channels produced by the convolution.
+            kernel_size: Size of the convolving kernel.
+            stride: Stride of the convolution.
+            padding: Implicit zero-padding awareness.
+            output_padding: Additional size added to one side of each dimension in the output shape.
+            groups: Number of blocked connections.
+            bias: If True, adds a learnable bias to the output.
+            dilation: Spacing between kernel elements.
+            padding_mode: Padding mode (`'zeros'`).
+            device: Desired device of the parameters.
+            dtype: Desired data type of the parameters.
+        """
+        _ = (device, dtype)
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.output_padding = output_padding
-        self.groups = groups
+        self.in_channels: int = in_channels
+        self.out_channels: int = out_channels
+        self.kernel_size: Size2d = kernel_size
+        self.stride: Size2d = stride
+        self.padding: Size2d = padding
+        self.output_padding: Size2d = output_padding
+        self.groups: int = groups
+        self.dilation: Size2d = dilation
+        self.padding_mode: str = padding_mode
 
-        self.dilation = dilation
-        self.padding_mode = padding_mode
+        k = (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
+        self.weight: Parameter = Parameter(
+            zero_torch.zeros((in_channels, out_channels // groups, k[0], k[1]))
+        )
+        self.bias: Parameter | None = (
+            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+        )
 
-    def forward(self, input, output_size=None):
-        """Forward pass."""
-        import zero_torch.nn.functional as F
+    def forward(
+        self, input: Tensor, output_size: Sequence[int] | None = None
+    ) -> Tensor:
+        """Applies 2D transposed convolution to `input`.
 
+        Args:
+            input: Input tensor.
+            output_size: Optional target output spatial size.
+
+        Returns:
+            Transposed convolved tensor.
+        """
+        _ = output_size
         return F.conv_transpose2d(
             input,
             self.weight,
@@ -280,40 +399,76 @@ class ConvTranspose2d(Module):
 
 
 class ConvTranspose3d(Module):
-    """Applies a 3D transposed convolution operator."""
+    """Applies a 3D transposed convolution operator over an input volume."""
 
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size,
-        stride=1,
-        padding=0,
-        output_padding=0,
+        kernel_size: Size3d,
+        stride: Size3d = 1,
+        padding: Size3d = 0,
+        output_padding: Size3d = 0,
         groups: int = 1,
         bias: bool = True,
-        dilation=1,
+        dilation: Size3d = 1,
         padding_mode: str = "zeros",
-        device=None,
-        dtype=None,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
     ) -> None:
-        """Initializes ConvTranspose3d."""
+        """Initializes ConvTranspose3d.
+
+        Args:
+            in_channels: Number of channels in the input volume.
+            out_channels: Number of channels produced by the convolution.
+            kernel_size: Size of the convolving kernel.
+            stride: Stride of the convolution.
+            padding: Implicit zero-padding awareness.
+            output_padding: Additional size added to one side of each dimension in the output shape.
+            groups: Number of blocked connections.
+            bias: If True, adds a learnable bias to the output.
+            dilation: Spacing between kernel elements.
+            padding_mode: Padding mode (`'zeros'`).
+            device: Desired device of the parameters.
+            dtype: Desired data type of the parameters.
+        """
+        _ = (device, dtype)
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.output_padding = output_padding
-        self.groups = groups
+        self.in_channels: int = in_channels
+        self.out_channels: int = out_channels
+        self.kernel_size: Size3d = kernel_size
+        self.stride: Size3d = stride
+        self.padding: Size3d = padding
+        self.output_padding: Size3d = output_padding
+        self.groups: int = groups
+        self.dilation: Size3d = dilation
+        self.padding_mode: str = padding_mode
 
-        self.dilation = dilation
-        self.padding_mode = padding_mode
+        k = (
+            (kernel_size, kernel_size, kernel_size)
+            if isinstance(kernel_size, int)
+            else kernel_size
+        )
+        self.weight: Parameter = Parameter(
+            zero_torch.zeros((in_channels, out_channels // groups, k[0], k[1], k[2]))
+        )
+        self.bias: Parameter | None = (
+            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+        )
 
-    def forward(self, input, output_size=None):
-        """Forward pass."""
-        import zero_torch.nn.functional as F
+    def forward(
+        self, input: Tensor, output_size: Sequence[int] | None = None
+    ) -> Tensor:
+        """Applies 3D transposed convolution to `input`.
 
+        Args:
+            input: Input tensor.
+            output_size: Optional target output spatial size.
+
+        Returns:
+            Transposed convolved tensor.
+        """
+        _ = output_size
         return F.conv_transpose3d(
             input,
             self.weight,
@@ -327,22 +482,38 @@ class ConvTranspose3d(Module):
 
 
 class Unfold(Module):
-    """Implementation of the Unfold module."""
+    """Extracts sliding local blocks from a batched input tensor."""
 
-    def __init__(self, kernel_size, dilation=1, padding=0, stride=1) -> None:
-        """Initializes Unfold."""
+    def __init__(
+        self,
+        kernel_size: Size2d,
+        dilation: Size2d = 1,
+        padding: Size2d = 0,
+        stride: Size2d = 1,
+    ) -> None:
+        """Initializes Unfold.
+
+        Args:
+            kernel_size: Size of the sliding blocks.
+            dilation: Parameter that controls the stride of elements within the neighborhood.
+            padding: Implicit zero padding to be added on both sides of input.
+            stride: Stride of the sliding blocks in the input spatial dimensions.
+        """
         super().__init__()
-        self.kernel_size = kernel_size
-        self.dilation = dilation
-        self.padding = padding
-        self.stride = stride
+        self.kernel_size: Size2d = kernel_size
+        self.dilation: Size2d = dilation
+        self.padding: Size2d = padding
+        self.stride: Size2d = stride
 
-    def forward(self, input):
-        """Forward pass."""
-        from ml_switcheroo_compiler.ops.reductions.frontend import unfold
+    def forward(self, input: Tensor) -> Tensor:
+        """Extracts sliding blocks from `input`.
 
-        from zero_torch.tensor import _to_tensor, _wrap
+        Args:
+            input: 4D input tensor `(N, C, H, W)`.
 
+        Returns:
+            Unfolded 3D tensor `(N, C * prod(kernel_size), L)`.
+        """
         input_t = _to_tensor(input)
         res = unfold(
             input_t,
@@ -351,29 +522,45 @@ class Unfold(Module):
             padding=self.padding,
             stride=self.stride,
         )
-        return _wrap(res)  # pragma: no cover
+        return _wrap(res)
 
 
 class Fold(Module):
-    """Implementation of the Fold module."""
+    """Combines an array of sliding local blocks into a large containing tensor."""
 
     def __init__(
-        self, output_size, kernel_size, dilation=1, padding=0, stride=1
+        self,
+        output_size: Size2d,
+        kernel_size: Size2d,
+        dilation: Size2d = 1,
+        padding: Size2d = 0,
+        stride: Size2d = 1,
     ) -> None:
-        """Initializes Fold."""
+        """Initializes Fold.
+
+        Args:
+            output_size: Shape of the spatial dimensions of the output.
+            kernel_size: Size of the sliding blocks.
+            dilation: Parameter that controls the stride of elements within the neighborhood.
+            padding: Implicit zero padding added on both sides of input.
+            stride: Stride of the sliding blocks in the input spatial dimensions.
+        """
         super().__init__()
-        self.output_size = output_size
-        self.kernel_size = kernel_size
-        self.dilation = dilation
-        self.padding = padding
-        self.stride = stride
+        self.output_size: Size2d = output_size
+        self.kernel_size: Size2d = kernel_size
+        self.dilation: Size2d = dilation
+        self.padding: Size2d = padding
+        self.stride: Size2d = stride
 
-    def forward(self, input):
-        """Forward pass."""
-        from ml_switcheroo_compiler.ops.reductions.frontend import fold
+    def forward(self, input: Tensor) -> Tensor:
+        """Combines sliding blocks in `input` into a spatial tensor.
 
-        from zero_torch.tensor import _to_tensor, _wrap
+        Args:
+            input: 3D input tensor `(N, C * prod(kernel_size), L)`.
 
+        Returns:
+            Folded 4D tensor `(N, C, H_out, W_out)`.
+        """
         input_t = _to_tensor(input)
         res = fold(
             input_t,
@@ -383,4 +570,4 @@ class Fold(Module):
             padding=self.padding,
             stride=self.stride,
         )
-        return _wrap(res)  # pragma: no cover
+        return _wrap(res)

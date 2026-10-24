@@ -1,75 +1,71 @@
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
+"""Numerical parity tests against reference PyTorch."""
+
+from __future__ import annotations
 
 import numpy as np
 import torch as real_torch
+from ml_switcheroo_compiler.core.config import EagerMode
 
 import zero_torch
 
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
 
+def test_core_math_parity() -> None:
+    """Verifies numerical parity between `zero_torch` and `torch` across core math operations."""
+    with EagerMode():
+        arr_a = np.array([[0.25, 0.5], [0.75, 1.25]], dtype=np.float32)
+        arr_b = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
+        z_a = zero_torch.tensor(arr_a)
+        z_b = zero_torch.tensor(arr_b)
+        t_a = real_torch.tensor(arr_a)
+        t_b = real_torch.tensor(arr_b)
 
-def assert_parity(name, args, kwargs, real_out):
-    """Tests for assert_parity.
-
-    Args:
-        *args: arguments
-        **kwargs: keyword arguments
-
-    Returns:
-        Any: returns
-    """
-    if not hasattr(zero_torch, name):
-        return
-
-    try:
-        zero_out = getattr(zero_torch, name)(*args, **kwargs)
-    except (
-        RuntimeError,
-        ValueError,
-        TypeError,
-        AttributeError,
-        KeyError,
-        IndexError,
-        ImportError,
-        NotImplementedError,
-        UnimplementedMathError,
-        ShapeMismatchError,
-    ):
-        # Expected to fail if zero_torch doesn't support it yet
-        return
-
-    # Compare outputs
-    if isinstance(real_out, real_torch.Tensor) and isinstance(
-        zero_out, zero_torch.Tensor
-    ):
-        try:
-            r_np = real_out.detach().cpu().numpy()
-            z_np = np.array(zero_out.data)
-            np.testing.assert_allclose(r_np, z_np, rtol=1e-4, atol=1e-4)
-        except (
-            RuntimeError,
-            ValueError,
-            TypeError,
-            AttributeError,
-            KeyError,
-            IndexError,
-            ImportError,
-            NotImplementedError,
-            UnimplementedMathError,
-            ShapeMismatchError,
-        ):
-            _pass = True
+        np.testing.assert_allclose(
+            zero_torch.add(z_a, z_b).tolist(),
+            real_torch.add(t_a, t_b).tolist(),
+            rtol=1e-5,
+        )
+        np.testing.assert_allclose(
+            zero_torch.subtract(z_a, z_b).tolist(),
+            real_torch.sub(t_a, t_b).tolist(),
+            rtol=1e-5,
+        )
+        np.testing.assert_allclose(
+            zero_torch.multiply(z_a, z_b).tolist(),
+            real_torch.mul(t_a, t_b).tolist(),
+            rtol=1e-5,
+        )
+        np.testing.assert_allclose(
+            zero_torch.divide(z_a, z_b).tolist(),
+            real_torch.div(t_a, t_b).tolist(),
+            rtol=1e-5,
+        )
+        np.testing.assert_allclose(
+            zero_torch.matmul(z_a, z_b).tolist(),
+            real_torch.matmul(t_a, t_b).tolist(),
+            rtol=1e-5,
+        )
+        np.testing.assert_allclose(
+            zero_torch.exp(z_a).tolist(), real_torch.exp(t_a).tolist(), rtol=1e-5
+        )
+        np.testing.assert_allclose(
+            zero_torch.log(z_a).tolist(), real_torch.log(t_a).tolist(), rtol=1e-5
+        )
+        np.testing.assert_allclose(
+            zero_torch.sin(z_a).tolist(), real_torch.sin(t_a).tolist(), rtol=1e-5
+        )
+        np.testing.assert_allclose(
+            zero_torch.cos(z_a).tolist(), real_torch.cos(t_a).tolist(), rtol=1e-5
+        )
+        np.testing.assert_allclose(
+            zero_torch.tanh(z_a).tolist(), real_torch.tanh(t_a).tolist(), rtol=1e-5
+        )
+        np.testing.assert_allclose(
+            zero_torch.sigmoid(z_a).tolist(),
+            real_torch.sigmoid(t_a).tolist(),
+            rtol=1e-5,
+        )
+        np.testing.assert_allclose(
+            zero_torch.softmax(z_a, dim=-1).tolist(),
+            real_torch.softmax(t_a, dim=-1).tolist(),
+            rtol=1e-5,
+        )

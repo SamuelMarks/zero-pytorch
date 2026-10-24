@@ -5,9 +5,25 @@ build-backend = "hatchling.build"
 [project]
 name = "zero-pytorch"
 version = "2.10.0"
-description = "Zero-dependency pure Python implementation of the PyTorch API surface."
-authors = [{ name = "Samuel Marks" }]
+description = "Zero-dependency pure Python implementation of the PyTorch API"
+readme = "README.md"
 requires-python = ">=3.9"
+license = "Apache-2.0 OR MIT"
+authors = [
+    { name = "Samuel Marks", email = "samuelmarks@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dynamic = ["dependencies", "optional-dependencies"]
 
 [tool.hatch.metadata]
@@ -23,21 +39,67 @@ test = ["requirements-test.txt"]
 packages = ["src/zero_torch"]
 
 [tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM", "RUF"]
+ignore = ["E501", "B008", "B905", "RUF005", "RUF012", "SIM105", "UP007", "UP035"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403", "E402"]
+"stubs/**/*" = ["E402", "F401"]
+"tests/**/*" = ["B018", "F841", "E402", "SIM117"]
+"scripts/**/*" = ["E402"]
+
+[tool.interrogate]
+ignore-init-method = false
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = false
+ignore-nested-classes = false
+ignore-setters = false
+fail-under = 100
+exclude = ["setup.py", "docs", "build", "stubs"]
+verbose = 2
+quiet = false
+color = true
 
 [tool.coverage.run]
+branch = true
 source = ["src/zero_torch"]
 omit = [
     "tests/*",
     "scripts/*",
-    "embed_stubs.py",
-    "fix_*.py",
-    "generate_*.py",
+    "src/**/generate_*.py",
 ]
 
 [tool.coverage.report]
+fail_under = 100
+show_missing = true
+exclude_lines = [
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
 
 [tool.mypy]
+python_version = "3.10"
+strict = true
 ignore_missing_imports = true
+disallow_any_explicit = true
+disallow_any_generics = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_redundant_casts = true
+disable_error_code = ["override"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

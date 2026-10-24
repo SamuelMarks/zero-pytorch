@@ -1,5 +1,10 @@
+"""Pytest configuration and shared fixtures for zero_torch tests."""
+
+from __future__ import annotations
+
 import os
 import sys
+from collections.abc import Iterator
 
 import pytest
 
@@ -11,20 +16,14 @@ sys.path.insert(
 )
 from ml_switcheroo_compiler.core.config import EagerMode
 
-try:
-    from ml_switcheroo_compiler.core.errors import (
-        ShapeMismatchError,
-        UnimplementedMathError,
-    )
-except ImportError:
-    UnimplementedMathError = Exception
-    ShapeMismatchError = Exception
-
 
 @pytest.fixture(autouse=True)
-def switcheroo_config():
-    """Tests for switcheroo_config."""
-    # Unified pytest configuration that imports switcheroo config contexts
+def switcheroo_config() -> Iterator[None]:
+    """Configures `EagerMode` by default and resets the tracing state after each test.
+
+    Yields:
+        None during test execution.
+    """
     with EagerMode():
         try:
             yield
