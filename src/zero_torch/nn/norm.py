@@ -2,28 +2,28 @@
 
 from __future__ import annotations
 
-from ml_switcheroo_compiler.ops.creation import ones, zeros
 from ml_switcheroo_compiler.ops.nn.normalization import (
-    BatchNormConfig,
     LRNConfig,
-    batch_normalization,
     group_norm,
-    instance_norm,
-    layer_norm,
     lrn,
-    rms_normalization,
 )
 
 import zero_torch
 from zero_torch._types import DeviceLike, DTypeLike, ShapeLike
 from zero_torch.tensor import Tensor, _to_tensor, _wrap
 
-from .functional_norm import _norm_shape_tuple
+from .functional_norm import (
+    _norm_shape_tuple,
+    batch_norm,
+    instance_norm,
+    layer_norm,
+    rms_norm,
+)
 from .module import Module, Parameter
 
 
 def _init_batch_norm_state(
-    module: Module,
+    module: _BatchNormBase,
     num_features: int,
     affine: bool,
     track_running_stats: bool,
@@ -37,20 +37,92 @@ def _init_batch_norm_state(
         track_running_stats: Whether to register `running_mean`, `running_var`, and `num_batches_tracked` buffers.
     """
     if affine:
-        module.register_parameter("weight", Parameter(zero_torch.ones(num_features)))
-        module.register_parameter("bias", Parameter(zero_torch.zeros(num_features)))
+        module.weight = Parameter(zero_torch.ones(num_features))
+        module.bias = Parameter(zero_torch.zeros(num_features))
     else:
-        module.register_parameter("weight", None)
-        module.register_parameter("bias", None)
+        module.weight = None
+        module.bias = None
+    module.register_parameter("weight", module.weight)
+    module.register_parameter("bias", module.bias)
 
     if track_running_stats:
-        module.register_buffer("running_mean", zero_torch.zeros(num_features))
-        module.register_buffer("running_var", zero_torch.ones(num_features))
-        module.register_buffer("num_batches_tracked", zero_torch.tensor(0))
+        module.running_mean = zero_torch.zeros(num_features)
+        module.running_var = zero_torch.ones(num_features)
+        module.num_batches_tracked = zero_torch.tensor(0)
     else:
-        module.register_buffer("running_mean", None)
-        module.register_buffer("running_var", None)
-        module.register_buffer("num_batches_tracked", None)
+        module.running_mean = None
+        module.running_var = None
+        module.num_batches_tracked = None
+    module.register_buffer("running_mean", module.running_mean)
+    module.register_buffer("running_var", module.running_var)
+    module.register_buffer("num_batches_tracked", module.num_batches_tracked)
+
+
+class _BatchNormBase(Module):
+    """Shared typed base class for BatchNorm and InstanceNorm modules."""
+
+    num_features: int
+    eps: float
+    momentum: float | None
+    affine: bool
+    track_running_stats: bool
+    weight: Parameter | None
+    bias: Parameter | None
+    running_mean: Tensor | None
+    running_var: Tensor | None
+    num_batches_tracked: Tensor | None
+
+    def _forward_batch_norm(self, input: Tensor) -> Tensor:
+        """Executes batch normalization with running statistics tracking.
+
+        Args:
+            input: Input tensor.
+
+        Returns:
+            Normalized tensor.
+        """
+        if (
+            self.training
+            and self.track_running_stats
+            and self.num_batches_tracked is not None
+        ):
+            self.num_batches_tracked.copy_(self.num_batches_tracked + 1)
+        mom = 0.1 if self.momentum is None else self.momentum
+        bn_training = self.training or not self.track_running_stats
+        return batch_norm(
+            input,
+            self.running_mean
+            if not self.training or self.track_running_stats
+            else None,
+            self.running_var if not self.training or self.track_running_stats else None,
+            self.weight,
+            self.bias,
+            bn_training,
+            mom,
+            self.eps,
+        )
+
+    def _forward_instance_norm(self, input: Tensor) -> Tensor:
+        """Executes instance normalization over spatial dimensions.
+
+        Args:
+            input: Input tensor.
+
+        Returns:
+            Normalized tensor.
+        """
+        mom = 0.1 if self.momentum is None else self.momentum
+        use_input_stats = self.training or not self.track_running_stats
+        return instance_norm(
+            input,
+            self.running_mean,
+            self.running_var,
+            self.weight,
+            self.bias,
+            use_input_stats,
+            mom,
+            self.eps,
+        )
 
 
 def _apply_channel_affine(
@@ -85,14 +157,8 @@ def _apply_channel_affine(
     return res
 
 
-class BatchNorm1d(Module):
+class BatchNorm1d(_BatchNormBase):
     """Applies Batch Normalization over a 2D or 3D input."""
-
-    weight: Parameter | None
-    bias: Parameter | None
-    running_mean: Tensor | None
-    running_var: Tensor | None
-    num_batches_tracked: Tensor | None
 
     def __init__(
         self,
@@ -117,11 +183,11 @@ class BatchNorm1d(Module):
         """
         _ = (device, dtype)
         super().__init__()
-        self.num_features: int = num_features
-        self.eps: float = eps
-        self.momentum: float | None = momentum
-        self.affine: bool = affine
-        self.track_running_stats: bool = track_running_stats
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
         _init_batch_norm_state(self, num_features, affine, track_running_stats)
 
     def forward(self, input: Tensor) -> Tensor:
@@ -133,27 +199,11 @@ class BatchNorm1d(Module):
         Returns:
             Normalized tensor.
         """
-        t = _to_tensor(input)
-        out = _wrap(
-            batch_normalization(
-                t,
-                zeros(t.shape),
-                ones(t.shape),
-                axis=1,
-                config=BatchNormConfig(epsilon=self.eps),
-            )
-        )
-        return _apply_channel_affine(out, self.weight, self.bias)
+        return self._forward_batch_norm(input)
 
 
-class BatchNorm2d(Module):
+class BatchNorm2d(_BatchNormBase):
     """Applies Batch Normalization over a 4D input."""
-
-    weight: Parameter | None
-    bias: Parameter | None
-    running_mean: Tensor | None
-    running_var: Tensor | None
-    num_batches_tracked: Tensor | None
 
     def __init__(
         self,
@@ -178,11 +228,11 @@ class BatchNorm2d(Module):
         """
         _ = (device, dtype)
         super().__init__()
-        self.num_features: int = num_features
-        self.eps: float = eps
-        self.momentum: float | None = momentum
-        self.affine: bool = affine
-        self.track_running_stats: bool = track_running_stats
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
         _init_batch_norm_state(self, num_features, affine, track_running_stats)
 
     def forward(self, input: Tensor) -> Tensor:
@@ -194,27 +244,11 @@ class BatchNorm2d(Module):
         Returns:
             Normalized tensor.
         """
-        t = _to_tensor(input)
-        out = _wrap(
-            batch_normalization(
-                t,
-                zeros(t.shape),
-                ones(t.shape),
-                axis=1,
-                config=BatchNormConfig(epsilon=self.eps),
-            )
-        )
-        return _apply_channel_affine(out, self.weight, self.bias)
+        return self._forward_batch_norm(input)
 
 
-class BatchNorm3d(Module):
+class BatchNorm3d(_BatchNormBase):
     """Applies Batch Normalization over a 5D input."""
-
-    weight: Parameter | None
-    bias: Parameter | None
-    running_mean: Tensor | None
-    running_var: Tensor | None
-    num_batches_tracked: Tensor | None
 
     def __init__(
         self,
@@ -239,11 +273,11 @@ class BatchNorm3d(Module):
         """
         _ = (device, dtype)
         super().__init__()
-        self.num_features: int = num_features
-        self.eps: float = eps
-        self.momentum: float | None = momentum
-        self.affine: bool = affine
-        self.track_running_stats: bool = track_running_stats
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
         _init_batch_norm_state(self, num_features, affine, track_running_stats)
 
     def forward(self, input: Tensor) -> Tensor:
@@ -255,17 +289,7 @@ class BatchNorm3d(Module):
         Returns:
             Normalized tensor.
         """
-        t = _to_tensor(input)
-        out = _wrap(
-            batch_normalization(
-                t,
-                zeros(t.shape),
-                ones(t.shape),
-                axis=1,
-                config=BatchNormConfig(epsilon=self.eps),
-            )
-        )
-        return _apply_channel_affine(out, self.weight, self.bias)
+        return self._forward_batch_norm(input)
 
 
 class CrossMapLRN2d(Module):
@@ -342,11 +366,13 @@ class GroupNorm(Module):
         self.eps: float = eps
         self.affine: bool = affine
         if affine:
-            self.register_parameter("weight", Parameter(zero_torch.ones(num_channels)))
-            self.register_parameter("bias", Parameter(zero_torch.zeros(num_channels)))
+            self.weight = Parameter(zero_torch.ones(num_channels))
+            self.bias = Parameter(zero_torch.zeros(num_channels))
         else:
-            self.register_parameter("weight", None)
-            self.register_parameter("bias", None)
+            self.weight = None
+            self.bias = None
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies group normalization to `input`.
@@ -363,14 +389,8 @@ class GroupNorm(Module):
         return _apply_channel_affine(out, self.weight, self.bias)
 
 
-class InstanceNorm1d(Module):
+class InstanceNorm1d(_BatchNormBase):
     """Applies Instance Normalization over a 2D or 3D input."""
-
-    weight: Parameter | None
-    bias: Parameter | None
-    running_mean: Tensor | None
-    running_var: Tensor | None
-    num_batches_tracked: Tensor | None
 
     def __init__(
         self,
@@ -395,11 +415,11 @@ class InstanceNorm1d(Module):
         """
         _ = (device, dtype)
         super().__init__()
-        self.num_features: int = num_features
-        self.eps: float = eps
-        self.momentum: float = momentum
-        self.affine: bool = affine
-        self.track_running_stats: bool = track_running_stats
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
         _init_batch_norm_state(self, num_features, affine, track_running_stats)
 
     def forward(self, input: Tensor) -> Tensor:
@@ -411,18 +431,11 @@ class InstanceNorm1d(Module):
         Returns:
             Normalized tensor.
         """
-        out = _wrap(instance_norm(_to_tensor(input), epsilon=self.eps))
-        return _apply_channel_affine(out, self.weight, self.bias)
+        return self._forward_instance_norm(input)
 
 
-class InstanceNorm2d(Module):
+class InstanceNorm2d(_BatchNormBase):
     """Applies Instance Normalization over a 4D input."""
-
-    weight: Parameter | None
-    bias: Parameter | None
-    running_mean: Tensor | None
-    running_var: Tensor | None
-    num_batches_tracked: Tensor | None
 
     def __init__(
         self,
@@ -447,11 +460,11 @@ class InstanceNorm2d(Module):
         """
         _ = (device, dtype)
         super().__init__()
-        self.num_features: int = num_features
-        self.eps: float = eps
-        self.momentum: float = momentum
-        self.affine: bool = affine
-        self.track_running_stats: bool = track_running_stats
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
         _init_batch_norm_state(self, num_features, affine, track_running_stats)
 
     def forward(self, input: Tensor) -> Tensor:
@@ -463,18 +476,11 @@ class InstanceNorm2d(Module):
         Returns:
             Normalized tensor.
         """
-        out = _wrap(instance_norm(_to_tensor(input), epsilon=self.eps))
-        return _apply_channel_affine(out, self.weight, self.bias)
+        return self._forward_instance_norm(input)
 
 
-class InstanceNorm3d(Module):
+class InstanceNorm3d(_BatchNormBase):
     """Applies Instance Normalization over a 5D input."""
-
-    weight: Parameter | None
-    bias: Parameter | None
-    running_mean: Tensor | None
-    running_var: Tensor | None
-    num_batches_tracked: Tensor | None
 
     def __init__(
         self,
@@ -499,11 +505,11 @@ class InstanceNorm3d(Module):
         """
         _ = (device, dtype)
         super().__init__()
-        self.num_features: int = num_features
-        self.eps: float = eps
-        self.momentum: float = momentum
-        self.affine: bool = affine
-        self.track_running_stats: bool = track_running_stats
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
         _init_batch_norm_state(self, num_features, affine, track_running_stats)
 
     def forward(self, input: Tensor) -> Tensor:
@@ -515,8 +521,7 @@ class InstanceNorm3d(Module):
         Returns:
             Normalized tensor.
         """
-        out = _wrap(instance_norm(_to_tensor(input), epsilon=self.eps))
-        return _apply_channel_affine(out, self.weight, self.bias)
+        return self._forward_instance_norm(input)
 
 
 class LayerNorm(Module):
@@ -551,16 +556,13 @@ class LayerNorm(Module):
         self.eps: float = eps
         self.elementwise_affine: bool = elementwise_affine
         if elementwise_affine:
-            self.register_parameter("weight", Parameter(zero_torch.ones(*norm_tuple)))
-            if bias:
-                self.register_parameter(
-                    "bias", Parameter(zero_torch.zeros(*norm_tuple))
-                )
-            else:
-                self.register_parameter("bias", None)
+            self.weight = Parameter(zero_torch.ones(*norm_tuple))
+            self.bias = Parameter(zero_torch.zeros(*norm_tuple)) if bias else None
         else:
-            self.register_parameter("weight", None)
-            self.register_parameter("bias", None)
+            self.weight = None
+            self.bias = None
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies layer normalization to `input`.
@@ -571,18 +573,13 @@ class LayerNorm(Module):
         Returns:
             Normalized tensor.
         """
-        out = _wrap(
-            layer_norm(
-                _to_tensor(input),
-                normalized_shape=self.normalized_shape,
-                epsilon=self.eps,
-            )
+        return layer_norm(
+            input,
+            self.normalized_shape,
+            self.weight,
+            self.bias,
+            self.eps,
         )
-        if self.weight is not None:
-            out = out * self.weight
-        if self.bias is not None:
-            out = out + self.bias
-        return out
 
 
 class LocalResponseNorm(Module):
@@ -656,9 +653,10 @@ class RMSNorm(Module):
         self.eps: float = eps
         self.elementwise_affine: bool = elementwise_affine
         if elementwise_affine:
-            self.register_parameter("weight", Parameter(zero_torch.ones(*norm_tuple)))
+            self.weight = Parameter(zero_torch.ones(*norm_tuple))
         else:
-            self.register_parameter("weight", None)
+            self.weight = None
+        self.register_parameter("weight", self.weight)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies RMS normalization to `input`.
@@ -669,23 +667,11 @@ class RMSNorm(Module):
         Returns:
             Normalized tensor.
         """
-        t = _to_tensor(input)
-        scale = (
-            _to_tensor(self.weight)
-            if self.weight is not None
-            else ones(self.normalized_shape)
-        )
-        return _wrap(rms_normalization(t, scale=scale, epsilon=self.eps))
+        return rms_norm(input, self.normalized_shape, self.weight, self.eps)
 
 
-class SyncBatchNorm(Module):
+class SyncBatchNorm(_BatchNormBase):
     """Applies synchronized Batch Normalization over a N-Dimensional input."""
-
-    weight: Parameter | None
-    bias: Parameter | None
-    running_mean: Tensor | None
-    running_var: Tensor | None
-    num_batches_tracked: Tensor | None
 
     def __init__(
         self,
@@ -712,11 +698,11 @@ class SyncBatchNorm(Module):
         """
         _ = (device, dtype)
         super().__init__()
-        self.num_features: int = num_features
-        self.eps: float = eps
-        self.momentum: float = momentum
-        self.affine: bool = affine
-        self.track_running_stats: bool = track_running_stats
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
         self.process_group: str | None = process_group
         _init_batch_norm_state(self, num_features, affine, track_running_stats)
 
@@ -729,14 +715,4 @@ class SyncBatchNorm(Module):
         Returns:
             Normalized tensor.
         """
-        t = _to_tensor(input)
-        out = _wrap(
-            batch_normalization(
-                t,
-                zeros(t.shape),
-                ones(t.shape),
-                axis=1,
-                config=BatchNormConfig(epsilon=self.eps),
-            )
-        )
-        return _apply_channel_affine(out, self.weight, self.bias)
+        return self._forward_batch_norm(input)

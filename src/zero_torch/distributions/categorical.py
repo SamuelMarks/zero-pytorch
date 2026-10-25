@@ -10,6 +10,7 @@ import zero_torch as torch
 from zero_torch.tensor import Tensor, _wrap
 
 from .distribution import Distribution
+from .utils import _check_non_negative, _check_positive
 
 
 class Categorical(Distribution):
@@ -38,6 +39,9 @@ class Categorical(Distribution):
         if probs is not None:
             if len(probs.shape) < 1:
                 raise ValueError("`probs` parameter must be at least one-dimensional.")
+            if validate_args:
+                _check_non_negative(probs, "probs")
+                _check_positive(torch.sum(probs, axis=-1), "probs sum")
             self.probs: Tensor = probs / torch.sum(probs, axis=-1, keepdims=True)
             eps = 1e-6
             clamped_probs = torch.clamp(self.probs, eps, 1.0 - eps)
@@ -53,6 +57,42 @@ class Categorical(Distribution):
             batch_shape = logits.shape[:-1]
             self._num_events = logits.shape[-1]
         super().__init__(batch_shape, validate_args=validate_args)
+
+    def expand(
+        self, batch_shape: Sequence[int], _instance: Distribution | None = None
+    ) -> Categorical:
+        """Returns a new Categorical distribution with batch dimensions expanded to `batch_shape`.
+
+        Args:
+            batch_shape: Desired expanded batch shape.
+            _instance: Unused optional instance parameter.
+
+        Returns:
+            Expanded Categorical distribution.
+        """
+        _ = _instance
+        b_shape = tuple(batch_shape)
+        return Categorical(
+            probs=torch.broadcast_to(self.probs, b_shape + (self._num_events,)),
+            validate_args=False,
+        )
+
+    def enumerate_support(self, expand: bool = True) -> Tensor:
+        """Returns tensor containing all category indices supported by the distribution.
+
+        Args:
+            expand: Whether to expand support over `batch_shape`.
+
+        Returns:
+            Support tensor of shape `(num_events, *batch_shape)` if `expand=True`.
+        """
+        values = torch.reshape(
+            torch.arange(0, self._num_events, dtype=torch.int32),
+            (self._num_events,) + (1,) * len(self.batch_shape),
+        )
+        if expand and self.batch_shape:
+            return torch.broadcast_to(values, (self._num_events,) + self.batch_shape)
+        return values
 
     @property
     def mean(self) -> Tensor:

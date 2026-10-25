@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import random
+from builtins import any as _builtin_any
 from builtins import max as _builtin_max
 from collections.abc import Sequence
 
@@ -60,79 +61,93 @@ from .sparse import sparse_coo_tensor as sparse_coo_tensor
 _ = (_TensorConfig, _linalg_decompositions)
 
 
-def abs(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the abs operation.
+def abs(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the abs operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the abs operation applied.
     """
-    res = _ops.abs(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    res = _ops.abs(_to_tensor(input))
     return _wrap(res)
 
 
-def acos(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the acos operation.
+def acos(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the acos operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the acos operation applied.
     """
-    res = _ops.acos(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.acos(_to_tensor(input))
     return _wrap(res)
 
 
-def acosh(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the acosh operation.
+def acosh(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the acosh operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the acosh operation applied.
     """
-    res = _ops.acosh(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.acosh(_to_tensor(input))
     return _wrap(res)
 
 
-def add(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the add operation.
+def add(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the add operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the add operation applied.
     """
-    res = _ops.add(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    res = _ops.add(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def all(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the all operation.
+def all(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the all reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the all operation applied.
     """
-    res = _reductions.all(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.all(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
@@ -152,19 +167,32 @@ def allclose(*args: OpArg, **kwargs: OpArg) -> bool:
     return bool(res)
 
 
-def any(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the any operation.
+def any(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the any reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the any operation applied.
     """
-    res = _reductions.any(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.any(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
@@ -184,131 +212,137 @@ def arange(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def argmax(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the argmax operation.
+def argmax(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the argmax reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the argmax operation applied.
     """
-    res = _reductions.argmax(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.argmax(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def argmin(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the argmin operation.
+def argmin(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the argmin reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the argmin operation applied.
     """
-    res = _reductions.argmin(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.argmin(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def asin(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the asin operation.
+def asin(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the asin operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the asin operation applied.
     """
-    res = _ops.asin(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.asin(_to_tensor(input))
     return _wrap(res)
 
 
-def asinh(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the asinh operation.
+def asinh(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the asinh operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the asinh operation applied.
     """
-    res = _ops.asinh(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.asinh(_to_tensor(input))
     return _wrap(res)
 
 
-def atan(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the atan operation.
+def atan(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the atan operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the atan operation applied.
     """
-    res = _ops.atan(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.atan(_to_tensor(input))
     return _wrap(res)
 
 
-def atan2(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the atan2 operation.
+def atan2(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the atan2 operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the atan2 operation applied.
     """
-    res = _ops.atan2(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.atan2(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def atanh(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the atanh operation.
+def atanh(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the atanh operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the atanh operation applied.
     """
-    res = _ops.atanh(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
-
-
-def binary(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the binary operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the binary operation applied.
-    """
-    res = _ops.binary(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.atanh(_to_tensor(input))
     return _wrap(res)
 
 
@@ -431,35 +465,33 @@ def _apply_cast(*args: OpArg, **kwargs: OpArg) -> Tensor:
 cast = _apply_cast
 
 
-def cbrt(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the cbrt operation.
+def cbrt(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the cbrt operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the cbrt operation applied.
     """
-    res = _ops.cbrt(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.cbrt(_to_tensor(input))
     return _wrap(res)
 
 
-def ceil(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the ceil operation.
+def ceil(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the ceil operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the ceil operation applied.
     """
-    res = _ops.ceil(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.ceil(_to_tensor(input))
     return _wrap(res)
 
 
@@ -484,126 +516,133 @@ def concatenate(*args: OpArg | Sequence[Tensor], **kwargs: OpArg) -> Tensor:
 
     Args:
         *args: Variable length argument list (sequence of tensors and optional axis).
-        **kwargs: Arbitrary keyword arguments (`tensors`, `dim`).
+        **kwargs: Arbitrary keyword arguments (`tensors`, `dim`, `axis`).
 
     Returns:
         Tensor: Concatenated tensor.
     """
     raw_tensors = args[0] if len(args) > 0 else kwargs.get("tensors")
-    dim = args[1] if len(args) > 1 else kwargs.get("dim", 0)
+    dim = args[1] if len(args) > 1 else kwargs.get("dim", kwargs.get("axis", 0))
     seq = raw_tensors if isinstance(raw_tensors, (list, tuple)) else []
+    if _builtin_any(isinstance(t, Tensor) and t.requires_grad for t in seq):
+        from .autograd.math_ops import ConcatenateBackward
+
+        return ConcatenateBackward.apply(dim, *seq)
     tensors_t = [t._tensor if isinstance(t, Tensor) else t for t in seq]
     res = get_op("Concatenate")()(tensors_t, axis=dim)
     return _wrap(res)
 
 
-def conj(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the conj operation.
+def conj(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the conj operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the conj operation applied.
     """
-    res = _ops.conj(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.conj(_to_tensor(input))
     return _wrap(res)
 
 
-def copysign(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the copysign operation.
+def copysign(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the copysign operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the copysign operation applied.
     """
-    res = _ops.copysign(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.copysign(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def cos(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the cos operation.
+def cos(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the cos operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the cos operation applied.
     """
-    res = _ops.cos(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import CosBackward
+
+        return CosBackward.apply(input)
+    res = _ops.cos(_to_tensor(input))
     return _wrap(res)
 
 
-def cosh(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the cosh operation.
+def cosh(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the cosh operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the cosh operation applied.
     """
-    res = _ops.cosh(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.cosh(_to_tensor(input))
     return _wrap(res)
 
 
-def count_nonzero(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the count_nonzero operation.
+def count_nonzero(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the count_nonzero reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the count_nonzero operation applied.
     """
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
     res = _reductions.count_nonzero(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        _to_tensor(input), axis=eff_axis, keepdims=eff_keepdims
     )
     return _wrap(res)
 
 
-def creation(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the creation operation.
+def deg2rad(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the deg2rad operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the creation operation applied.
-    """
-    res = _ops.creation(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
-
-
-def deg2rad(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the deg2rad operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the deg2rad operation applied.
     """
-    res = _ops.deg2rad(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.deg2rad(_to_tensor(input))
     return _wrap(res)
 
 
@@ -639,51 +678,36 @@ def diag(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def digamma(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the digamma operation.
+def digamma(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the digamma operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the digamma operation applied.
     """
-    res = _ops.digamma(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.digamma(_to_tensor(input))
     return _wrap(res)
 
 
-def divide(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the divide operation.
+def divide(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the divide operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the divide operation applied.
     """
-    res = _ops.divide(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
-
-
-def divmod(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the divmod operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: Tuple of quotient and remainder tensors.
-    """
-    res = _ops.divmod(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.divide(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -781,95 +805,98 @@ def empty(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def equal(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the equal operation.
+def equal(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the equal operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the equal operation applied.
     """
-    res = _ops.equal(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.equal(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def erf(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the erf operation.
+def erf(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the erf operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the erf operation applied.
     """
-    res = _ops.erf(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    res = _ops.erf(_to_tensor(input))
     return _wrap(res)
 
 
-def erfc(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the erfc operation.
+def erfc(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the erfc operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the erfc operation applied.
     """
-    res = _ops.erfc(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.erfc(_to_tensor(input))
     return _wrap(res)
 
 
-def erfinv(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the erfinv operation.
+def erfinv(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the erfinv operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the erfinv operation applied.
     """
-    res = _ops.erfinv(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.erfinv(_to_tensor(input))
     return _wrap(res)
 
 
-def exp(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the exp operation.
+def exp(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the exp operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the exp operation applied.
     """
-    res = _ops.exp(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import ExpBackward
+
+        return ExpBackward.apply(input)
+    res = _ops.exp(_to_tensor(input))
     return _wrap(res)
 
 
-def exp2(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the exp2 operation.
+def exp2(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the exp2 operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the exp2 operation applied.
     """
-    res = _ops.exp2(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.exp2(_to_tensor(input))
     return _wrap(res)
 
 
@@ -889,19 +916,18 @@ def expand(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def expm1(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the expm1 operation.
+def expm1(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the expm1 operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the expm1 operation applied.
     """
-    res = _ops.expm1(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.expm1(_to_tensor(input))
     return _wrap(res)
 
 
@@ -919,17 +945,18 @@ def eye(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def fix(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the fix operation.
+def fix(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the fix operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the fix operation applied.
     """
-    res = _ops.fix(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    res = _ops.fix(_to_tensor(input))
     return _wrap(res)
 
 
@@ -948,99 +975,102 @@ def flatten(input: Tensor, start_dim: int = 0, end_dim: int = -1) -> Tensor:
     return reshape(input, (-1,))
 
 
-def float_power(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the float_power operation.
+def float_power(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the float_power operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the float_power operation applied.
     """
-    res = _ops.float_power(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.float_power(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def floor(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the floor operation.
+def floor(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the floor operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the floor operation applied.
     """
-    res = _ops.floor(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.floor(_to_tensor(input))
     return _wrap(res)
 
 
-def floor_divide(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the floor_divide operation.
+def floor_divide(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the floor_divide operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the floor_divide operation applied.
     """
-    res = _ops.floor_divide(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.floor_divide(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def fmax(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the fmax operation.
+def fmax(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the fmax operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the fmax operation applied.
     """
-    res = _ops.fmax(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.fmax(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def fmin(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the fmin operation.
+def fmin(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the fmin operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the fmin operation applied.
     """
-    res = _ops.fmin(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.fmin(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def fmod(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the fmod operation.
+def fmod(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the fmod operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the fmod operation applied.
     """
-    res = _ops.fmod(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.fmod(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1147,67 +1177,73 @@ def gcd(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def greater(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the greater operation.
+def greater(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the greater operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the greater operation applied.
     """
-    res = _ops.greater(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.greater(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def greater_equal(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the greater_equal operation.
+def greater_equal(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the greater_equal operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the greater_equal operation applied.
     """
-    res = _ops.greater_equal(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.greater_equal(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def heaviside(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the heaviside operation.
+def heaviside(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the heaviside operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the heaviside operation applied.
     """
-    res = _ops.heaviside(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.heaviside(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def hypot(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the hypot operation.
+def hypot(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the hypot operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the hypot operation applied.
     """
-    res = _ops.hypot(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.hypot(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1227,35 +1263,34 @@ def identity(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def imag(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the imag operation.
+def imag(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the imag operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the imag operation applied.
     """
-    res = _ops.imag(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.imag(_to_tensor(input))
     return _wrap(res)
 
 
-def inner(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the inner operation.
+def inner(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the inner operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the inner operation applied.
     """
-    res = _ops.inner(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.inner(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1275,67 +1310,77 @@ def inv(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def isclose(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the isclose operation.
+def isclose(
+    input: TensorLike,
+    other: TensorLike,
+    rtol: float = 1e-05,
+    atol: float = 1e-08,
+    equal_nan: bool = False,
+) -> Tensor:
+    """Applies the isclose element-wise comparison.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First tensor or scalar to compare.
+        other: Second tensor or scalar to compare.
+        rtol: Relative tolerance.
+        atol: Absolute tolerance.
+        equal_nan: If True, two NaNs will be considered equal.
 
     Returns:
-        Tensor: A new tensor with the isclose operation applied.
+        Tensor: Boolean tensor indicating where `input` and `other` are close.
     """
     res = _ops.isclose(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        _to_tensor(input),
+        _to_tensor(other),
+        rtol=rtol,
+        atol=atol,
+        equal_nan=equal_nan,
     )
     return _wrap(res)
 
 
-def isfinite(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the isfinite operation.
+def isfinite(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the isfinite operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the isfinite operation applied.
     """
-    res = _ops.isfinite(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.isfinite(_to_tensor(input))
     return _wrap(res)
 
 
-def isinf(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the isinf operation.
+def isinf(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the isinf operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the isinf operation applied.
     """
-    res = _ops.isinf(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.isinf(_to_tensor(input))
     return _wrap(res)
 
 
-def isnan(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the isnan operation.
+def isnan(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the isnan operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the isnan operation applied.
     """
-    res = _ops.isnan(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.isnan(_to_tensor(input))
     return _wrap(res)
 
 
@@ -1353,19 +1398,19 @@ def lcm(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def ldexp(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the ldexp operation.
+def ldexp(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the ldexp operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the ldexp operation applied.
     """
-    res = _ops.ldexp(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.ldexp(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1385,50 +1430,52 @@ def left_shift(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def less(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the less operation.
+def less(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the less operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the less operation applied.
     """
-    res = _ops.less(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.less(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def less_equal(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the less_equal operation.
+def less_equal(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the less_equal operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the less_equal operation applied.
     """
-    res = _ops.less_equal(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.less_equal(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def lgamma(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the lgamma operation.
+def lgamma(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the lgamma operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the lgamma operation applied.
     """
-    inp = args[0] if len(args) > 0 else kwargs.get("input", 1.0)
-    t = inp if isinstance(inp, Tensor) else Tensor(inp)
+    _ = out
+    t = input if isinstance(input, Tensor) else Tensor(input)
     return special.gammaln(t)
 
 
@@ -1448,97 +1495,103 @@ def linspace(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def log(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the log operation.
+def log(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the log operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the log operation applied.
     """
-    res = _ops.log(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import LogBackward
+
+        return LogBackward.apply(input)
+    res = _ops.log(_to_tensor(input))
     return _wrap(res)
 
 
-def log10(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the log10 operation.
+def log10(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the log10 operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the log10 operation applied.
     """
-    res = _ops.log10(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.log10(_to_tensor(input))
     return _wrap(res)
 
 
-def log1p(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the log1p operation.
+def log1p(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the log1p operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the log1p operation applied.
     """
-    res = _ops.log1p(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.log1p(_to_tensor(input))
     return _wrap(res)
 
 
-def log2(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the log2 operation.
+def log2(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the log2 operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the log2 operation applied.
     """
-    res = _ops.log2(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.log2(_to_tensor(input))
     return _wrap(res)
 
 
-def logaddexp(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the logaddexp operation.
+def logaddexp(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the logaddexp operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the logaddexp operation applied.
     """
-    res = _ops.logaddexp(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.logaddexp(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def logaddexp2(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the logaddexp2 operation.
+def logaddexp2(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the logaddexp2 operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the logaddexp2 operation applied.
     """
-    res = _ops.logaddexp2(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.logaddexp2(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1606,19 +1659,32 @@ def logical_xor(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def logsumexp(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the logsumexp operation.
+def logsumexp(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the logsumexp reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the logsumexp operation applied.
     """
-    res = _reductions.logsumexp(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.logsumexp(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
@@ -1632,6 +1698,17 @@ def matmul(*args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Tensor: A new tensor with the matmul operation applied.
     """
+    if (
+        len(args) == 2
+        and not kwargs
+        and (
+            (isinstance(args[0], Tensor) and args[0].requires_grad)
+            or (isinstance(args[1], Tensor) and args[1].requires_grad)
+        )
+    ):
+        from .autograd.math_ops import MatmulBackward
+
+        return MatmulBackward.apply(args[0], args[1])
     res = _ops.matmul(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
@@ -1654,51 +1731,83 @@ def matrix_power(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def max(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the max operation.
+def max(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the max reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the max operation applied.
     """
-    res = _reductions.max(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.max(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def maximum(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the maximum operation.
+def maximum(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the maximum operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the maximum operation applied.
     """
-    res = _ops.maximum(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.maximum(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def mean(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the mean operation.
+def mean(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the mean reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the mean operation applied.
     """
-    res = _reductions.mean(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import MeanBackward
+
+        return MeanBackward.apply(input, eff_axis, eff_keepdims)
+    res = _reductions.mean(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
@@ -1720,49 +1829,66 @@ def meshgrid(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
     return _wrap_tuple(res)
 
 
-def min(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the min operation.
+def min(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the min reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the min operation applied.
     """
-    res = _reductions.min(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.min(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def minimum(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the minimum operation.
+def minimum(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the minimum operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the minimum operation applied.
     """
-    res = _ops.minimum(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.minimum(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def mod(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the mod operation.
+def mod(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the mod operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the mod operation applied.
     """
-    res = _ops.mod(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    res = _ops.mod(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1782,51 +1908,54 @@ def moveaxis(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def multiply(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the multiply operation.
+def multiply(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the multiply operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the multiply operation applied.
     """
-    res = _ops.multiply(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.multiply(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def negative(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the negative operation.
+def negative(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the negative operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the negative operation applied.
     """
-    res = _ops.negative(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.negative(_to_tensor(input))
     return _wrap(res)
 
 
-def nextafter(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the nextafter operation.
+def nextafter(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the nextafter operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the nextafter operation applied.
     """
-    res = _ops.nextafter(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.nextafter(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1865,19 +1994,21 @@ def norm(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def not_equal(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the not_equal operation.
+def not_equal(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the not_equal operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the not_equal operation applied.
     """
-    res = _ops.not_equal(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.not_equal(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1913,19 +2044,19 @@ def ones_like(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def outer(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the outer operation.
+def outer(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the outer operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the outer operation applied.
     """
-    res = _ops.outer(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.outer(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -1939,6 +2070,15 @@ def permute(*args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Tensor: A new tensor with the permute operation applied.
     """
+    if (
+        len(args) == 2
+        and not kwargs
+        and isinstance(args[0], Tensor)
+        and args[0].requires_grad
+    ):
+        from .autograd.math_ops import PermuteBackward
+
+        return PermuteBackward.apply(args[0], args[1])
     res = get_op("Transpose")()(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
@@ -1961,51 +2101,63 @@ def pinv(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def positive(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the positive operation.
+def positive(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the positive operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the positive operation applied.
     """
-    res = _ops.positive(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.positive(_to_tensor(input))
     return _wrap(res)
 
 
-def power(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the power operation.
+def power(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the power operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the power operation applied.
     """
-    res = _ops.power(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.power(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def prod(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the prod operation.
+def prod(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the prod reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the prod operation applied.
     """
-    res = _reductions.prod(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.prod(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
@@ -2025,83 +2177,66 @@ def qr(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
     return _wrap_tuple(res)
 
 
-def rad2deg(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the rad2deg operation.
+def rad2deg(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the rad2deg operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the rad2deg operation applied.
     """
-    res = _ops.rad2deg(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.rad2deg(_to_tensor(input))
     return _wrap(res)
 
 
-def real(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the real operation.
+def real(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the real operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the real operation applied.
     """
-    res = _ops.real(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.real(_to_tensor(input))
     return _wrap(res)
 
 
-def reciprocal(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the reciprocal operation.
+def reciprocal(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the reciprocal operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the reciprocal operation applied.
     """
-    res = _ops.reciprocal(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.reciprocal(_to_tensor(input))
     return _wrap(res)
 
 
-def reductions(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the reductions operation.
+def remainder(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the remainder operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the reductions operation applied.
-    """
-    res = _ops.reductions(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
-
-
-def remainder(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the remainder operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the remainder operation applied.
     """
-    res = _ops.remainder(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.remainder(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -2131,6 +2266,13 @@ def reshape(*args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Reshaped tensor.
     """
+    if len(args) >= 1 and isinstance(args[0], Tensor) and args[0].requires_grad:
+        from .autograd.math_ops import ReshapeBackward
+
+        target_shape = (
+            args[1] if len(args) > 1 else kwargs.get("newshape", args[0].shape)
+        )
+        return ReshapeBackward.apply(args[0], target_shape)
     t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
     if len(args) > 1:
         kwargs["newshape"] = args[1]
@@ -2170,51 +2312,33 @@ def roll(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def round(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the round operation.
+def round(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the round operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the round operation applied.
     """
-    res = _ops.round(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.round(_to_tensor(input))
     return _wrap(res)
 
 
-def rsqrt(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the rsqrt operation.
+def rsqrt(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the rsqrt operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the rsqrt operation applied.
     """
-    res = _ops.rsqrt(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
-
-
-def scatter(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the scatter operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the scatter operation applied.
-    """
-    res = _ops.scatter(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.rsqrt(_to_tensor(input))
     return _wrap(res)
 
 
@@ -2250,81 +2374,67 @@ def scatter_nd(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def shape(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the shape operation.
+def sign(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the sign operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the shape operation applied.
-    """
-    res = _ops.shape(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
-
-
-def sign(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the sign operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the sign operation applied.
     """
-    res = _ops.sign(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.sign(_to_tensor(input))
     return _wrap(res)
 
 
-def sin(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the sin operation.
+def sin(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the sin operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the sin operation applied.
     """
-    res = _ops.sin(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import SinBackward
+
+        return SinBackward.apply(input)
+    res = _ops.sin(_to_tensor(input))
     return _wrap(res)
 
 
-def sinc(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the sinc operation.
+def sinc(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the sinc operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the sinc operation applied.
     """
-    res = _ops.sinc(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.sinc(_to_tensor(input))
     return _wrap(res)
 
 
-def sinh(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the sinh operation.
+def sinh(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the sinh operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the sinh operation applied.
     """
-    res = _ops.sinh(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.sinh(_to_tensor(input))
     return _wrap(res)
 
 
@@ -2375,35 +2485,37 @@ def split(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
     return _wrap_tuple(res)
 
 
-def sqrt(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the sqrt operation.
+def sqrt(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the sqrt operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the sqrt operation applied.
     """
-    res = _ops.sqrt(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import SqrtBackward
+
+        return SqrtBackward.apply(input)
+    res = _ops.sqrt(_to_tensor(input))
     return _wrap(res)
 
 
-def square(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the square operation.
+def square(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the square operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the square operation applied.
     """
-    res = _ops.square(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.square(_to_tensor(input))
     return _wrap(res)
 
 
@@ -2417,10 +2529,14 @@ def squeeze(*args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Squeezed tensor.
     """
-    t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
     dim = kwargs.get("dim", kwargs.get("axis"))
     if len(args) > 1:
         dim = args[1]
+    if len(args) >= 1 and isinstance(args[0], Tensor) and args[0].requires_grad:
+        from .autograd.math_ops import SqueezeBackward
+
+        return SqueezeBackward.apply(args[0], dim)
+    t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
     res = get_op("Squeeze")()(t, axis=dim)
     return _wrap(res)
 
@@ -2429,7 +2545,7 @@ def stack(*args: OpArg | Sequence[Tensor], **kwargs: OpArg) -> Tensor:
     """Concatenates a sequence of tensors along a new dimension.
 
     Args:
-        *args: Sequence of tensors to stack.
+        *args: Sequence of tensors to stack and optional dimension.
         **kwargs: Optional `tensors` and `dim` keyword arguments.
 
     Returns:
@@ -2437,24 +2553,42 @@ def stack(*args: OpArg | Sequence[Tensor], **kwargs: OpArg) -> Tensor:
     """
     raw_t = args[0] if len(args) > 0 else kwargs.get("tensors")
     seq = raw_t if isinstance(raw_t, (list, tuple)) else []
+    axis = args[1] if len(args) > 1 else kwargs.pop("dim", kwargs.pop("axis", 0))
+    if _builtin_any(isinstance(t, Tensor) and t.requires_grad for t in seq):
+        from .autograd.math_ops import StackBackward
+
+        return StackBackward.apply(axis, *seq)
     unwrapped = [a._tensor if isinstance(a, Tensor) else a for a in seq]
-    kwargs["axis"] = kwargs.pop("dim", 0)
+    kwargs["axis"] = axis
     return _wrap(get_op("Stack")()(unwrapped, **kwargs))
 
 
-def std(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the std operation.
+def std(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the std reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the std operation applied.
     """
-    res = _reductions.std(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.std(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
@@ -2474,35 +2608,54 @@ def strided_slice(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def subtract(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the subtract operation.
+def subtract(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the subtract operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the subtract operation applied.
     """
-    res = _ops.subtract(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.subtract(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def sum(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the sum operation.
+def sum(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the sum reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the sum operation applied.
     """
-    res = _reductions.sum(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import SumBackward
+
+        return SumBackward.apply(input, eff_axis, eff_keepdims)
+    res = _reductions.sum(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
@@ -2554,33 +2707,37 @@ def take(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def tan(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the tan operation.
+def tan(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the tan operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the tan operation applied.
     """
-    res = _ops.tan(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    res = _ops.tan(_to_tensor(input))
     return _wrap(res)
 
 
-def tanh(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the tanh operation.
+def tanh(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the tanh operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the tanh operation applied.
     """
-    res = _ops.tanh(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import TanhBackward
+
+        return TanhBackward.apply(input)
+    res = _ops.tanh(_to_tensor(input))
     return _wrap(res)
 
 
@@ -2626,6 +2783,17 @@ def transpose(*args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Transposed tensor.
     """
+    if (
+        len(args) == 3
+        and not kwargs
+        and isinstance(args[0], Tensor)
+        and args[0].requires_grad
+        and isinstance(args[1], int)
+        and isinstance(args[2], int)
+    ):
+        from .autograd.math_ops import TransposeBackward
+
+        return TransposeBackward.apply(args[0], args[1], args[2])
     t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
     shape_len = len(t.shape) if isinstance(t, (_SwitcherooTensor, ProxyTensor)) else 2
     rank = _builtin_max(shape_len, 2)
@@ -2677,35 +2845,18 @@ def triu(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def trunc(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the trunc operation.
+def trunc(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the trunc operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the trunc operation applied.
     """
-    res = _ops.trunc(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
-    return _wrap(res)
-
-
-def unary(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the unary operation.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        Tensor: A new tensor with the unary operation applied.
-    """
-    res = _ops.unary(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.trunc(_to_tensor(input))
     return _wrap(res)
 
 
@@ -2762,35 +2913,48 @@ def update_slice(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def variance(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the variance operation.
+def variance(
+    input: TensorLike,
+    dim: int | Sequence[int] | None = None,
+    keepdim: bool = False,
+    *,
+    axis: int | Sequence[int] | None = None,
+    keepdims: bool = False,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Applies the variance reduction operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor or scalar.
+        dim: Optional dimension or sequence of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        axis: Optional alias for `dim`.
+        keepdims: Optional alias for `keepdim`.
+        dtype: Optional desired data type of returned tensor.
 
     Returns:
         Tensor: A new tensor with the variance operation applied.
     """
-    res = _reductions.variance(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dtype
+    eff_axis = dim if dim is not None else axis
+    eff_keepdims = keepdim or keepdims
+    res = _reductions.variance(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def vdot(*args: OpArg, **kwargs: OpArg) -> Tensor:
-    """Applies the vdot operation.
+def vdot(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+    """Applies the vdot operation element-wise.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the vdot operation applied.
     """
-    res = _ops.vdot(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.vdot(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
@@ -2805,7 +2969,11 @@ def where(*args: OpArg, **kwargs: OpArg) -> Tensor:
         Tensor: A new tensor with the where operation applied.
     """
     res = _shape_indexing.where(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        *[
+            _to_tensor(a) if isinstance(a, (Tensor, int, float, bool)) else a
+            for a in args
+        ],
+        **kwargs,
     )
     return _wrap(res)
 
@@ -2896,21 +3064,21 @@ def signbit(input: Tensor, **kwargs: OpArg) -> Tensor:
     return input < 0
 
 
-def true_divide(dividend: TensorLike, divisor: TensorLike, **kwargs: OpArg) -> Tensor:
-    """Performs true division of `dividend` by `divisor`.
+def true_divide(
+    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+) -> Tensor:
+    """Applies the true_divide operation element-wise.
 
     Args:
-        dividend: Numerator tensor or scalar.
-        divisor: Denominator tensor or scalar.
-        **kwargs: Optional keyword arguments.
+        input: First input tensor or scalar.
+        other: Second input tensor or scalar.
+        out: Optional output tensor.
 
     Returns:
-        Element-wise quotient tensor.
+        Tensor: A new tensor with the true_divide operation applied.
     """
-    res = _ops.true_divide(
-        *[a._tensor if isinstance(a, Tensor) else a for a in (dividend, divisor)],
-        **kwargs,
-    )
+    _ = out
+    res = _ops.divide(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 

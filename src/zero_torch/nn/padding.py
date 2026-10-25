@@ -9,6 +9,21 @@ from zero_torch.tensor import Tensor
 from .module import Module
 
 
+def _norm_pad(padding: SizeNd, length: int) -> tuple[int, ...]:
+    """Normalizes an integer or sequence padding into a tuple of `length` ints.
+
+    Args:
+        padding: Integer or sequence of padding sizes.
+        length: Expected tuple length (`2 * ndims`).
+
+    Returns:
+        Normalized padding tuple.
+    """
+    if isinstance(padding, int):
+        return (padding,) * length
+    return tuple(int(p) for p in padding)
+
+
 class CircularPad1d(Module):
     """Pads the input tensor using circular padding of the 1D input boundary."""
 
@@ -19,7 +34,7 @@ class CircularPad1d(Module):
             padding: Size of the padding (`int` or 2-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 2)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 1D circular padding to `input`.
@@ -43,7 +58,7 @@ class CircularPad2d(Module):
             padding: Size of the padding (`int` or 4-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 4)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 2D circular padding to `input`.
@@ -67,7 +82,7 @@ class CircularPad3d(Module):
             padding: Size of the padding (`int` or 6-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 6)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 3D circular padding to `input`.
@@ -92,7 +107,7 @@ class ConstantPad1d(Module):
             value: Fill value for constant padding.
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 2)
         self.value: float = value
 
     def forward(self, input: Tensor) -> Tensor:
@@ -118,7 +133,7 @@ class ConstantPad2d(Module):
             value: Fill value for constant padding.
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 4)
         self.value: float = value
 
     def forward(self, input: Tensor) -> Tensor:
@@ -144,7 +159,7 @@ class ConstantPad3d(Module):
             value: Fill value for constant padding.
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 6)
         self.value: float = value
 
     def forward(self, input: Tensor) -> Tensor:
@@ -169,7 +184,7 @@ class ReflectionPad1d(Module):
             padding: Size of the padding (`int` or 2-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 2)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 1D reflection padding to `input`.
@@ -193,7 +208,7 @@ class ReflectionPad2d(Module):
             padding: Size of the padding (`int` or 4-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 4)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 2D reflection padding to `input`.
@@ -217,7 +232,7 @@ class ReflectionPad3d(Module):
             padding: Size of the padding (`int` or 6-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 6)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 3D reflection padding to `input`.
@@ -241,7 +256,7 @@ class ReplicationPad1d(Module):
             padding: Size of the padding (`int` or 2-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 2)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 1D replication padding to `input`.
@@ -265,7 +280,7 @@ class ReplicationPad2d(Module):
             padding: Size of the padding (`int` or 4-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 4)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 2D replication padding to `input`.
@@ -289,7 +304,7 @@ class ReplicationPad3d(Module):
             padding: Size of the padding (`int` or 6-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 6)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 3D replication padding to `input`.
@@ -313,7 +328,7 @@ class ZeroPad1d(Module):
             padding: Size of the padding (`int` or 2-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 2)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 1D zero padding to `input`.
@@ -337,7 +352,7 @@ class ZeroPad2d(Module):
             padding: Size of the padding (`int` or 4-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 4)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 2D zero padding to `input`.
@@ -361,7 +376,7 @@ class ZeroPad3d(Module):
             padding: Size of the padding (`int` or 6-tuple).
         """
         super().__init__()
-        self.padding: SizeNd = padding
+        self.padding: tuple[int, ...] = _norm_pad(padding, 6)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 3D zero padding to `input`.

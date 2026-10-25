@@ -34,6 +34,15 @@ def verify_ecosystem_snapshot() -> list[str]:
         / "torch_v2.14.1_cpu.json"
     )
     if not cache_path.exists():
+        try:
+            from ml_ecosystem_snapshots.cli.resolver import resolve_snapshot_path
+
+            resolved = Path(resolve_snapshot_path("torch_v2.14.1_cpu"))
+            if resolved.exists():
+                cache_path = resolved
+        except ImportError:
+            cache_path = cache_path
+    if not cache_path.exists():
         return []
 
     raw = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -63,6 +72,7 @@ def verify_ecosystem_snapshot() -> list[str]:
             api_path = item.get("api_path")
             name = item.get("name")
             if not isinstance(api_path, str) or not isinstance(name, str):
+                api_path = None
                 continue
             parts = api_path.split(".")
             mod_name = ".".join(["zero_torch"] + parts[1:-1])
@@ -71,6 +81,7 @@ def verify_ecosystem_snapshot() -> list[str]:
                 name in _SNAPSHOT_HELPER_EXCLUSIONS
                 or sym_name in _SNAPSHOT_HELPER_EXCLUSIONS
             ):
+                sym_name = ""
                 continue
             try:
                 mod = importlib.import_module(mod_name)
@@ -99,13 +110,11 @@ def main() -> None:
             raw_mod = m_mod.group(1)
             prefix = raw_mod.split(".")[0]
             current_module = raw_mod.replace(prefix, "zero_torch", 1)
-            if current_module not in modules:
-                modules[current_module] = []
+            modules.setdefault(current_module, [])
             continue
         elif line.startswith("## ") and not current_module:
             current_module = "zero_torch"
-            if current_module not in modules:
-                modules[current_module] = []
+            modules[current_module] = []
             continue
 
         if current_module:

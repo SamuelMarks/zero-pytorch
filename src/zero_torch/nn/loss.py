@@ -37,19 +37,6 @@ class _Loss(Module):
         super().__init__()
         self.reduction: str = reduction
 
-    def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        """Computes the loss between `input` and `target`.
-
-        Args:
-            input: Input prediction tensor.
-            target: Target ground-truth tensor.
-
-        Returns:
-            Computed loss tensor.
-        """
-        _ = target
-        return input
-
 
 class _WeightedLoss(_Loss):
     """Base class for loss functions that use class weights."""
@@ -775,18 +762,6 @@ class AdaptiveLogSoftmaxWithLoss(Module):
         self.div_value: float = div_value
         self.head_bias: bool = head_bias
 
-    def __call__(self, input: Tensor, target: Tensor) -> tuple[Tensor, Tensor]:
-        """Invokes `forward(input, target)`.
-
-        Args:
-            input: Input tensor of shape `(N, in_features)`.
-            target: Target class indices tensor of shape `(N,)`.
-
-        Returns:
-            Tuple of `(output, loss)` tensors.
-        """
-        return self.forward(input, target)
-
     def forward(self, input: Tensor, target: Tensor) -> tuple[Tensor, Tensor]:
         """Computes adaptive log-softmax output and loss.
 
@@ -1028,6 +1003,7 @@ class LinearCrossEntropyLoss(_Loss):
         self.label_smoothing: float = label_smoothing
         self.options: dict[str, int | float | bool | str] | None = options
         self.linear: Linear = Linear(in_features, num_classes, bias=bias)
+        self.add_module("linear", self.linear)
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         """Applies linear projection followed by cross-entropy loss.

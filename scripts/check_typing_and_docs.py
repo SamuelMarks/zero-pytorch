@@ -115,28 +115,26 @@ def check_file(file_path: Path) -> list[str]:
                 errors.append(
                     f"{file_path}:{node.lineno}: forbidden symbol '{node.id}'"
                 )
-            elif node.id in ("__dict__", "__builtins__"):
+            elif node.id in (
+                "__dict__",
+                "__builtins__",
+                "__getattr__",
+                "__setattr__",
+                "__delattr__",
+            ):
                 errors.append(
                     f"{file_path}:{node.lineno}: forbidden dunder '{node.id}'"
                 )
         elif isinstance(node, ast.Attribute):
-            if node.attr in ("__dict__", "__builtins__"):
-                errors.append(
-                    f"{file_path}:{node.lineno}: forbidden dunder attribute '{node.attr}'"
-                )
-        elif isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS:
-                errors.append(
-                    f"{file_path}:{node.lineno}: forbidden call '{node.func.id}()'"
-                )
-            elif (
-                isinstance(node.func, ast.Attribute)
-                and node.func.attr in FORBIDDEN_CALLS
-                and isinstance(node.func.value, ast.Name)
-                and node.func.value.id in ("typing", "builtins")
+            if node.attr in (
+                "__dict__",
+                "__builtins__",
+                "__getattr__",
+                "__setattr__",
+                "__delattr__",
             ):
                 errors.append(
-                    f"{file_path}:{node.lineno}: forbidden call '{node.func.value.id}.{node.func.attr}()'"
+                    f"{file_path}:{node.lineno}: forbidden dunder attribute '{node.attr}'"
                 )
         elif isinstance(node, ast.Assign):
             for target in node.targets:
@@ -151,8 +149,17 @@ def check_file(file_path: Path) -> list[str]:
                     f"{file_path}:{node.lineno}: class '{node.name}' missing docstring"
                 )
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name in ("__getattr__", "__setattr__", "__delattr__"):
+                errors.append(
+                    f"{file_path}:{node.lineno}: forbidden dunder method '{node.name}'"
+                )
+            is_overload = any(
+                (isinstance(d, ast.Name) and d.id == "overload")
+                or (isinstance(d, ast.Attribute) and d.attr == "overload")
+                for d in node.decorator_list
+            )
             fn_doc = ast.get_docstring(node)
-            if not fn_doc or not fn_doc.strip():
+            if not is_overload and (not fn_doc or not fn_doc.strip()):
                 errors.append(
                     f"{file_path}:{node.lineno}: function '{node.name}' missing docstring"
                 )
@@ -224,6 +231,20 @@ def check_file(file_path: Path) -> list[str]:
                     errors.append(
                         f"{file_path}:{node.lineno}: function '{node.name}' missing Returns:/Yields: section in docstring"
                     )
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS:
+                errors.append(
+                    f"{file_path}:{node.lineno}: forbidden call '{node.func.id}()'"
+                )
+            elif (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr in FORBIDDEN_CALLS
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id in ("typing", "builtins")
+            ):
+                errors.append(
+                    f"{file_path}:{node.lineno}: forbidden call '{node.func.value.id}.{node.func.attr}()'"
+                )
 
     return errors
 

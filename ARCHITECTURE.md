@@ -8,7 +8,7 @@
 
 The Abstract ML Compiler ecosystem is designed to solve the $N \times M$ translation problem in Machine Learning. Instead of writing bespoke translators for every framework (JAX, PyTorch, Keras) to every target (WASM, WebGPU, TensorRT), we trace $N$ frontends into a strictly defined Intermediate Representation (IR), which is then consumed by $M$ backends.
 
-This achieves a source-to-source and source-to-browser compilation pipeline utilizing **strictly zero external dependencies** (relying solely on the Python Standard Library and `numpy` for eager evaluations).
+This achieves a source-to-source and source-to-browser compilation pipeline utilizing **strictly zero external dependencies** (relying solely on the Python Standard Library and `ml-switcheroo-compiler` for eager evaluations).
 
 ## Ecosystem Repository Taxonomy
 
@@ -131,4 +131,4 @@ We port critical creation `test_ported_creation_ops.py`, network structures `tes
 To fetch new upstream tests:
 1. Copy the targeted `test_*.py` file from the PyTorch repository.
 2. Isolate the target test methods from the proprietary `TestCase` subclass.
-3. Migrate assertions into standard Pytest (`assert`, `np.testing.assert_allclose`) and substitute `torch` calls for `zero_torch` or rely on our built-in EagerMode tensor evaluation.
+3. Migrate assertions into standard Pytest (`assert`, `assert_allclose`) and substitute `torch` calls for `zero_torch` or rely on our built-in EagerMode tensor evaluation.

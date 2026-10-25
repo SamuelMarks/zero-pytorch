@@ -87,9 +87,7 @@ def constant_(tensor: Tensor, val: float) -> Tensor:
     Returns:
         The modified `tensor`.
     """
-    new_t = zero_torch.full_like(tensor, val)
-    tensor._tensor = new_t._tensor
-    return tensor
+    return tensor.copy_(zero_torch.full_like(tensor, val))
 
 
 def constant(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -146,8 +144,8 @@ def dirac_(tensor: Tensor, groups: int = 1) -> Tensor:
         for g in range(groups):
             for d in range(min_dim):
                 grid3[g * out_per_group + d][d][centers[0]] = 1.0
-        tensor._tensor = Tensor(grid3, dtype=tensor.dtype)._tensor
-    elif dimensions == 4:
+        return tensor.copy_(Tensor(grid3, dtype=tensor.dtype))
+    if dimensions == 4:
         grid4 = [
             [
                 [[0.0 for _ in range(spatial[1])] for _ in range(spatial[0])]
@@ -158,25 +156,21 @@ def dirac_(tensor: Tensor, groups: int = 1) -> Tensor:
         for g in range(groups):
             for d in range(min_dim):
                 grid4[g * out_per_group + d][d][centers[0]][centers[1]] = 1.0
-        tensor._tensor = Tensor(grid4, dtype=tensor.dtype)._tensor
-    else:
-        grid5 = [
+        return tensor.copy_(Tensor(grid4, dtype=tensor.dtype))
+    grid5 = [
+        [
             [
-                [
-                    [[0.0 for _ in range(spatial[2])] for _ in range(spatial[1])]
-                    for _ in range(spatial[0])
-                ]
-                for _ in range(in_ch)
+                [[0.0 for _ in range(spatial[2])] for _ in range(spatial[1])]
+                for _ in range(spatial[0])
             ]
-            for _ in range(out_ch)
+            for _ in range(in_ch)
         ]
-        for g in range(groups):
-            for d in range(min_dim):
-                grid5[g * out_per_group + d][d][centers[0]][centers[1]][centers[2]] = (
-                    1.0
-                )
-        tensor._tensor = Tensor(grid5, dtype=tensor.dtype)._tensor
-    return tensor
+        for _ in range(out_ch)
+    ]
+    for g in range(groups):
+        for d in range(min_dim):
+            grid5[g * out_per_group + d][d][centers[0]][centers[1]][centers[2]] = 1.0
+    return tensor.copy_(Tensor(grid5, dtype=tensor.dtype))
 
 
 def dirac(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -208,8 +202,7 @@ def eye_(tensor: Tensor) -> Tensor:
     """
     if len(tensor.shape) != 2:
         raise ValueError("Only tensors with 2 dimensions are supported")
-    tensor._tensor = zero_torch.eye(*tensor.shape)._tensor
-    return tensor
+    return tensor.copy_(zero_torch.eye(*tensor.shape))
 
 
 def eye(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -246,9 +239,7 @@ def normal_(
         The modified `tensor`.
     """
     _ = generator
-    new_t = zero_torch.randn(tensor.shape) * std + mean
-    tensor._tensor = new_t._tensor
-    return tensor
+    return tensor.copy_(zero_torch.randn(tensor.shape) * std + mean)
 
 
 def normal(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -280,8 +271,7 @@ def ones_(tensor: Tensor) -> Tensor:
     Returns:
         The modified `tensor`.
     """
-    tensor._tensor = zero_torch.ones_like(tensor)._tensor
-    return tensor
+    return tensor.copy_(zero_torch.ones_like(tensor))
 
 
 def zeros_(tensor: Tensor) -> Tensor:
@@ -293,8 +283,7 @@ def zeros_(tensor: Tensor) -> Tensor:
     Returns:
         The modified `tensor`.
     """
-    tensor._tensor = zero_torch.zeros_like(tensor)._tensor
-    return tensor
+    return tensor.copy_(zero_torch.zeros_like(tensor))
 
 
 def uniform_(
@@ -315,9 +304,7 @@ def uniform_(
         The modified `tensor`.
     """
     _ = generator
-    new_t = zero_torch.rand(tensor.shape) * (b - a) + a
-    tensor._tensor = new_t._tensor
-    return tensor
+    return tensor.copy_(zero_torch.rand(tensor.shape) * (b - a) + a)
 
 
 def uniform(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -362,10 +349,12 @@ def trunc_normal_(
         The modified `tensor`.
     """
     _ = generator
-    raw = zero_torch.randn(tensor.shape) * std + mean
-    clipped = zero_torch.clip(raw, a, b)
-    tensor._tensor = clipped._tensor
-    return tensor
+    sqrt2 = math.sqrt(2.0)
+    low = math.erf((a - mean) / (std * sqrt2))
+    high = math.erf((b - mean) / (std * sqrt2))
+    u = zero_torch.rand(tensor.shape) * (high - low) + low
+    sampled = zero_torch.erfinv(u) * (std * sqrt2) + mean
+    return tensor.copy_(zero_torch.clip(sampled, a, b))
 
 
 def _calculate_fan_in_and_fan_out(tensor: Tensor) -> tuple[int, int]:
@@ -582,8 +571,7 @@ def orthogonal_(
     if rows < cols:
         q_orth = zero_torch.transpose(q_orth, 0, 1)
     scaled = zero_torch.reshape(q_orth, tensor.shape) * gain
-    tensor._tensor = scaled._tensor
-    return tensor
+    return tensor.copy_(scaled)
 
 
 def orthogonal(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -633,9 +621,7 @@ def sparse_(
         for zero_row in row_indices[:num_zeros]:
             mask_grid[zero_row][col_idx] = 0.0
     mask = Tensor(mask_grid, dtype=tensor.dtype)
-    res = tensor * mask
-    tensor._tensor = res._tensor
-    return tensor
+    return tensor.copy_(tensor * mask)
 
 
 def sparse(*args: OpArg, **kwargs: OpArg) -> Tensor:

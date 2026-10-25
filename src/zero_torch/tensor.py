@@ -63,7 +63,7 @@ class _ArrayDataProtocol(Protocol):
 
 @runtime_checkable
 class _NumpyArrayProtocol(_ArrayDataProtocol, Protocol):
-    """Protocol for NumPy ndarray objects returned by `Tensor.numpy()`."""
+    """Protocol for array objects returned by `Tensor.numpy()`."""
 
     def __iter__(self) -> Iterator[Scalar | _NumpyArrayProtocol]:
         """Iterates over the first dimension of the array.
@@ -104,7 +104,7 @@ class _NumpyArrayProtocol(_ArrayDataProtocol, Protocol):
 
 @runtime_checkable
 class _ContiguousArrayProtocol(Protocol):
-    """Protocol for NumPy-compatible arrays supporting C-contiguous layout checks."""
+    """Protocol for backend arrays supporting C-contiguous layout checks."""
 
     @property
     def flags(self) -> dict[str, bool]:
@@ -207,7 +207,7 @@ def _to_tensor(
     Returns:
         The converted `_SwitcherooTensor`.
     """
-    if isinstance(x, Tensor) and x._tensor is not None:
+    if isinstance(x, Tensor):
         x = x._tensor
     if isinstance(x, _SwitcherooTensor):
         if _tracer.is_tracing and not isinstance(x.data, ProxyTensor):
@@ -255,15 +255,33 @@ def _to_tensor(
 
     dt = config.default_float_dtype
     if "float64" in dt_str:
-        dt = DType.Float64
+        dt = DType.float64
+    elif "float16" in dt_str:
+        dt = DType.float16
     elif "float32" in dt_str:
-        dt = DType.Float32
+        dt = DType.float32
+    elif "uint64" in dt_str:
+        dt = DType.uint64
     elif "int64" in dt_str:
-        dt = DType.Int64
+        dt = DType.int64
+    elif "uint32" in dt_str:
+        dt = DType.uint32
     elif "int32" in dt_str:
-        dt = DType.Int32
+        dt = DType.int32
+    elif "uint16" in dt_str:
+        dt = DType.uint16
+    elif "int16" in dt_str:
+        dt = DType.int16
+    elif "uint8" in dt_str:
+        dt = DType.uint8
+    elif "int8" in dt_str:
+        dt = DType.int8
+    elif "complex128" in dt_str:
+        dt = DType.complex128
+    elif "complex64" in dt_str:
+        dt = DType.complex64
     elif "bool" in dt_str:
-        dt = DType.Bool
+        dt = DType.bool
 
     if dtype is not None:
         try:
@@ -384,7 +402,7 @@ def _wrap_list(
 class Tensor:
     """A multi-dimensional matrix containing elements of a single data type."""
 
-    _tensor: _SwitcherooTensor | None
+    _tensor: _SwitcherooTensor
 
     def __init__(
         self,
@@ -395,14 +413,14 @@ class Tensor:
         """Initializes a Tensor.
 
         Args:
-            data: Initial data (list, tuple, NumPy array, scalar, or another Tensor).
+            data: Initial data (list, tuple, backend array protocol, scalar, or another Tensor).
             requires_grad: Whether autograd should record operations on this tensor.
             dtype: Optional desired data type of the returned tensor.
         """
         if isinstance(data, Tensor):
             self._tensor = data._tensor
         elif data is None:
-            self._tensor = None
+            self._tensor = _to_tensor([], dtype=dtype)
         else:
             self._tensor = _to_tensor(data, dtype=dtype)
         self.requires_grad: bool = requires_grad
@@ -412,53 +430,37 @@ class Tensor:
         self.grad_fn: Function | None = None
         self._retains_grad: bool = False
 
-    def digamma(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+    def digamma(self) -> Tensor:
         """Computes the logarithmic derivative of the gamma function on `self`.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
 
         Returns:
             Resulting tensor after applying digamma.
         """
-        return zero_torch.digamma(self, *args, **kwargs)
+        return zero_torch.digamma(self)
 
-    def erfc(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+    def erfc(self) -> Tensor:
         """Computes the complementary error function of `self`.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
 
         Returns:
             Resulting tensor after applying erfc.
         """
-        return zero_torch.erfc(self, *args, **kwargs)
+        return zero_torch.erfc(self)
 
-    def erfinv(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+    def erfinv(self) -> Tensor:
         """Computes the inverse error function of `self`.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
 
         Returns:
             Resulting tensor after applying erfinv.
         """
-        return zero_torch.erfinv(self, *args, **kwargs)
+        return zero_torch.erfinv(self)
 
-    def lgamma(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+    def lgamma(self) -> Tensor:
         """Computes the natural logarithm of the absolute value of the gamma function on `self`.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
 
         Returns:
             Resulting tensor after applying lgamma.
         """
-        return zero_torch.lgamma(self, *args, **kwargs)
+        return zero_torch.lgamma(self)
 
     @property
     def is_leaf(self) -> bool:
@@ -482,18 +484,18 @@ class Tensor:
         """Gets the underlying tensor data payload or proxy.
 
         Returns:
-            The underlying data object or proxy, or None if uninitialized.
+            The underlying data object or proxy.
         """
-        return self._tensor.data if self._tensor is not None else None
+        return self._tensor.data
 
     @property
     def _data(self) -> ProxyTensor | _ArrayDataProtocol | list[Scalar] | Scalar | None:
         """Gets the underlying private tensor data payload or proxy.
 
         Returns:
-            The underlying private data object or proxy, or None if uninitialized.
+            The underlying private data object or proxy.
         """
-        return self._tensor.data if self._tensor is not None else None
+        return self._tensor.data
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -502,16 +504,16 @@ class Tensor:
         Returns:
             Tuple of dimension sizes.
         """
-        return self._tensor.shape if self._tensor is not None else ()
+        return tuple(int(s or 0) for s in self._tensor.shape)
 
     @property
-    def dtype(self) -> DType | None:
+    def dtype(self) -> DType:
         """Gets the data type of the tensor elements.
 
         Returns:
-            The tensor DType, or None if uninitialized.
+            The tensor DType.
         """
-        return self._tensor.dtype if self._tensor is not None else None
+        return self._tensor.dtype
 
     def view(self, *shape: int | tuple[int, ...] | list[int] | None) -> Tensor:
         """Returns a new tensor with the same data but a different shape.
@@ -522,8 +524,6 @@ class Tensor:
         Returns:
             Reshaped tensor.
         """
-        if self._tensor is None:
-            return self
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
             clean_shape = tuple(int(item) for item in shape[0] if item is not None)
         else:
@@ -539,8 +539,6 @@ class Tensor:
         Returns:
             Reshaped tensor.
         """
-        if self._tensor is None:
-            return self
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
             clean_shape = tuple(int(item) for item in shape[0] if item is not None)
         else:
@@ -553,9 +551,9 @@ class Tensor:
         Returns:
             Detached Tensor sharing the underlying storage.
         """
-        if self._tensor is None:
-            return self
-        return _wrap(self._tensor.detach())
+        out = Tensor(self, requires_grad=False)
+        out.grad_fn = None
+        return out
 
     def item(self) -> Scalar:
         """Returns the value of a single-element tensor as a standard Python number.
@@ -571,6 +569,14 @@ class Tensor:
                 )
             arr = arr[0]
         return arr
+
+    def __bool__(self) -> bool:
+        """Returns the truth value of the tensor.
+
+        Returns:
+            Boolean value of the tensor.
+        """
+        return bool(self.item()) if self.numel() == 1 else self.numel() > 0
 
     def __repr__(self) -> str:
         """Returns the canonical string representation of the tensor.
@@ -596,9 +602,6 @@ class Tensor:
         Returns:
             Nested Python list or scalar containing the tensor's elements.
         """
-        if self._tensor is None:
-            return []
-
         raw = self._tensor.data
         if isinstance(raw, _ArrayDataProtocol):
             return raw.tolist()
@@ -614,8 +617,6 @@ class Tensor:
         Returns:
             A NumPy ndarray sharing or copying the tensor's data.
         """
-        if self._tensor is None:
-            raise RuntimeError("Cannot convert uninitialized Tensor to NumPy.")
         res = self._tensor.numpy()
         assert isinstance(res, _NumpyArrayProtocol)
         return res
@@ -664,9 +665,6 @@ class Tensor:
         Returns:
             Contiguous tensor.
         """
-        if self._tensor is None:
-            return self
-
         arr = self._tensor.data
         if isinstance(arr, _ContiguousArrayProtocol) and not arr.flags["C_CONTIGUOUS"]:
             return _wrap(arr.copy(order="C"))
@@ -682,8 +680,6 @@ class Tensor:
         Returns:
             Squeezed tensor.
         """
-        if self._tensor is None:
-            return self
         if dim is None:
             return zero_torch.squeeze(self)
         return zero_torch.squeeze(self, dim)
@@ -697,8 +693,10 @@ class Tensor:
         Returns:
             Unsqueezed tensor.
         """
-        if self._tensor is None:
-            return self
+        if self.requires_grad:
+            from .autograd.math_ops import UnsqueezeBackward
+
+            return UnsqueezeBackward.apply(self, dim)
         return zero_torch.unsqueeze(self, dim)
 
     @property
@@ -708,8 +706,6 @@ class Tensor:
         Returns:
             Transposed tensor.
         """
-        if self._tensor is None:
-            return self
         dims = tuple(reversed(range(len(self.shape))))
         return (
             zero_torch.transpose(self, dims[0], dims[1])
@@ -914,26 +910,30 @@ class Tensor:
         """
         return _wrap(ops.greater_equal(_to_tensor(self), _to_tensor(other)))
 
-    def __eq__(self, other: TensorLike) -> Tensor:
-        """Computes element-wise `self == other`.
+    def __eq__(self, other: OpArg) -> Tensor:
+        """Computes element-wise `self == other` or returns a False tensor for non-tensor objects.
 
         Args:
-            other: Tensor or scalar to compare against.
+            other: Tensor, scalar, or value to compare against.
 
         Returns:
             Boolean equality tensor.
         """
+        if other is None or isinstance(other, str):
+            return Tensor(False, dtype="bool")
         return _wrap(ops.equal(_to_tensor(self), _to_tensor(other)))
 
-    def __ne__(self, other: TensorLike) -> Tensor:
-        """Computes element-wise `self != other`.
+    def __ne__(self, other: OpArg) -> Tensor:
+        """Computes element-wise `self != other` or returns a True tensor for non-tensor objects.
 
         Args:
-            other: Tensor or scalar to compare against.
+            other: Tensor, scalar, or value to compare against.
 
         Returns:
             Boolean inequality tensor.
         """
+        if other is None or isinstance(other, str):
+            return Tensor(True, dtype="bool")
         return _wrap(ops.not_equal(_to_tensor(self), _to_tensor(other)))
 
     def __len__(self) -> int:
@@ -1007,20 +1007,67 @@ class Tensor:
             return SumBackward.apply(self)
         return SumBackward.apply(self, axis=dim, keepdims=keepdim)
 
-    def __getitem__(self, index: int | SliceIndexType) -> Tensor:
-        """Indexes or slices the tensor along the first dimension.
+    def mean(
+        self,
+        dim: int | tuple[int, ...] | None = None,
+        keepdim: bool = False,
+    ) -> Tensor:
+        """Returns the mean of all elements in the tensor or along `dim`.
 
         Args:
-            index: Integer index or slice object.
+            dim: Optional dimension or tuple of dimensions to reduce.
+            keepdim: Whether the output tensor has `dim` retained or not.
+
+        Returns:
+            Reduced mean tensor.
+        """
+        if dim is None:
+            return zero_torch.mean(self)
+        return zero_torch.mean(self, axis=dim, keepdims=keepdim)
+
+    def copy_(self, src: TensorLike) -> Tensor:
+        """Copies the elements from `src` into `self` tensor in-place and returns `self`.
+
+        Args:
+            src: Source tensor or scalar/sequence to copy from.
+
+        Returns:
+            The modified `self` tensor.
+        """
+        src_t = src if isinstance(src, Tensor) else Tensor(src, dtype=self.dtype)
+        if self.shape and src_t.shape != self.shape:
+            src_t = zero_torch.broadcast_to(src_t, self.shape)
+        self._tensor = _to_tensor(src_t, dtype=self.dtype)
+        return self
+
+    def __getitem__(
+        self,
+        index: int
+        | SliceIndexType
+        | Tensor
+        | tuple[int | SliceIndexType | Tensor | None, ...],
+    ) -> Tensor:
+        """Indexes or slices the tensor.
+
+        Args:
+            index: Integer, slice, tensor, or tuple of indices.
 
         Returns:
             Indexed or sliced tensor.
         """
         if len(self.shape) == 0:
             raise IndexError("invalid index of a 0-dim tensor")
-        lst = self.tolist()
-        if isinstance(lst, list):
-            return Tensor(lst[index], dtype=self.dtype)
+        if not isinstance(self._tensor.data, list):
+            if isinstance(index, Tensor):
+                return _wrap(self._tensor[index._tensor])
+            if isinstance(index, tuple):
+                norm_tuple = tuple(
+                    k._tensor if isinstance(k, Tensor) else k for k in index
+                )
+                return _wrap(self._tensor[norm_tuple])
+            return _wrap(self._tensor[index])
+        if isinstance(index, (int, slice)):
+            return Tensor(self._tensor.data[index], dtype=self.dtype)
         return self
 
     def numel(self) -> int:

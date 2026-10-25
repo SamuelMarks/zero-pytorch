@@ -64,32 +64,119 @@ def matrix_rank(input: Tensor, **kwargs: OpArg) -> Tensor:
     return _wrap(_ops.matrix_rank(input._tensor, **kwargs))
 
 
-def matrix_norm(input: Tensor, **kwargs: OpArg) -> Tensor:
+def matrix_norm(
+    input: Tensor,
+    ord: int | float | str = "fro",
+    dim: tuple[int, int] = (-2, -1),
+    keepdim: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes a matrix norm.
 
     Args:
         input: Input matrix tensor.
-        **kwargs: Optional norm order (`ord`, `dim`, `keepdim`) arguments.
+        ord: Order of norm (`'fro'`, `'nuc'`, `1`, `-1`, `2`, `-2`, `inf`, `-inf`).
+        dim: Tuple of two dimensions over which to compute the matrix norm.
+        keepdim: Whether the normed dimensions are retained with size `1`.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Matrix norm tensor.
     """
     _ = kwargs
-    return zero_torch.sqrt(zero_torch.sum(input * input))
+    ndim = len(input.shape)
+    d0 = dim[0] if dim[0] >= 0 else ndim + dim[0]
+    d1 = dim[1] if dim[1] >= 0 else ndim + dim[1]
+    ax_after_d0 = d1 if keepdim else (d1 - 1 if d1 > d0 else d1)
+    ax_after_d1 = d0 if keepdim else (d0 - 1 if d0 > d1 else d0)
+    if ord == "fro":
+        s0 = zero_torch.sum(input * input, axis=d0, keepdims=keepdim)
+        s1 = zero_torch.sum(s0, axis=ax_after_d0, keepdims=keepdim)
+        return zero_torch.sqrt(s1)
+    if ord == 1:
+        col_sums = zero_torch.sum(zero_torch.abs(input), axis=d0, keepdims=keepdim)
+        return zero_torch.max(col_sums, axis=ax_after_d0, keepdims=keepdim)
+    if ord == -1:
+        col_sums = zero_torch.sum(zero_torch.abs(input), axis=d0, keepdims=keepdim)
+        return zero_torch.min(col_sums, axis=ax_after_d0, keepdims=keepdim)
+    if ord == float("inf"):
+        row_sums = zero_torch.sum(zero_torch.abs(input), axis=d1, keepdims=keepdim)
+        return zero_torch.max(row_sums, axis=ax_after_d1, keepdims=keepdim)
+    if ord == float("-inf"):
+        row_sums = zero_torch.sum(zero_torch.abs(input), axis=d1, keepdims=keepdim)
+        return zero_torch.min(row_sums, axis=ax_after_d1, keepdims=keepdim)
+    s = svdvals(input)
+    if ord == "nuc":
+        out = zero_torch.sum(s, axis=-1, keepdims=keepdim)
+    elif ord == 2:
+        out = zero_torch.max(s, axis=-1, keepdims=keepdim)
+    elif ord == -2:
+        out = zero_torch.min(s, axis=-1, keepdims=keepdim)
+    else:
+        raise ValueError(f"Invalid matrix_norm ord: {ord}")
+    if keepdim:
+        return out.unsqueeze(-1)
+    return out
 
 
-def vector_norm(input: Tensor, **kwargs: OpArg) -> Tensor:
+def vector_norm(
+    input: Tensor,
+    ord: int | float = 2.0,
+    dim: int | tuple[int, ...] | None = None,
+    keepdim: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes a vector norm.
 
     Args:
         input: Input tensor.
-        **kwargs: Optional norm order (`ord`, `dim`, `keepdim`) arguments.
+        ord: Order of norm (`0`, `1`, `2`, `inf`, `-inf`, or any real number).
+        dim: Dimension(s) over which to compute the vector norm.
+        keepdim: Whether the normed dimensions are retained with size `1`.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Vector norm tensor.
     """
     _ = kwargs
-    return zero_torch.sqrt(zero_torch.sum(input * input))
+    abs_x = zero_torch.abs(input)
+    if ord == 2 or ord == 2.0:
+        if dim is None:
+            sq_sum = zero_torch.sum(abs_x * abs_x)
+            if keepdim:
+                return zero_torch.sqrt(sq_sum).reshape((1,) * len(input.shape))
+            return zero_torch.sqrt(sq_sum)
+        return zero_torch.sqrt(
+            zero_torch.sum(abs_x * abs_x, axis=dim, keepdims=keepdim)
+        )
+    if ord == 1 or ord == 1.0:
+        if dim is None:
+            s = zero_torch.sum(abs_x)
+            return s.reshape((1,) * len(input.shape)) if keepdim else s
+        return zero_torch.sum(abs_x, axis=dim, keepdims=keepdim)
+    if ord == float("inf"):
+        if dim is None:
+            m = zero_torch.max(abs_x)
+            return m.reshape((1,) * len(input.shape)) if keepdim else m
+        return zero_torch.max(abs_x, axis=dim, keepdims=keepdim)
+    if ord == float("-inf"):
+        if dim is None:
+            m = zero_torch.min(abs_x)
+            return m.reshape((1,) * len(input.shape)) if keepdim else m
+        return zero_torch.min(abs_x, axis=dim, keepdims=keepdim)
+    if ord == 0 or ord == 0.0:
+        nz = zero_torch.cast(abs_x != 0, input.dtype)
+        if dim is None:
+            s = zero_torch.sum(nz)
+            return s.reshape((1,) * len(input.shape)) if keepdim else s
+        return zero_torch.sum(nz, axis=dim, keepdims=keepdim)
+    p = float(ord)
+    powered = abs_x**p
+    if dim is None:
+        total = zero_torch.sum(powered)
+        res = total ** (1.0 / p)
+        return res.reshape((1,) * len(input.shape)) if keepdim else res
+    return zero_torch.sum(powered, axis=dim, keepdims=keepdim) ** (1.0 / p)
 
 
 def cholesky(input: Tensor, **kwargs: OpArg) -> Tensor:
@@ -299,7 +386,10 @@ def solve_ex(input: Tensor, other: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...
     Returns:
         Tuple of `(result, info)` tensors.
     """
-    return _wrap_tuple(get_op("SolveEx")()(input._tensor, other._tensor, **kwargs))
+    _ = kwargs
+    sol = solve(input, other)
+    info = zero_torch.zeros(input.shape[:-2], dtype=zero_torch.int32)
+    return (sol, info)
 
 
 def lstsq(input: Tensor, other: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
@@ -313,7 +403,14 @@ def lstsq(input: Tensor, other: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
     Returns:
         Tuple of `(solution, residuals, rank, singular_values)` tensors.
     """
-    return _wrap_tuple(_ops.lstsq(input._tensor, other._tensor, **kwargs))
+    _ = kwargs
+    pinv_a = pinv(input)
+    sol = zero_torch.matmul(pinv_a, other)
+    diff = other - zero_torch.matmul(input, sol)
+    residuals = zero_torch.sum(diff * diff, axis=0)
+    rank = matrix_rank(input)
+    s = svdvals(input)
+    return (sol, residuals, rank, s)
 
 
 def tensorinv(input: Tensor, **kwargs: OpArg) -> Tensor:
@@ -367,7 +464,20 @@ def matrix_exp(input: Tensor, **kwargs: OpArg) -> Tensor:
     Returns:
         Matrix exponential tensor.
     """
-    return _wrap(get_op("MatrixExp")()(input._tensor, **kwargs))
+    _ = kwargs
+    n = input.shape[-1]
+    scale_steps = 4
+    scale = float(1 << scale_steps)
+    scaled_a = input / scale
+    eye_n = zero_torch.eye(n, dtype=input.dtype)
+    res = eye_n
+    term = eye_n
+    for k in range(1, 16):
+        term = zero_torch.matmul(term, scaled_a) / float(k)
+        res = res + term
+    for _ in range(scale_steps):
+        res = zero_torch.matmul(res, res)
+    return res
 
 
 def matrix_power(input: Tensor, n: int, **kwargs: OpArg) -> Tensor:

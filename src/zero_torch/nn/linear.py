@@ -42,6 +42,8 @@ class Linear(Module):
         self.bias: Parameter | None = (
             Parameter(zero_torch.ones((out_features,))) if bias else None
         )
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies the linear transformation to `input`.
@@ -88,6 +90,8 @@ class Bilinear(Module):
         self.bias: Parameter | None = (
             Parameter(zero_torch.ones((out_features,))) if bias else None
         )
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(self, input1: Tensor, input2: Tensor) -> Tensor:
         """Applies the bilinear transformation to `input1` and `input2`.

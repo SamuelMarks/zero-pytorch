@@ -47,11 +47,19 @@ def generate_snapshot() -> str:
         )
         import zero_torch
 
+    excluded_type_aliases = {"NestedSequence", "Sequence"}
     apis: list[str] = []
     for name, obj in inspect.getmembers(zero_torch):
-        if not name.startswith("_") and (
-            inspect.isfunction(obj) or inspect.isclass(obj)
+        if (
+            not name.startswith("_")
+            and name not in excluded_type_aliases
+            and (inspect.isfunction(obj) or inspect.isclass(obj))
         ):
+            if name == "DType":
+                apis.append(
+                    "DType(value, names=None, *, module=None, qualname=None, type=None, start=1)"
+                )
+                continue
             try:
                 sig = inspect.signature(obj)
                 apis.append(f"{name}{sig}")
@@ -73,6 +81,15 @@ def load_ecosystem_snapshot_version() -> str | None:
         / "snapshots"
         / "torch_v2.14.1_cpu.json"
     )
+    if not cache_path.exists():
+        try:
+            from ml_ecosystem_snapshots.cli.resolver import resolve_snapshot_path
+
+            resolved = Path(resolve_snapshot_path("torch_v2.14.1_cpu"))
+            if resolved.exists():
+                cache_path = resolved
+        except ImportError:
+            cache_path = cache_path
     if cache_path.exists():
         raw = json.loads(cache_path.read_text(encoding="utf-8"))
         if isinstance(raw, dict):

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import math
 from collections import namedtuple
 from collections.abc import Callable, Iterator
-from unittest import mock
 
 import pytest
 from ml_switcheroo_compiler.core.config import EagerMode, config
 from ml_switcheroo_compiler.core.dtype import DType
-from ml_switcheroo_compiler.core.errors import UnimplementedMathError
 from ml_switcheroo_compiler.core.tensor import (
     Tensor as SwitcherooTensor,
 )
@@ -18,8 +17,9 @@ from ml_switcheroo_compiler.core.tensor import (
 )
 
 import zero_torch as torch
+from tests.conftest import assert_allclose, eye_nested, flatten_scalars
 from zero_torch import nn, optim
-from zero_torch._types import OpArg, ParamGroupDict
+from zero_torch._types import NestedList, ParamGroupDict, Scalar, TensorLike
 from zero_torch.autograd import Function
 from zero_torch.autograd.engine import _backward
 from zero_torch.distributions import Distribution
@@ -36,7 +36,7 @@ from zero_torch.nn import (
     functional_pooling as FP,
 )
 from zero_torch.nn.norm import _apply_channel_affine
-from zero_torch.optim import _betas_opt, _float_opt, lr_scheduler
+from zero_torch.optim import _scalar_to_float, lr_scheduler
 from zero_torch.tensor import (
     Tensor,
     _flatten_nested,
@@ -55,6 +55,46 @@ from zero_torch.utils.data.dataloader import (
 )
 
 
+class _MockArrayData:
+    """Pure-Python mock array implementing `_ArrayDataProtocol` for arbitrary dtype strings."""
+
+    def __init__(self, data: NestedList | Scalar, dtype_str: str) -> None:
+        """Initializes `_MockArrayData`.
+
+        Args:
+            data: Underlying nested list or scalar payload.
+            dtype_str: Data type string returned by `.dtype`.
+        """
+        self._data = data
+        self._dtype_str = dtype_str
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        """Returns the 1D shape tuple `(1,)`.
+
+        Returns:
+            Shape tuple `(1,)`.
+        """
+        return (1,)
+
+    @property
+    def dtype(self) -> str:
+        """Returns the configured dtype string.
+
+        Returns:
+            Dtype string.
+        """
+        return self._dtype_str
+
+    def tolist(self) -> NestedList | Scalar:
+        """Returns the stored Python list or scalar payload.
+
+        Returns:
+            Stored payload.
+        """
+        return self._data
+
+
 def test_top_level_ops_and_branches() -> None:
     """Verifies all top-level `zero_torch` math, shape, logic, bitwise, and creation operations."""
     with EagerMode():
@@ -66,96 +106,140 @@ def test_top_level_ops_and_branches() -> None:
         bool_vec = torch.tensor([True, False, True])
         bool_vec2 = torch.tensor([False, False, True])
 
-        # Unary floating math ops
-        for unary_fn in [
-            torch.abs,
-            torch.acos,
-            torch.acosh,
-            torch.asin,
-            torch.asinh,
-            torch.atan,
-            torch.atanh,
-            torch.cbrt,
-            torch.ceil,
-            torch.conj,
-            torch.cos,
-            torch.cosh,
-            torch.deg2rad,
-            torch.digamma,
-            torch.erf,
-            torch.erfc,
-            torch.erfinv,
-            torch.exp,
-            torch.exp2,
-            torch.expm1,
-            torch.fix,
-            torch.floor,
-            torch.imag,
-            torch.isfinite,
-            torch.isinf,
-            torch.isnan,
-            torch.lgamma,
-            torch.log,
-            torch.log10,
-            torch.log1p,
-            torch.log2,
-            torch.negative,
-            torch.positive,
-            torch.rad2deg,
-            torch.real,
-            torch.reciprocal,
-            torch.round,
-            torch.rsqrt,
-            torch.sign,
-            torch.sin,
-            torch.sinc,
-            torch.sinh,
-            torch.sqrt,
-            torch.square,
-            torch.tan,
-            torch.tanh,
-            torch.trunc,
-        ]:
-            assert unary_fn(torch.tensor([0.5, 1.5])).shape == (2,)
-
-        # Binary floating math ops
-        bin_fns: list[Callable[[OpArg, OpArg], Tensor]] = [
-            torch.add,
-            torch.atan2,
-            torch.copysign,
-            torch.divide,
-            torch.equal,
-            torch.float_power,
-            torch.floor_divide,
-            torch.fmax,
-            torch.fmin,
-            torch.fmod,
-            torch.greater,
-            torch.greater_equal,
-            torch.heaviside,
-            torch.hypot,
-            torch.inner,
-            torch.isclose,
-            torch.ldexp,
-            torch.less,
-            torch.less_equal,
-            torch.logaddexp,
-            torch.logaddexp2,
-            torch.maximum,
-            torch.minimum,
-            torch.mod,
-            torch.multiply,
-            torch.nextafter,
-            torch.not_equal,
-            torch.outer,
-            torch.power,
-            torch.remainder,
-            torch.subtract,
-            torch.true_divide,
-            torch.vdot,
+        # Unary floating math ops with analytical expected values
+        u_vals = [0.5, 0.75]
+        u_in = torch.tensor(u_vals)
+        unary_expected: list[tuple[Callable[[TensorLike], Tensor], NestedList]] = [
+            (torch.abs, [abs(x) for x in u_vals]),
+            (torch.acos, [math.acos(x) for x in u_vals]),
+            (torch.asin, [math.asin(x) for x in u_vals]),
+            (torch.asinh, [math.asinh(x) for x in u_vals]),
+            (torch.atan, [math.atan(x) for x in u_vals]),
+            (torch.atanh, [math.atanh(x) for x in u_vals]),
+            (torch.ceil, [float(math.ceil(x)) for x in u_vals]),
+            (torch.conj, [x for x in u_vals]),
+            (torch.cos, [math.cos(x) for x in u_vals]),
+            (torch.cosh, [math.cosh(x) for x in u_vals]),
+            (torch.deg2rad, [math.radians(x) for x in u_vals]),
+            (torch.digamma, [-1.96351003, -1.08586085]),
+            (torch.erf, [math.erf(x) for x in u_vals]),
+            (torch.erfc, [math.erfc(x) for x in u_vals]),
+            (torch.erfinv, [0.47693628, 0.81341985]),
+            (torch.exp, [math.exp(x) for x in u_vals]),
+            (torch.exp2, [2.0**x for x in u_vals]),
+            (torch.expm1, [math.expm1(x) for x in u_vals]),
+            (torch.fix, [float(math.trunc(x)) for x in u_vals]),
+            (torch.floor, [float(math.floor(x)) for x in u_vals]),
+            (torch.isfinite, [True, True]),
+            (torch.isinf, [False, False]),
+            (torch.isnan, [False, False]),
+            (torch.lgamma, [math.lgamma(x) for x in u_vals]),
+            (torch.log, [math.log(x) for x in u_vals]),
+            (torch.log10, [math.log10(x) for x in u_vals]),
+            (torch.log1p, [math.log1p(x) for x in u_vals]),
+            (torch.log2, [math.log2(x) for x in u_vals]),
+            (torch.negative, [-x for x in u_vals]),
+            (torch.positive, [x for x in u_vals]),
+            (torch.rad2deg, [math.degrees(x) for x in u_vals]),
+            (torch.real, [x for x in u_vals]),
+            (torch.reciprocal, [1.0 / x for x in u_vals]),
+            (torch.round, [float(round(x)) for x in u_vals]),
+            (torch.rsqrt, [1.0 / math.sqrt(x) for x in u_vals]),
+            (torch.sign, [1.0, 1.0]),
+            (torch.sin, [math.sin(x) for x in u_vals]),
+            (
+                torch.sinc,
+                [math.sin(math.pi * x) / (math.pi * x) for x in u_vals],
+            ),
+            (torch.sinh, [math.sinh(x) for x in u_vals]),
+            (torch.sqrt, [math.sqrt(x) for x in u_vals]),
+            (torch.square, [x * x for x in u_vals]),
+            (torch.tan, [math.tan(x) for x in u_vals]),
+            (torch.tanh, [math.tanh(x) for x in u_vals]),
+            (torch.trunc, [float(math.trunc(x)) for x in u_vals]),
         ]
-        for bin_fn in bin_fns:
-            assert bin_fn(int_vec, int_vec2).shape is not None
+        for unary_fn, exp_u in unary_expected:
+            assert_allclose(
+                unary_fn(u_in).tolist(),
+                exp_u,
+                rtol=1e-4,
+                atol=1e-4,
+            )
+        assert_allclose(
+            torch.acosh(torch.tensor([1.5, 2.5])).tolist(),
+            [math.acosh(1.5), math.acosh(2.5)],
+            rtol=1e-4,
+        )
+        assert_allclose(
+            torch.cbrt(torch.tensor([8.0, 27.0])).tolist(),
+            [2.0, 3.0],
+            rtol=1e-4,
+        )
+        assert_allclose(torch.imag(u_in).tolist(), [0.0, 0.0])
+
+        # Binary floating math ops with analytical assertions
+        v1_vals = [1.0, 2.0, 3.0]
+        v2_vals = [2.0, 3.0, 4.0]
+        iv2_vals = [1, 2, 3]
+        bin_expected: list[
+            tuple[Callable[[TensorLike, TensorLike], Tensor], NestedList | Scalar]
+        ] = [
+            (torch.add, [a + b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.atan2, [math.atan2(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.copysign, [math.copysign(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.divide, [a / b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.equal, [False, False, False]),
+            (torch.float_power, [a**b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.floor_divide, [a // b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.fmax, [max(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.fmin, [min(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.fmod, [math.fmod(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.greater, [False, False, False]),
+            (torch.greater_equal, [False, False, False]),
+            (torch.hypot, [math.hypot(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.inner, sum(a * b for a, b in zip(v1_vals, v2_vals))),
+            (torch.less, [True, True, True]),
+            (torch.less_equal, [True, True, True]),
+            (
+                torch.logaddexp,
+                [math.log(math.exp(a) + math.exp(b)) for a, b in zip(v1_vals, v2_vals)],
+            ),
+            (
+                torch.logaddexp2,
+                [math.log2(2.0**a + 2.0**b) for a, b in zip(v1_vals, v2_vals)],
+            ),
+            (torch.maximum, [max(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.minimum, [min(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.multiply, [a * b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.nextafter, [math.nextafter(a, b) for a, b in zip(v1_vals, v2_vals)]),
+            (torch.not_equal, [True, True, True]),
+            (torch.outer, [[a * b for b in v2_vals] for a in v1_vals]),
+            (torch.power, [a**b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.remainder, [a % b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.subtract, [a - b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.true_divide, [a / b for a, b in zip(v1_vals, v2_vals)]),
+            (torch.vdot, sum(a * b for a, b in zip(v1_vals, v2_vals))),
+        ]
+        for bin_fn, exp_b in bin_expected:
+            assert_allclose(
+                bin_fn(vec, vec2).tolist(),
+                exp_b,
+                rtol=1e-4,
+                atol=1e-4,
+            )
+        assert_allclose(
+            torch.ldexp(vec, int_vec2).tolist(),
+            [math.ldexp(a, b) for a, b in zip(v1_vals, iv2_vals)],
+            rtol=1e-4,
+        )
+        assert_allclose(
+            torch.heaviside(
+                torch.tensor([-1.0, 0.0, 2.0]), torch.tensor([0.5, 0.5, 0.5])
+            ).tolist(),
+            [0.0, 0.5, 1.0],
+        )
+        assert_allclose(torch.isclose(vec, vec).tolist(), [True, True, True])
+        assert_allclose(torch.mod(int_vec, int_vec2).tolist(), [0, 0, 0])
 
         # Integer / bitwise / logical ops
         for int_bin_fn in [
@@ -197,13 +281,13 @@ def test_top_level_ops_and_branches() -> None:
             assert red_fn(vec).shape == ()
 
         assert torch.allclose(vec, vec) is True
-        assert torch.dot(vec, vec2).shape == ()
+        assert torch.dot(vec, vec2).item() == pytest.approx(20.0)
         assert torch.matmul(mat, mat).shape == (2, 2)
         assert torch.tensordot(mat, mat, axes=1).shape == (2, 2)
         assert torch.einsum("ij,jk->ik", mat, mat).shape == (2, 2)
         assert torch.cholesky(mat).shape == (2, 2)
-        assert torch.det(mat).shape == ()
-        assert torch.diag(mat).shape == (2,)
+        assert torch.det(mat).item() == pytest.approx(5.0)
+        assert torch.diag(mat).tolist() == [2.0, 3.0]
         assert len(torch.eigh(mat)) == 2
         assert torch.eigvalsh(mat).shape == (2,)
         assert torch.inv(mat).shape == (2, 2)
@@ -226,15 +310,16 @@ def test_top_level_ops_and_branches() -> None:
         assert torch.squeeze(torch.ones((1, 2)), 0).shape == (2,)
         assert torch.squeeze(torch.ones((1, 2))).shape == (2,)
         assert torch.stack([vec, vec2]).shape == (2, 3)
+        assert torch.stack([vec, vec2], 1).shape == (3, 2)
         assert torch.swapaxes(mat, 0, 1).shape == (2, 2)
-        assert torch.take(vec, torch.tensor([0, 2])).shape == (2,)
+        assert torch.take(vec, torch.tensor([0, 2])).tolist() == [1.0, 3.0]
         assert torch.tile(vec, (2,)).shape == (6,)
         assert torch.tril(mat).shape == (2, 2)
         assert torch.triu(mat).shape == (2, 2)
         assert torch.unsqueeze(vec, 0).shape == (1, 3)
         assert torch.unsqueeze(vec, -1).shape == (3, 1)
         assert len(torch.unstack(mat)) == 2
-        assert torch.where(bool_vec, vec, vec2).shape == (3,)
+        assert torch.where(bool_vec, vec, vec2).tolist() == [1.0, 3.0, 3.0]
         assert torch.ones((2, 2)).shape == (2, 2)
         assert torch.ones_like(mat).shape == (2, 2)
         assert torch.zeros((2, 2)).shape == (2, 2)
@@ -242,9 +327,9 @@ def test_top_level_ops_and_branches() -> None:
         assert torch.full((2, 2), 3.0).shape == (2, 2)
         assert torch.full_like(mat, 3.0).shape == (2, 2)
         assert torch.empty((2, 2)).shape == (2, 2)
-        assert torch.eye(2).shape == (2, 2)
+        assert torch.eye(2).tolist() == [[1.0, 0.0], [0.0, 1.0]]
         assert torch.identity(3).shape == (3, 3)
-        assert torch.arange(4).shape == (4,)
+        assert torch.arange(4).tolist() == [0, 1, 2, 3]
         assert torch.linspace(0.0, 1.0, 4).shape == (4,)
 
         assert torch.bitcast(vec, torch.int32).shape == (3,)
@@ -256,15 +341,10 @@ def test_top_level_ops_and_branches() -> None:
         assert torch.concatenate([vec, vec], 0).shape == (6,)
 
         idx = torch.tensor([0, 1])
-        assert torch.gather(vec, 0, idx).shape == (2,)
-        assert torch.gather(vec, dim=0, index=[0, 1]).shape == (2,)
-        assert torch.gather(vec, index=idx).shape == (2,)
-        assert torch.gather(vec, 0, index=idx).shape == (2,)
-        with mock.patch(
-            "zero_torch.get_op",
-            return_value=lambda: lambda *a, **kw: vec._tensor,
-        ):
-            assert torch.gather(vec, 0).shape == (3,)
+        assert torch.gather(vec, 0, idx).tolist() == [1.0, 2.0]
+        assert torch.gather(vec, dim=0, index=[0, 1]).tolist() == [1.0, 2.0]
+        assert torch.gather(vec, index=idx).tolist() == [1.0, 2.0]
+        assert torch.gather(vec, 0, index=idx).tolist() == [1.0, 2.0]
 
         assert torch.norm(vec, p=2, dim=0, keepdim=True).shape == (1,)
         assert torch.norm(vec, p=3).shape == ()
@@ -277,7 +357,7 @@ def test_top_level_ops_and_branches() -> None:
 
         assert torch.logit(torch.tensor([0.2, 0.8]), eps=1e-4).shape == (2,)
         assert torch.logit(torch.tensor([0.2, 0.8])).shape == (2,)
-        assert torch.signbit(torch.tensor([-1.0, 1.0])).shape == (2,)
+        assert torch.signbit(torch.tensor([-1.0, 1.0])).tolist() == [True, False]
         assert torch.xlogy(
             torch.tensor([0.0, 2.0]), torch.tensor([1.0, 3.0])
         ).shape == (2,)
@@ -288,8 +368,8 @@ def test_top_level_ops_and_branches() -> None:
             nan=0.0,
             posinf=10.0,
             neginf=-10.0,
-        ).shape == (3,)
-        assert torch.nan_to_num(torch.tensor([1.0]), nan=None).shape == (1,)
+        ).tolist() == [0.0, 10.0, -10.0]
+        assert torch.nan_to_num(torch.tensor([1.0]), nan=None).tolist() == [1.0]
 
         assert torch.manual_seed(42) == 42
         assert torch.rand((2, 2)).shape == (2, 2)
@@ -302,47 +382,27 @@ def test_top_level_ops_and_branches() -> None:
         assert torch.randint(0, 5, 3).shape == (3,)
         assert torch.randint(5, None, (2,)).shape == (2,)
 
-        assert torch.clip(vec, min=1.5, max=2.5).shape == (3,)
-        assert torch.clip(vec).shape == (3,)
-        assert torch.clamp(vec, min=1.5, max=2.5).shape == (3,)
+        assert torch.clip(vec, min=1.5, max=2.5).tolist() == [1.5, 2.0, 2.5]
+        assert torch.clip(vec).tolist() == [1.0, 2.0, 3.0]
+        assert torch.clamp(vec, min=1.5, max=2.5).tolist() == [1.5, 2.0, 2.5]
         assert torch.sigmoid(vec).shape == (3,)
         assert torch.softmax(vec, dim=0).shape == (3,)
 
-        for op_fn in (
-            torch.binary,
-            torch.creation,
-            torch.divmod,
-            torch.reductions,
-            torch.scatter,
-            torch.shape,
-            torch.unary,
-        ):
-            with mock.patch("zero_torch._ops") as mock_ops:
-                mock_ops.binary.return_value = vec._tensor
-                mock_ops.creation.return_value = vec._tensor
-                mock_ops.divmod.return_value = vec._tensor
-                mock_ops.reductions.return_value = vec._tensor
-                mock_ops.scatter.return_value = vec._tensor
-                mock_ops.shape.return_value = vec._tensor
-                mock_ops.unary.return_value = vec._tensor
-                assert op_fn(vec).shape == (3,)
-
-        with mock.patch("zero_torch._dynamic_slice", return_value=vec._tensor):
-            assert torch.dynamic_slice(vec).shape == (3,)
-
-        for op_fn in (
-            torch.gather_nd,
-            torch.scatter_add,
-            torch.scatter_nd,
-            torch.slice,
-            torch.strided_slice,
-            torch.update_slice,
-        ):
-            with mock.patch(
-                "zero_torch.get_op",
-                return_value=lambda: lambda *a, **kw: vec._tensor,
-            ):
-                assert op_fn(vec).shape == (3,)
+    # Real TracingMode execution for low-level indexing/slicing ops
+    _tracer.start_tracing()
+    try:
+        vt = torch.ones((4,))
+        it = torch.tensor([0, 1])
+        assert isinstance(torch.gather(vt, 0), Tensor)
+        assert torch.dynamic_slice(vt, (0,), (2,)).shape == (2,)
+        assert isinstance(torch.gather_nd(vt, it), Tensor)
+        assert isinstance(torch.scatter_add(vt, it, it), Tensor)
+        assert isinstance(torch.scatter_nd(it, it, (4,)), Tensor)
+        assert isinstance(torch.slice(vt, (0,), (2,)), Tensor)
+        assert isinstance(torch.strided_slice(vt, (0,), (2,), (1,)), Tensor)
+        assert isinstance(torch.update_slice(vt, it, (0,)), Tensor)
+    finally:
+        _tracer.stop_tracing()
 
 
 def test_tensor_methods_and_edge_cases() -> None:
@@ -358,7 +418,10 @@ def test_tensor_methods_and_edge_cases() -> None:
         assert t_grad.dim() == 1
         assert len(t_grad) == 2
         assert len(torch.tensor(5.0)) == 0
-        assert torch.tensor(None).numel() == 1
+        assert torch.tensor(None).numel() == 0
+        assert Tensor(None).numel() == 0
+        assert torch.tensor(5.0).numel() == 1
+        assert torch.zeros((0, 3)).numel() == 0
 
         t_no_grad = torch.tensor([1.0], requires_grad=False)
         with pytest.raises(RuntimeError):
@@ -369,14 +432,14 @@ def test_tensor_methods_and_edge_cases() -> None:
             t_grad.backward()
 
         t_none = Tensor(None)
-        assert t_none.view(1) is t_none
-        assert t_none.reshape(1) is t_none
-        assert t_none.detach() is t_none
+        assert t_none.shape == (0,)
+        assert t_none.view(0).shape == (0,)
+        assert t_none.reshape(0).shape == (0,)
+        assert t_none.detach().shape == (0,)
         assert t_none.tolist() == []
-        assert t_none.unsqueeze(0) is t_none
-        assert t_none.T is t_none
-        with pytest.raises(RuntimeError):
-            t_none.numpy()
+        assert t_none.unsqueeze(0).shape == (1, 0)
+        assert t_none.T.shape == (0,)
+        assert t_none.numpy().shape == (0,)
 
         t_mat = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         assert t_mat.reshape([4]).shape == (4,)
@@ -385,7 +448,7 @@ def test_tensor_methods_and_edge_cases() -> None:
         assert t_mat.transpose(0, 1).shape == (2, 2)
         assert len(t_mat.chunk(2, dim=0)) == 2
 
-        t_sp = torch.tensor([1.5, 2.5])
+        t_sp = torch.tensor([0.5, 0.75])
         assert t_sp.digamma().shape == (2,)
         assert t_sp.erfc().shape == (2,)
         assert t_sp.erfinv().shape == (2,)
@@ -393,20 +456,39 @@ def test_tensor_methods_and_edge_cases() -> None:
 
         t_cmp1 = torch.tensor([1.0, 2.0])
         t_cmp2 = torch.tensor([2.0, 2.0])
-        assert (t_cmp1 < t_cmp2).shape == (2,)
-        assert (t_cmp1 > t_cmp2).shape == (2,)
-        assert (t_cmp1 <= t_cmp2).shape == (2,)
-        assert (t_cmp1 >= t_cmp2).shape == (2,)
-        assert (t_cmp1 == t_cmp2).shape == (2,)
-        assert (t_cmp1 != t_cmp2).shape == (2,)
+        assert (t_cmp1 < t_cmp2).tolist() == [True, False]
+        assert (t_cmp1 > t_cmp2).tolist() == [False, False]
+        assert (t_cmp1 <= t_cmp2).tolist() == [True, True]
+        assert (t_cmp1 >= t_cmp2).tolist() == [False, True]
+        assert (t_cmp1 == t_cmp2).tolist() == [False, True]
+        assert (t_cmp1 != t_cmp2).tolist() == [True, False]
+        none_val: None = None
+        assert not bool(t_cmp1 == none_val)
+        assert bool(t_cmp1 != none_val)
+        assert not bool(t_cmp1 == "abc")
+        assert bool(t_cmp1 != "abc")
+        assert bool(t_cmp1) is True
+        assert bool(t_none) is False
 
-        assert t_mat[0].shape == (2,)
-        assert t_mat[0:1].shape == (1, 2)
+        assert t_mat[0].tolist() == [1.0, 2.0]
+        assert t_mat[0:1].tolist() == [[1.0, 2.0]]
+        assert t_mat[(0, 1)].item() == 2.0
+        assert t_mat[torch.tensor([0], dtype=torch.int32)].shape == (1, 2)
+        assert t_mat[(torch.tensor([0], dtype=torch.int32), 1)].shape == (1,)
+        t_copy_dst = torch.zeros((2, 2))
+        t_copy_dst.copy_(1.0)
+        assert t_copy_dst.tolist() == [[1.0, 1.0], [1.0, 1.0]]
+        t_copy_dst.copy_(t_mat)
+        assert t_copy_dst.tolist() == [[1.0, 2.0], [3.0, 4.0]]
         with pytest.raises(IndexError):
             _ = torch.tensor(5.0)[0]
-        t_scalar_tolist = torch.tensor([1.0, 2.0])
-        with mock.patch.object(Tensor, "tolist", return_value=5.0):
-            assert t_scalar_tolist[0].item() == 5.0
+        st_list_data = SwitcherooTensor(
+            data=[10.0, 20.0],
+            config=TensorConfig(shape=(2,), dtype=DType.Float32, device="cpu"),
+        )
+        t_list_data = Tensor(st_list_data)
+        assert t_list_data[0].item() == 10.0
+        assert t_list_data[(0,)] is t_list_data
 
         t_np = torch.tensor([1.0, 2.0])
         assert t_np.data is not None
@@ -418,13 +500,25 @@ def test_tensor_methods_and_edge_cases() -> None:
         assert isinstance(_wrap_tuple(t_np._tensor), tuple)
 
         # Dtypes and _to_tensor edge cases
-        import numpy as np
-
-        assert Tensor(np.array([1.0], dtype=np.float64)).dtype == DType.Float64
-        assert Tensor(np.array([1], dtype=np.int32)).dtype == DType.Int32
-        assert Tensor(np.array([1], dtype=np.int64)).dtype == DType.Int64
-        assert Tensor(np.array([True], dtype=np.bool_)).dtype == DType.Bool
-        assert Tensor(np.array([1], dtype=np.uint8)).dtype == DType.Float32
+        assert Tensor(_MockArrayData([1.0], "float64")).dtype == DType.Float64
+        assert Tensor(_MockArrayData([1.0], "float16")).dtype == DType.float16
+        assert Tensor([1.0], dtype="bfloat16").dtype == DType.bfloat16
+        assert Tensor(_MockArrayData([1], "int32")).dtype == DType.Int32
+        assert Tensor(_MockArrayData([1], "int64")).dtype == DType.Int64
+        assert Tensor(_MockArrayData([1], "int16")).dtype == DType.int16
+        assert Tensor(_MockArrayData([1], "int8")).dtype == DType.int8
+        assert Tensor(_MockArrayData([True], "bool")).dtype == DType.Bool
+        assert Tensor(_MockArrayData([1], "uint8")).dtype == DType.uint8
+        assert Tensor(_MockArrayData([1], "uint16")).dtype == DType.uint16
+        assert Tensor(_MockArrayData([1], "uint32")).dtype == DType.uint32
+        assert Tensor(_MockArrayData([1], "uint64")).dtype == DType.uint64
+        assert Tensor(_MockArrayData([0.0], "S1")).dtype == DType.Float32
+        assert (
+            Tensor(_MockArrayData([1.0 + 0.0j], "complex64")).dtype == DType.complex64
+        )
+        assert (
+            Tensor(_MockArrayData([1.0 + 0.0j], "complex128")).dtype == DType.complex128
+        )
         assert Tensor([1.0], dtype="float64").dtype == DType.Float64
         assert Tensor([1.0], dtype="invalid_dtype").dtype == DType.Float32
         assert (
@@ -450,11 +544,9 @@ def test_tensor_methods_and_edge_cases() -> None:
         )
         assert Tensor(st_none).tolist() == []
 
-        from ml_switcheroo_compiler import ops as _sw_ops
-
-        with mock.patch.object(_sw_ops, "array", side_effect=RuntimeError("fail")):
-            t_fallback = Tensor([1.0, 2.0])
-            assert t_fallback.shape == (2,)
+        # Ragged nested list triggers _ops.array fallback naturally without mock
+        t_fallback = Tensor([[1.0, 2.0], [3.0]])
+        assert t_fallback.shape == (2, 2)
 
         # Tracing constant emission in _to_tensor
         prev_eager = config.eager_mode
@@ -522,7 +614,6 @@ def test_autograd_engine_and_math_ops() -> None:
         for r in (r1, r2, r3, r4, r5, r6):
             r.backward(Tensor([1.0, 1.0]))
 
-        # Unreached ancestor node in topo (when an intermediate node returns None for one input branch)
         class DropFirstGradFn(Function):
             """Function that drops the first input gradient."""
 
@@ -581,8 +672,6 @@ def test_autograd_engine_and_math_ops() -> None:
         assert t_leaf.grad is not None and t_leaf.grad.item() == 1.0
         torch.autograd.backward(t_leaf)
 
-        with pytest.raises(NotImplementedError):
-            Function.forward(torch.autograd.Context(), t_leaf)
         with pytest.raises(NotImplementedError):
             Function.backward(torch.autograd.Context(), t_leaf)
 
@@ -687,25 +776,25 @@ def test_distributions_and_linalg_branches() -> None:
             _ = d.stddev
 
         mat = torch.tensor([[4.0, 1.0], [1.0, 3.0]])
-        with mock.patch(
-            "zero_torch.linalg.get_op",
-            return_value=lambda: lambda *a, **kw: mat._tensor,
-        ):
-            assert torch.linalg.solve_ex(mat, mat)[0].shape == (2, 2)
-        with mock.patch("zero_torch.linalg._ops.lstsq", return_value=mat._tensor):
-            assert torch.linalg.lstsq(mat, mat)[0].shape == (2, 2)
-        assert torch.slogdet(mat)[0].shape == ()
-        assert torch.slogdet(1.0)[0].shape == ()
+        sol_ex, info_ex = torch.linalg.solve_ex(mat, mat)
+        assert_allclose(sol_ex.tolist(), [[1.0, 0.0], [0.0, 1.0]], atol=1e-4)
+        assert info_ex.item() == 0
+        lstsq_sol, _, _, _ = torch.linalg.lstsq(mat, mat)
+        assert_allclose(lstsq_sol.tolist(), [[1.0, 0.0], [0.0, 1.0]], atol=1e-4)
+        assert torch.slogdet(mat)[0].item() == pytest.approx(1.0)
+        assert torch.slogdet(1.0)[0].item() == pytest.approx(1.0)
 
         bern = torch.distributions.Bernoulli(probs=torch.tensor([0.25, 0.75]))
-        assert bern.mean.shape == (2,)
-        assert bern.variance.shape == (2,)
+        assert_allclose(bern.mean.tolist(), [0.25, 0.75])
+        assert_allclose(bern.variance.tolist(), [0.1875, 0.1875])
         assert bern.entropy().shape == (2,)
+        with pytest.raises(NotImplementedError):
+            bern.rsample()
 
         beta = torch.distributions.Beta(
             torch.tensor([2.0, 3.0]), torch.tensor([2.0, 5.0])
         )
-        assert beta.mean.shape == (2,)
+        assert_allclose(beta.mean.tolist(), [0.5, 0.375])
         assert beta.variance.shape == (2,)
 
         cat = torch.distributions.Categorical(probs=torch.tensor([0.2, 0.3, 0.5]))
@@ -716,30 +805,35 @@ def test_distributions_and_linalg_branches() -> None:
         gam = torch.distributions.Gamma(
             torch.tensor([2.0, 4.0]), torch.tensor([1.0, 2.0])
         )
-        assert gam.mean.shape == (2,)
-        assert gam.variance.shape == (2,)
+        assert_allclose(gam.mean.tolist(), [2.0, 2.0])
+        assert_allclose(gam.variance.tolist(), [2.0, 1.0])
 
         norm = torch.distributions.Normal(
             torch.tensor([0.0, 1.0]), torch.tensor([1.0, 2.0])
         )
-        assert norm.mean.shape == (2,)
-        assert norm.variance.shape == (2,)
+        assert_allclose(norm.mean.tolist(), [0.0, 1.0])
+        assert_allclose(norm.variance.tolist(), [1.0, 4.0])
         assert norm.entropy().shape == (2,)
-        assert norm.cdf(torch.tensor([0.0, 1.0])).shape == (2,)
-        assert norm.icdf(torch.tensor([0.5, 0.5])).shape == (2,)
+        assert_allclose(
+            norm.cdf(torch.tensor([0.0, 1.0])).tolist(), [0.5, 0.5], atol=1e-4
+        )
+        assert_allclose(
+            norm.icdf(torch.tensor([0.5, 0.5])).tolist(), [0.0, 1.0], atol=1e-4
+        )
 
-        pois = torch.distributions.Poisson(torch.tensor([3.0, 5.0]))
-        assert pois.mean.shape == (2,)
-        assert pois.variance.shape == (2,)
+        pois = torch.distributions.Poisson(torch.tensor([0.0, 3.0, 35.0]))
+        assert_allclose(pois.mean.tolist(), [0.0, 3.0, 35.0])
+        assert_allclose(pois.variance.tolist(), [0.0, 3.0, 35.0])
+        assert pois.sample().shape == (3,)
 
         unif = torch.distributions.Uniform(
             torch.tensor([0.0, 1.0]), torch.tensor([2.0, 5.0])
         )
-        assert unif.mean.shape == (2,)
+        assert_allclose(unif.mean.tolist(), [1.0, 3.0])
         assert unif.variance.shape == (2,)
         assert unif.entropy().shape == (2,)
-        assert unif.cdf(torch.tensor([1.0, 3.0])).shape == (2,)
-        assert unif.icdf(torch.tensor([0.5, 0.5])).shape == (2,)
+        assert_allclose(unif.cdf(torch.tensor([1.0, 3.0])).tolist(), [0.5, 0.5])
+        assert_allclose(unif.icdf(torch.tensor([0.5, 0.5])).tolist(), [1.0, 3.0])
 
 
 def test_nn_modules_and_functional_branches() -> None:
@@ -757,7 +851,6 @@ def test_nn_modules_and_functional_branches() -> None:
             nn.CELU(),
             nn.ELU(),
             nn.GELU(),
-            nn.GLU(dim=-1),
             nn.Hardshrink(),
             nn.Hardsigmoid(),
             nn.Hardswish(),
@@ -783,6 +876,7 @@ def test_nn_modules_and_functional_branches() -> None:
             nn.Threshold(0.5, 0.0),
         ]:
             assert act_mod(v1).shape == (2, 2)
+        assert nn.GLU(dim=-1)(v1).shape == (2, 1)
         assert nn.Softmax2d()(x2d).shape == (2, 4, 4, 4)
 
         assert F.hard_sigmoid(v1).shape == (2, 2)
@@ -793,18 +887,21 @@ def test_nn_modules_and_functional_branches() -> None:
         assert F.tanhshrink(v1).shape == (2, 2)
         assert F.threshold(v1, 0.5, 0.0).shape == (2, 2)
         assert F.layer_norm(v1, (2,)).shape == (2, 2)
-        assert F.multi_label_margin_loss(v1, v2).shape == ()
+        assert (
+            F.multi_label_margin_loss(v1, torch.tensor([[0, -1], [1, -1]])).shape == ()
+        )
         assert F.multi_label_soft_margin_loss(v1, v2).shape == ()
 
         # Convolutions, Fold, Unfold
         assert nn.Conv1d(4, 2, kernel_size=2, padding=(1,))(x1d).shape == (2, 2, 7)
+        assert nn.Conv1d(4, 2, kernel_size=3, padding="same")(x1d).shape == (
+            2,
+            4 if False else 2,
+            6,
+        )
         assert nn.Conv1d(4, 2, kernel_size=2, padding="valid", bias=False)(
             x1d
-        ).shape == (
-            2,
-            2,
-            5,
-        )
+        ).shape == (2, 2, 5)
         assert nn.Conv2d(4, 2, kernel_size=2, padding=(1, 1))(x2d).shape == (
             2,
             2,
@@ -813,12 +910,7 @@ def test_nn_modules_and_functional_branches() -> None:
         )
         assert nn.Conv2d(4, 2, kernel_size=2, padding="valid", bias=False)(
             x2d
-        ).shape == (
-            2,
-            2,
-            3,
-            3,
-        )
+        ).shape == (2, 2, 3, 3)
         assert nn.Conv3d(4, 2, kernel_size=2, padding=1)(x3d).shape == (1, 2, 4, 4, 4)
         assert nn.Conv3d(4, 2, kernel_size=2, padding=(1, 1, 1))(x3d).shape == (
             1,
@@ -829,23 +921,31 @@ def test_nn_modules_and_functional_branches() -> None:
         )
         assert nn.Conv3d(4, 2, kernel_size=2, padding="valid", bias=False)(
             x3d
-        ).shape == (
-            1,
-            2,
-            2,
-            2,
-            2,
-        )
+        ).shape == (1, 2, 2, 2, 2)
         assert nn.ConvTranspose1d(4, 2, kernel_size=2)(x1d).shape == (2, 2, 7)
+        assert nn.ConvTranspose1d(4, 2, kernel_size=2, bias=False)(x1d).shape == (
+            2,
+            2,
+            7,
+        )
+        assert nn.ConvTranspose2d(4, 2, kernel_size=2, padding=1)(x2d).shape == (
+            2,
+            2,
+            3,
+            3,
+        )
         assert nn.ConvTranspose2d(4, 2, kernel_size=2)(x2d).shape == (2, 2, 5, 5)
         assert nn.ConvTranspose3d(4, 2, kernel_size=2)(x3d).shape == (1, 2, 4, 4, 4)
 
-        uf = nn.Unfold(kernel_size=2)
-        with mock.patch("zero_torch.nn.conv.unfold", return_value=x2d._tensor):
-            assert uf(x2d).shape == (2, 4, 4, 4)
-        fd = nn.Fold(output_size=(4, 4), kernel_size=2)
-        with mock.patch("zero_torch.nn.conv.fold", return_value=x2d._tensor):
-            assert fd(x2d).shape == (2, 4, 4, 4)
+        # Unfold and Fold execution against analytical values
+        uf = nn.Unfold(kernel_size=2, padding=1, stride=2)
+        uf_out = uf(x2d)
+        assert uf_out.shape == (2, 16, 9)
+
+        fd = nn.Fold(output_size=(4, 4), kernel_size=2, padding=1, stride=2)
+        fd_out = fd(uf_out)
+        assert fd_out.shape == (2, 4, 4, 4)
+        assert_allclose(fd_out.tolist(), 1.0, rtol=1e-4)
 
         # Distance
         assert nn.CosineSimilarity(dim=-1)(v1, v2).shape == (2,)
@@ -874,8 +974,15 @@ def test_nn_modules_and_functional_branches() -> None:
         ]:
             assert fd_fn(v1, p=0.5, training=False, inplace=False).shape == (2, 2)
             assert fd_fn(v1, p=0.5, training=True, inplace=False).shape == (2, 2)
-            assert fd_fn(v1, p=0.5, training=True, inplace=True).shape == (2, 2)
+            assert fd_fn(
+                torch.ones((2, 2)), p=0.5, training=True, inplace=True
+            ).shape == (2, 2)
             assert fd_fn(v1, p=1.0, training=True, inplace=False).shape == (2, 2)
+            assert fd_fn(torch.ones((2,)), p=0.5, training=True).shape == (2,)
+            assert fd_fn(x1d, p=0.5, training=True).shape == (2, 4, 6)
+            assert fd_fn(
+                torch.ones((2,)), p=1.0, training=True, inplace=True
+            ).shape == (2,)
 
         # Flatten, Identity, Linear, Bilinear, DataParallel, ChannelShuffle
         assert nn.Flatten()(x2d).shape == (128,)
@@ -888,15 +995,15 @@ def test_nn_modules_and_functional_branches() -> None:
         assert nn.DataParallel(nn.Linear(2, 3))(v1).shape == (2, 3)
         assert nn.ChannelShuffle(2)(x2d).shape == (2, 4, 4, 4)
 
-        # Padding modules
+        # Padding modules (1D, 2D, 3D with constant, reflect, replicate, circular)
         for pad1 in [
             nn.CircularPad1d(1),
-            nn.ConstantPad1d(1, 0.0),
+            nn.ConstantPad1d((1, 1), 2.0),
             nn.ReflectionPad1d(1),
             nn.ReplicationPad1d(1),
             nn.ZeroPad1d(1),
         ]:
-            assert pad1(x1d).shape == (2, 4, 6)
+            assert pad1(x1d).shape == (2, 4, 8)
         for pad2 in [
             nn.CircularPad2d(1),
             nn.ConstantPad2d(1, 0.0),
@@ -904,7 +1011,7 @@ def test_nn_modules_and_functional_branches() -> None:
             nn.ReplicationPad2d(1),
             nn.ZeroPad2d(1),
         ]:
-            assert pad2(x2d).shape == (2, 4, 4, 4)
+            assert pad2(x2d).shape == (2, 4, 6, 6)
         for pad3 in [
             nn.CircularPad3d(1),
             nn.ConstantPad3d(1, 0.0),
@@ -912,134 +1019,275 @@ def test_nn_modules_and_functional_branches() -> None:
             nn.ReplicationPad3d(1),
             nn.ZeroPad3d(1),
         ]:
-            assert pad3(x3d).shape == (1, 4, 3, 3, 3)
+            assert pad3(x3d).shape == (1, 4, 5, 5, 5)
+        assert F.pad(torch.ones((1, 1, 1)), (1, 1), mode="reflect").shape == (1, 1, 3)
+        assert F.pad(torch.ones((1, 2)), (0, 0), mode="constant").shape == (1, 2)
+        assert F.pad(torch.ones((1, 2)), 1, mode="constant", value=3.0).shape == (1, 4)
+        assert F.pad(torch.ones((1, 2)), "invalid").shape == (1, 2)
+        with pytest.raises(ValueError):
+            F.pad(x1d, (1, 1), mode="invalid_mode")
 
-        # Pooling & functional_pooling
+        # Pooling & functional_pooling with exact output shapes and values
         assert FP._format_padding((1, 2), 2) == ((1, 1), (2, 2))
-        assert nn.AdaptiveAvgPool2d(2)(x2d).shape is not None
-        assert nn.AdaptiveMaxPool2d(2)(x2d).shape is not None
-        assert nn.AvgPool1d(2)(x1d).shape is not None
-        assert nn.AvgPool2d(2)(x2d).shape is not None
-        assert nn.AvgPool3d(2)(x3d).shape is not None
-        assert nn.MaxPool1d(2)(x1d).shape is not None
-        assert nn.MaxPool2d(2)(x2d).shape is not None
-        assert nn.MaxPool3d(2)(x3d).shape is not None
-        assert nn.LPPool1d(1.0, 2)(x1d).shape is not None
-        assert nn.LPPool1d(2.0, 2, stride=2)(x1d).shape is not None
-        assert nn.LPPool2d(1.0, 2)(x2d).shape is not None
-        assert nn.LPPool2d(2.0, 2, stride=2)(x2d).shape is not None
-        assert nn.LPPool3d(1.0, 2)(x3d).shape is not None
-        assert nn.LPPool3d(2.0, 2, stride=2)(x3d).shape is not None
-        assert F.avg_pool1d(x1d, 2).shape is not None
-        assert F.avg_pool2d(x2d, 2).shape is not None
-        assert F.avg_pool3d(x3d, 2).shape is not None
-        assert F.max_pool1d(x1d, 2).shape is not None
-        assert F.max_pool2d(x2d, 2).shape is not None
-        assert F.max_pool3d(x3d, 2).shape is not None
+        assert FP._format_padding(1, 2) == ((1, 1), (1, 1))
+        assert FP._resolve_opt_size(None, 2, (4, 4)) == (4, 4)
+        assert FP._resolve_opt_size((None, 2), 2, (4, 4)) == (4, 2)
 
-        for unimpl_pool in [
-            nn.AdaptiveAvgPool1d(2),
-            nn.AdaptiveAvgPool3d(2),
-            nn.AdaptiveMaxPool1d(2),
-            nn.AdaptiveMaxPool2d(2, return_indices=True),
-            nn.AdaptiveMaxPool3d(2),
-            nn.FractionalMaxPool2d(2, output_size=1),
-            nn.FractionalMaxPool3d(2, output_size=1),
-        ]:
-            with pytest.raises(UnimplementedMathError):
-                unimpl_pool(x2d)
-        for unpool_mod in [
-            nn.MaxUnpool1d(2),
-            nn.MaxUnpool2d(2),
-            nn.MaxUnpool3d(2),
-        ]:
-            with pytest.raises(UnimplementedMathError):
-                unpool_mod(x1d, x1d)
+        assert nn.AdaptiveAvgPool1d(3)(x1d).shape == (2, 4, 3)
+        assert nn.AdaptiveAvgPool1d(6)(x1d).shape == (2, 4, 6)
+        assert nn.AdaptiveAvgPool2d(2)(x2d).shape == (2, 4, 2, 2)
+        assert_allclose(nn.AdaptiveAvgPool2d(2)(x2d).tolist(), 1.0)
+        assert nn.AdaptiveAvgPool3d(2)(x3d).shape == (1, 4, 2, 2, 2)
 
-        # Losses
-        assert nn.loss._Loss()(v1, v2).shape == (2, 2)
+        am1_no_idx = nn.AdaptiveMaxPool1d(3)(x1d)
+        assert isinstance(am1_no_idx, Tensor) and am1_no_idx.shape == (2, 4, 3)
+        am1_res = FP.adaptive_max_pool1d(x1d, 3, return_indices=True)
+        assert isinstance(am1_res, tuple) and am1_res[0].shape == (2, 4, 3)
+        am2_no_idx = nn.AdaptiveMaxPool2d(2)(x2d)
+        assert isinstance(am2_no_idx, Tensor) and am2_no_idx.shape == (2, 4, 2, 2)
+        am2_res = nn.AdaptiveMaxPool2d(2, return_indices=True)(x2d)
+        assert isinstance(am2_res, tuple) and am2_res[0].shape == (2, 4, 2, 2)
+        am3_no_idx = nn.AdaptiveMaxPool3d(2)(x3d)
+        assert isinstance(am3_no_idx, Tensor) and am3_no_idx.shape == (1, 4, 2, 2, 2)
+        am3_res = FP.adaptive_max_pool3d(x3d, 2, return_indices=True)
+        assert isinstance(am3_res, tuple) and am3_res[0].shape == (1, 4, 2, 2, 2)
+
+        assert nn.AvgPool1d(2)(x1d).shape == (2, 4, 3)
+        assert nn.AvgPool1d(2, ceil_mode=True, count_include_pad=False)(
+            torch.ones((2, 4, 5))
+        ).shape == (2, 4, 3)
+        assert FP.avg_pool1d(x1d, 2, stride=2, padding=1, ceil_mode=True).shape == (
+            2,
+            4,
+            4,
+        )
+        assert FP.avg_pool2d(x2d, 2, divisor_override=2).shape == (2, 4, 2, 2)
+        assert_allclose(FP.avg_pool2d(x2d, 2, divisor_override=2).tolist(), 2.0)
+        assert nn.AvgPool2d(2)(x2d).shape == (2, 4, 2, 2)
+        assert nn.AvgPool3d(2)(x3d).shape == (1, 4, 1, 1, 1)
+
+        mp1_res = FP.max_pool1d(x1d, 2, return_indices=True)
+        assert isinstance(mp1_res, tuple)
+        mp1_out, mp1_idx = mp1_res
+        assert mp1_out.shape == (2, 4, 3) and mp1_idx.shape == (2, 4, 3)
+        assert nn.MaxUnpool1d(2)(mp1_out, mp1_idx).shape == (2, 4, 6)
+        assert nn.MaxUnpool1d(2)(mp1_out, mp1_idx, output_size=(6,)).shape == (2, 4, 6)
+        assert nn.MaxUnpool1d(2)(mp1_out, mp1_idx, output_size=(2, 4, 6)).shape == (
+            2,
+            4,
+            6,
+        )
+        with pytest.raises(ValueError):
+            nn.MaxUnpool1d(2)(mp1_out, mp1_idx, output_size=(1, 2, 3, 4))
+
+        mp2_res = FP.max_pool2d(
+            torch.arange(0, 16, dtype=torch.float32).reshape(1, 1, 4, 4),
+            2,
+            return_indices=True,
+        )
+        assert isinstance(mp2_res, tuple)
+        mp2_out, mp2_idx = mp2_res
+        assert mp2_out.tolist() == [[[[5.0, 7.0], [13.0, 15.0]]]]
+        assert mp2_idx.tolist() == [[[[5, 7], [13, 15]]]]
+        unp2 = nn.MaxUnpool2d(2)(mp2_out, mp2_idx)
+        assert unp2.shape == (1, 1, 4, 4) and unp2[0, 0, 1, 1].item() == 5.0
+
+        mp3_res = FP.max_pool3d(x3d, 2, return_indices=True)
+        assert isinstance(mp3_res, tuple)
+        mp3_out, mp3_idx = mp3_res
+        assert mp3_out.shape == (1, 4, 1, 1, 1)
+        assert nn.MaxUnpool3d(2)(mp3_out, mp3_idx).shape == (1, 4, 2, 2, 2)
+
+        assert isinstance(nn.MaxPool1d(2)(x1d), Tensor)
+        assert isinstance(nn.MaxPool2d(2)(x2d), Tensor)
+        assert isinstance(nn.MaxPool3d(2)(x3d), Tensor)
+
+        fmp2_no_idx = nn.FractionalMaxPool2d(2, output_size=2)(x2d)
+        assert isinstance(fmp2_no_idx, Tensor) and fmp2_no_idx.shape == (2, 4, 2, 2)
+        fmp2_r = nn.FractionalMaxPool2d(
+            2,
+            output_ratio=0.5,
+            return_indices=True,
+            _random_samples=torch.full((2, 4, 2), 0.5),
+        )(x2d)
+        assert isinstance(fmp2_r, tuple) and fmp2_r[0].shape == (2, 4, 2, 2)
+        fmp3_no_idx = nn.FractionalMaxPool3d(2, output_size=2)(x3d)
+        assert isinstance(fmp3_no_idx, Tensor) and fmp3_no_idx.shape == (1, 4, 2, 2, 2)
+        fmp3_short = FP.fractional_max_pool3d(torch.ones((2,)), 2, output_size=1)
+        assert isinstance(fmp3_short, Tensor) and fmp3_short.shape == (2,)
+        with pytest.raises(ValueError):
+            FP._fractional_max_pool_nd(x2d, 2, None, None, False, None, 2)
+
+        assert nn.LPPool1d(1.0, 2)(x1d).shape == (2, 4, 3)
+        assert nn.LPPool1d(2.0, 2, stride=2)(x1d).shape == (2, 4, 3)
+        assert nn.LPPool2d(1.0, 2)(x2d).shape == (2, 4, 2, 2)
+        assert nn.LPPool2d(2.0, 2, stride=2)(x2d).shape == (2, 4, 2, 2)
+        assert nn.LPPool3d(1.0, 2)(x3d).shape == (1, 4, 1, 1, 1)
+        assert nn.LPPool3d(2.0, 2, stride=2)(x3d).shape == (1, 4, 1, 1, 1)
+        assert F.avg_pool1d(x1d, 2).shape == (2, 4, 3)
+        assert F.avg_pool2d(x2d, 2).shape == (2, 4, 2, 2)
+        assert F.avg_pool3d(x3d, 2).shape == (1, 4, 1, 1, 1)
+        assert isinstance(F.max_pool1d(x1d, 2), Tensor)
+        assert isinstance(F.max_pool2d(x2d, 2), Tensor)
+        assert isinstance(F.max_pool3d(x3d, 2), Tensor)
+
+        # Losses with exact value and reduction verification
+        assert nn.loss._Loss().reduction == "mean"
+        assert_allclose(
+            nn.L1Loss(reduction="none")(v1, v2).tolist(), [[1.0, 1.0], [3.0, 0.0]]
+        )
+        assert nn.L1Loss(reduction="mean")(v1, v2).item() == pytest.approx(1.25)
+        assert nn.L1Loss(reduction="sum")(v1, v2).item() == pytest.approx(5.0)
+        assert_allclose(
+            nn.MSELoss(reduction="none")(v1, v2).tolist(), [[1.0, 1.0], [9.0, 0.0]]
+        )
+        assert nn.MSELoss(reduction="mean")(v1, v2).item() == pytest.approx(2.75)
+        assert nn.MSELoss(reduction="sum")(v1, v2).item() == pytest.approx(11.0)
+
         for reduction in ("none", "mean", "sum"):
-            assert nn.L1Loss(reduction=reduction)(v1, v2).shape is not None
-            assert nn.MSELoss(reduction=reduction)(v1, v2).shape is not None
-            assert nn.SmoothL1Loss(reduction=reduction)(v1, v2).shape is not None
-            assert nn.HuberLoss(reduction=reduction)(v1, v2).shape is not None
+            expected_1d = (2,) if reduction == "none" else ()
+            expected_2d = (2, 2) if reduction == "none" else ()
+            assert nn.SmoothL1Loss(reduction=reduction)(v1, v2).shape == expected_2d
+            assert nn.HuberLoss(reduction=reduction)(v1, v2).shape == expected_2d
             assert (
                 nn.KLDivLoss(reduction=reduction, log_target=False)(
                     v1, torch.ones((2, 2))
                 ).shape
-                is not None
+                == expected_2d
             )
             assert (
                 nn.KLDivLoss(reduction=reduction, log_target=True)(v1, v2).shape
-                is not None
+                == expected_2d
             )
             assert (
                 nn.BCELoss(reduction=reduction)(
                     torch.tensor([[0.5, 0.5], [0.5, 0.5]]),
                     torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
                 ).shape
-                is not None
+                == expected_2d
             )
-            assert nn.BCEWithLogitsLoss(reduction=reduction)(v1, v2).shape is not None
+            assert (
+                nn.BCEWithLogitsLoss(reduction=reduction)(v1, v2).shape == expected_2d
+            )
             assert (
                 nn.CosineEmbeddingLoss(reduction=reduction)(v1, v2, y_bin).shape
-                is not None
-            )
-            assert nn.HingeEmbeddingLoss(reduction=reduction)(v1, v2).shape is not None
-            assert (
-                nn.MarginRankingLoss(reduction=reduction)(v1, v2, v1).shape is not None
+                == expected_1d
             )
             assert (
-                nn.MultiLabelMarginLoss(reduction=reduction)(v1, v2).shape is not None
+                nn.HingeEmbeddingLoss(reduction=reduction)(v1, v2).shape == expected_2d
+            )
+            assert (
+                nn.MarginRankingLoss(reduction=reduction)(v1, v2, v1).shape
+                == expected_2d
+            )
+            assert (
+                nn.MultiLabelMarginLoss(reduction=reduction)(
+                    v1, torch.tensor([[0, -1], [1, 0]])
+                ).shape
+                == expected_1d
             )
             assert (
                 nn.MultiLabelSoftMarginLoss(reduction=reduction)(v1, v2).shape
-                is not None
+                == expected_1d
             )
             assert (
                 nn.MultiMarginLoss(reduction=reduction)(v1, torch.tensor([0, 1])).shape
-                is not None
-            )
-            assert nn.PoissonNLLLoss(reduction=reduction)(v1, v2).shape is not None
-            assert nn.SoftMarginLoss(reduction=reduction)(v1, v2).shape is not None
-            assert (
-                nn.TripletMarginLoss(reduction=reduction)(v1, v2, v1).shape is not None
+                == expected_1d
             )
             assert (
-                nn.TripletMarginWithDistanceLoss(reduction=reduction)(v1, v2, v1).shape
-                is not None
+                nn.PoissonNLLLoss(reduction=reduction, full=True)(v1, v2).shape
+                == expected_2d
+            )
+            assert nn.SoftMarginLoss(reduction=reduction)(v1, v2).shape == expected_2d
+            assert (
+                nn.TripletMarginLoss(reduction=reduction, swap=True)(v1, v2, v1).shape
+                == expected_1d
+            )
+            assert (
+                nn.TripletMarginWithDistanceLoss(reduction=reduction, swap=True)(
+                    v1, v2, v1
+                ).shape
+                == expected_1d
             )
             assert (
                 nn.GaussianNLLLoss(reduction=reduction)(
                     v1, v2, torch.ones((2, 2))
                 ).shape
-                is not None
+                == expected_2d
             )
-            assert (
-                nn.CTCLoss(reduction=reduction)(v1, torch.tensor([0, 1])).shape
-                is not None
-            )
+            assert nn.CTCLoss(reduction=reduction, zero_infinity=True)(
+                torch.zeros((3, 2, 3)) - 1.0,
+                torch.tensor([[1, 2], [2, 1]]),
+                torch.tensor([3, 3]),
+                torch.tensor([2, 2]),
+            ).shape == (expected_1d if reduction == "none" else ())
             assert (
                 nn.NLLLoss(reduction=reduction)(v1, torch.tensor([0, 1])).shape
-                is not None
+                == expected_1d
             )
             assert (
                 nn.NLLLoss2d(reduction=reduction)(v1, torch.tensor([0, 1])).shape
-                is not None
+                == expected_1d
             )
             assert (
                 nn.CrossEntropyLoss(reduction=reduction)(v1, torch.tensor([0, 1])).shape
-                is not None
+                == expected_1d
             )
+        assert nn.KLDivLoss(reduction="batchmean")(v1, torch.ones((2, 2))).shape == ()
+        assert (
+            F.ctc_loss(
+                torch.zeros((3, 3)) - 1.0,
+                torch.tensor([1, 2]),
+                [3],
+                [2],
+                reduction="sum",
+            ).shape
+            == ()
+        )
+        assert (
+            F.nll_loss(
+                torch.ones((2, 3, 2)), torch.zeros((2, 2), dtype=DType.Int64)
+            ).shape
+            == ()
+        )
+        assert F.nll_loss(torch.tensor(1.0), torch.tensor(0)).shape == ()
+        assert (
+            F.cross_entropy(
+                torch.ones((2, 3, 2)),
+                torch.ones((2, 3, 2)) / 3.0,
+                weight=torch.ones((3,)),
+                label_smoothing=0.1,
+            ).shape
+            == ()
+        )
+        assert F.cross_entropy(
+            torch.ones((2, 3, 2)),
+            torch.zeros((2, 2), dtype=DType.Int64),
+            weight=torch.ones((3,)),
+            label_smoothing=0.1,
+            reduction="none",
+        ).shape == (2, 2)
+        assert (
+            F.cross_entropy(
+                v1,
+                torch.tensor([0, 1]),
+                weight=torch.ones((2,)),
+                label_smoothing=0.1,
+                reduction="sum",
+            ).shape
+            == ()
+        )
 
         als = nn.AdaptiveLogSoftmaxWithLoss(4, 10, cutoffs=[2, 5])
         out_als, loss_als = als(torch.ones((2, 4)), torch.tensor([0, 1]))
-        assert out_als.shape == (1,) and loss_als.shape == (1,)
+        assert out_als.shape == (2,) and loss_als.shape == ()
+        loss_als_val = loss_als.item()
+        assert isinstance(loss_als_val, float) and loss_als_val > 0.0
 
         lce = nn.LinearCrossEntropyLoss(2, 3)
         assert lce(v1, torch.tensor([0, 1])).shape == ()
 
-        # nn.init
+        # nn.init with statistical and structural property assertions
         assert nn.init.calculate_gain("linear") == 1.0
         assert nn.init.calculate_gain("tanh") == pytest.approx(5.0 / 3.0)
         assert nn.init.calculate_gain("relu") == pytest.approx(2.0**0.5)
@@ -1049,11 +1297,13 @@ def test_nn_modules_and_functional_branches() -> None:
             nn.init.calculate_gain("unknown_nonlinearity")
 
         t_init = torch.ones((3, 3))
-        assert nn.init.constant_(t_init, 5.0).shape == (3, 3)
+        nn.init.constant_(t_init, 5.0)
+        assert_allclose(t_init.tolist(), 5.0)
         assert nn.init.constant(t_init, 3.0).shape == (3, 3)
         assert nn.init.constant(tensor=t_init, val=2.0).shape == (3, 3)
         assert nn.init.constant().shape == ()
-        assert nn.init.dirac_(torch.ones((2, 2, 3))).shape == (2, 2, 3)
+        d_1x1 = nn.init.dirac_(torch.zeros((2, 2, 1)))
+        assert_allclose(d_1x1.squeeze(-1).tolist(), [[1.0, 0.0], [0.0, 1.0]])
         assert nn.init.dirac_(torch.ones((2, 2, 3, 3))).shape == (2, 2, 3, 3)
         assert nn.init.dirac_(torch.ones((2, 2, 3, 3, 3))).shape == (2, 2, 3, 3, 3)
         assert nn.init.dirac(torch.ones((2, 2, 3))).shape == (2, 2, 3)
@@ -1062,7 +1312,8 @@ def test_nn_modules_and_functional_branches() -> None:
             nn.init.dirac_(torch.ones((2, 2)))
         with pytest.raises(ValueError):
             nn.init.dirac_(torch.ones((3, 2, 3)), groups=2)
-        assert nn.init.eye_(t_init).shape == (3, 3)
+        nn.init.eye_(t_init)
+        assert_allclose(t_init.tolist(), eye_nested(3))
         assert nn.init.eye(t_init).shape == (3, 3)
         assert nn.init.eye().shape == ()
         with pytest.raises(ValueError):
@@ -1071,9 +1322,15 @@ def test_nn_modules_and_functional_branches() -> None:
         assert nn.init.normal().shape == ()
         assert nn.init.uniform(t_init, -1.0, 1.0).shape == (3, 3)
         assert nn.init.uniform().shape == ()
-        assert nn.init.ones_(t_init).shape == (3, 3)
-        assert nn.init.zeros_(t_init).shape == (3, 3)
-        assert nn.init.trunc_normal_(t_init).shape == (3, 3)
+        nn.init.ones_(t_init)
+        assert_allclose(t_init.tolist(), 1.0)
+        nn.init.zeros_(t_init)
+        assert_allclose(t_init.tolist(), 0.0)
+        tn_out = nn.init.trunc_normal_(torch.zeros((4, 4)), a=-0.5, b=0.5)
+        tn_vals = flatten_scalars(tn_out.tolist())
+        assert all(
+            isinstance(v, (int, float)) and -0.5 <= float(v) <= 0.5 for v in tn_vals
+        )
         assert nn.init.xavier_uniform(t_init).shape == (3, 3)
         assert nn.init.xavier_uniform().shape == ()
         assert nn.init.xavier_normal_(t_init).shape == (3, 3)
@@ -1086,13 +1343,23 @@ def test_nn_modules_and_functional_branches() -> None:
         assert nn.init.kaiming_normal_(t_init, mode="fan_out").shape == (3, 3)
         assert nn.init.kaiming_normal(t_init).shape == (3, 3)
         assert nn.init.kaiming_normal().shape == ()
-        assert nn.init.orthogonal_(torch.ones((3, 2))).shape == (3, 2)
-        assert nn.init.orthogonal_(torch.ones((2, 3))).shape == (2, 3)
-        assert nn.init.orthogonal(t_init).shape == (3, 3)
+        q_tall = nn.init.orthogonal_(torch.ones((3, 2)))
+        assert_allclose((q_tall.T @ q_tall).tolist(), eye_nested(2), atol=1e-4)
+        q_wide = nn.init.orthogonal_(torch.ones((2, 3)))
+        assert_allclose((q_wide @ q_wide.T).tolist(), eye_nested(2), atol=1e-4)
+        q_sq = nn.init.orthogonal(t_init)
+        assert_allclose((q_sq.T @ q_sq).tolist(), eye_nested(3), atol=1e-4)
         assert nn.init.orthogonal().shape == ()
         with pytest.raises(ValueError):
             nn.init.orthogonal_(torch.ones((3,)))
-        assert nn.init.sparse_(t_init, sparsity=0.5).shape == (3, 3)
+        sp_mat = nn.init.sparse_(torch.ones((4, 3)), sparsity=0.5)
+        sp_rows = sp_mat.tolist()
+        assert isinstance(sp_rows, list)
+        col_zeros = [
+            sum(1 for row in sp_rows if isinstance(row, list) and row[col] == 0.0)
+            for col in range(3)
+        ]
+        assert col_zeros == [2, 2, 2]
         assert nn.init.sparse(t_init, 0.5).shape == (3, 3)
         assert nn.init.sparse().shape == ()
         with pytest.raises(ValueError):
@@ -1141,6 +1408,25 @@ def test_nn_modules_and_functional_branches() -> None:
         assert FN._norm_shape_tuple("invalid") == (1,)
         assert FN.normalize(v1, dim=1).shape == (2, 2)
         assert FN.rms_norm(torch.tensor([2.0, 3.0])).shape == (2,)
+        assert FN.batch_norm(torch.tensor([1.0, 3.0])).shape == (2,)
+        assert FN.batch_norm([1.0, 3.0]).shape == (2,)
+        assert FN.layer_norm([1.0, 3.0], (2,)).shape == (2,)
+        assert FN.rms_norm([1.0, 3.0], (2,)).shape == (2,)
+        assert FN.instance_norm([1.0, 3.0]).shape == (2,)
+        assert FN.instance_norm(
+            v1, None, None, torch.ones((2,)), torch.zeros((2,))
+        ).shape == (2, 2)
+        assert FN.instance_norm(v1).shape == (2, 2)
+
+        bn_eval = nn.BatchNorm2d(4)
+        _ = bn_eval(x2d)
+        bn_eval.eval()
+        assert bn_eval(x2d).shape == (2, 4, 4, 4)
+
+        in_eval = nn.InstanceNorm1d(4, affine=True, track_running_stats=True)
+        _ = in_eval(x1d)
+        in_eval.eval()
+        assert in_eval(x1d).shape == (2, 4, 6)
 
         assert _apply_channel_affine(
             torch.ones((2,)),
@@ -1150,24 +1436,22 @@ def test_nn_modules_and_functional_branches() -> None:
         assert _apply_channel_affine(torch.ones((2,)), None, None).shape == (2,)
         assert nn.BatchNorm1d(4, affine=False, track_running_stats=False)(
             x1d
-        ).shape == (
-            2,
-            4,
-            6,
-        )
+        ).shape == (2, 4, 6)
         assert nn.BatchNorm3d(4)(x3d).shape == (1, 4, 3, 3, 3)
         assert nn.SyncBatchNorm(4)(x2d).shape == (2, 4, 4, 4)
         assert nn.CrossMapLRN2d(2)(x2d).shape == (2, 4, 4, 4)
         assert nn.LocalResponseNorm(2)(x2d).shape == (2, 4, 4, 4)
         assert nn.GroupNorm(2, 4, affine=False)(x2d).shape == (2, 4, 4, 4)
         assert nn.GroupNorm(2, 4, affine=True)(x2d).shape == (2, 4, 4, 4)
-        assert nn.InstanceNorm1d(4, affine=True, track_running_stats=True)(
-            x1d
-        ).shape == (
+        assert F.group_norm(x2d, 2, torch.ones((4,)), torch.zeros((4,))).shape == (
             2,
             4,
-            6,
+            4,
+            4,
         )
+        assert nn.InstanceNorm1d(4, affine=True, track_running_stats=True)(
+            x1d
+        ).shape == (2, 4, 6)
         assert nn.InstanceNorm2d(4)(x2d).shape == (2, 4, 4, 4)
         assert nn.InstanceNorm3d(4)(x3d).shape == (1, 4, 3, 3, 3)
         assert nn.LayerNorm(2, elementwise_affine=True, bias=False)(v1).shape == (2, 2)
@@ -1177,8 +1461,6 @@ def test_nn_modules_and_functional_branches() -> None:
 
         # nn.module containers & lifecycle
         base_m = nn.Module()
-        with pytest.raises(NotImplementedError):
-            base_m(v1)
         base_m.add_module("none_mod", None)
         base_m.register_parameter("none_param", None)
         base_m.register_buffer("none_buf", None)
@@ -1187,9 +1469,10 @@ def test_nn_modules_and_functional_branches() -> None:
         child = nn.Linear(2, 2)
         child.register_buffer("cb1", torch.ones((2,)))
         parent = nn.Module()
-        parent.child = child
-        parent.buf = torch.ones((2,))
+        parent.add_module("child", child)
         parent.register_buffer("b1", torch.ones((2,)))
+        parent.register_parameter("w_temp", nn.Parameter(torch.ones((2,))))
+        parent.register_parameter("w_temp", None)
         assert len(list(parent.buffers(recurse=True))) == 2
         assert len(list(parent.buffers(recurse=False))) == 1
         assert len(list(parent.parameters(recurse=True))) == 2
@@ -1257,6 +1540,12 @@ def test_nn_modules_and_functional_branches() -> None:
         emb = nn.Embedding(5, 3, _weight=torch.ones((5, 3)))
         assert emb(torch.tensor([0, 1])).shape == (2, 3)
         assert nn.Embedding(5, 3)(torch.tensor([0, 1])).shape == (2, 3)
+        assert F.embedding(
+            torch.tensor([0, 1]),
+            torch.ones((5, 3)) * 2.0,
+            padding_idx=0,
+            max_norm=1.0,
+        ).shape == (2, 3)
         eb_mean = nn.EmbeddingBag(5, 3, mode="mean", _weight=torch.ones((5, 3)))
         eb_sum = nn.EmbeddingBag(5, 3, mode="sum")
         eb_max = nn.EmbeddingBag(5, 3, mode="max")
@@ -1269,16 +1558,29 @@ def test_nn_modules_and_functional_branches() -> None:
         assert eb_sum(torch.tensor([[0, 1], [1, 2]])).shape == (2, 3)
         assert eb_max(torch.tensor([[0, 1], [1, 2]])).shape == (2, 3)
 
-        # nn.upsampling
-        up_bi = nn.Upsample(scale_factor=2.0, mode="bilinear")
-        assert up_bi(x2d).shape is not None
-        up_near = nn.Upsample(scale_factor=2.0, mode="nearest")
-        assert up_near(x2d).shape is not None
-        assert nn.UpsamplingBilinear2d(scale_factor=2.0)(x2d).shape is not None
-        assert nn.UpsamplingNearest2d(scale_factor=2.0)(x2d).shape is not None
+        # nn.upsampling & F.interpolate
+        up_bi = nn.Upsample(scale_factor=2.0, mode="bilinear", align_corners=False)
+        assert up_bi(x2d).shape == (2, 4, 8, 8)
+        up_near = nn.Upsample(size=(6, 6), mode="nearest")
+        assert up_near(x2d).shape == (2, 4, 6, 6)
+        assert nn.UpsamplingBilinear2d(size=6)(x2d).shape == (2, 4, 6, 6)
+        assert nn.UpsamplingNearest2d(scale_factor=(2.0, 2.0))(x2d).shape == (
+            2,
+            4,
+            8,
+            8,
+        )
+        assert F.interpolate(
+            torch.ones((2, 4, 1, 1)), size=(2, 2), mode="bilinear"
+        ).shape == (2, 4, 2, 2)
+        assert F.interpolate(x2d, size=(4, 4), mode="nearest").shape == (2, 4, 4, 4)
+        assert F.interpolate(v1, size=4).shape == (2, 2)
 
-        # Functional branches (eager & non-eager)
+        # Functional branches (eager & tracing)
         assert F.scaled_dot_product_attention(v1, v1, v1).shape == (2, 2)
+        assert F.scaled_dot_product_attention(
+            v1, v1, v1, attn_mask=torch.zeros((2, 2))
+        ).shape == (2, 2)
         assert F.scaled_dot_product_attention(
             torch.ones((2,)), torch.ones((2,)), torch.ones((2,))
         ).shape == (2,)
@@ -1287,6 +1589,7 @@ def test_nn_modules_and_functional_branches() -> None:
         )
         assert F.gelu(v1, approximate="tanh").shape == (2, 2)
         assert F.glu(torch.ones((3,))).shape == (3,)
+        assert F.glu(torch.ones(())).shape == ()
         assert F.gaussian_nll_loss(v1, v2, torch.ones((2, 2)), full=True).shape == ()
         assert F.nll_loss(
             v1,
@@ -1295,36 +1598,68 @@ def test_nn_modules_and_functional_branches() -> None:
             reduction="none",
         ).shape == (2,)
         assert F.nll_loss(v1, torch.tensor([0, 1]), reduction="sum").shape == ()
-        assert F.nll_loss(torch.ones((2,)), torch.ones((2,))).shape == ()
+        assert F.nll_loss(torch.ones((2,)), torch.tensor(0)).shape == ()
+        assert (
+            F.nll_loss(torch.ones((2,)), torch.tensor(0), weight=torch.ones((2,))).shape
+            == ()
+        )
+        assert F.triplet_margin_loss(v1, v2, v1, swap=False).shape == ()
         assert F.poisson_nll_loss(v1, v2, log_input=False).shape == ()
         assert (
             F.triplet_margin_with_distance_loss(
                 v1,
                 v2,
                 v1,
+                swap=True,
                 distance_function=lambda a, b: torch.sum((a - b) ** 2, axis=-1),
             ).shape
             == ()
         )
         assert F.rrelu(v1, training=True).shape == (2, 2)
         assert F.rrelu(v1, training=False).shape == (2, 2)
+        assert F.prelu(x2d, torch.ones((4,))).shape == (2, 4, 4, 4)
         assert F.silu(v1).shape == (2, 2)
         assert F.activations(v1).shape == (2, 2)
         assert F.adaptive_avg_pool2d(x2d, 1).shape == (2, 4, 1, 1)
-        assert F.adaptive_avg_pool2d(v1, 1).shape == (2, 2)
+        assert F.adaptive_avg_pool2d(torch.ones((2,)), 1).shape == (2,)
         assert F.alpha_dropout(v1).shape == (2, 2)
         assert F.batch_norm(x2d).shape == (2, 4, 4, 4)
         assert F.batch_norm(torch.ones((2,))).shape == (2,)
         assert F.complex(v1, v2).shape == (2, 2)
+        assert F.conv_transpose1d(torch.ones((2,))).shape == (2,)
         assert F.conv_transpose1d(torch.ones((2,)), torch.ones((2,))).shape == (2,)
         assert F.conv_transpose2d(torch.ones((2,)), torch.ones((2,))).shape == (2,)
         assert F.conv_transpose3d(torch.ones((2,)), torch.ones((2,))).shape == (2,)
         assert F.dropout(v1).shape == (2, 2)
+        assert F.dropout1d(x1d).shape == (2, 4, 6)
+        assert F.dropout2d(x2d).shape == (2, 4, 4, 4)
+        assert F.dropout3d(x3d).shape == (1, 4, 3, 3, 3)
         assert F.embedding(torch.tensor([0, 1])).shape == (2,)
+        assert F.embedding(
+            torch.tensor([0, 1]),
+            torch.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True),
+            max_norm=1.0,
+        ).shape == (2, 2)
+        assert F.pad(x1d, (1, 0), mode="constant").shape == (2, 4, 7)
+        assert F.pad(x1d, (0, 1), mode="constant").shape == (2, 4, 7)
+        v_req = torch.tensor([1.0, 2.0], requires_grad=True)
+        assert F.relu(v_req).requires_grad is True
+        assert F.sigmoid(v_req).requires_grad is True
+        assert F.tanh(v_req).requires_grad is True
+        assert (
+            F.triplet_margin_with_distance_loss(
+                v1,
+                v2,
+                v1,
+                swap=False,
+                distance_function=lambda a, b: torch.sum((a - b) ** 2, axis=-1),
+            ).shape
+            == ()
+        )
+        assert F.triplet_margin_with_distance_loss(v1, v2, v1, swap=False).shape == ()
         assert F.feature_alpha_dropout(v1).shape == (2, 2)
-        with pytest.raises(UnimplementedMathError):
-            F.fractional_max_pool2d(x2d, 2)
-        assert F.fractional_max_pool2d(v1, 2).shape == (2, 2)
+        fmp_v1 = F.fractional_max_pool2d(v1, 2)
+        assert isinstance(fmp_v1, Tensor) and fmp_v1.shape == (2, 2)
         assert F.group_norm(x2d, 2).shape == (2, 4, 4, 4)
         assert F.group_norm(torch.ones((2,)), 1).shape == (2,)
         assert F.gru_cell(v1).shape == (2, 2)
@@ -1339,10 +1674,17 @@ def test_nn_modules_and_functional_branches() -> None:
         assert F.rms_norm(v1).shape == (2, 2)
         assert F.rnn_cell(v1).shape == (2, 2)
         assert F.spatial_dropout(v1).shape == (2, 2)
+        assert F.spatial_dropout(x1d).shape == (2, 4, 6)
+        assert F.spatial_dropout(x2d).shape == (2, 4, 4, 4)
+        assert F.spatial_dropout(x3d).shape == (1, 4, 3, 3, 3)
         assert F.swish(v1).shape == (2, 2)
         assert F.upsample_bilinear(x2d).shape == (2, 4, 4, 4)
         assert F.upsample_nearest(x2d).shape == (2, 4, 4, 4)
         assert F.cross_entropy(v1, v2).shape == ()
+        assert (
+            F.cross_entropy(v1, v2, weight=torch.ones((2,)), label_smoothing=0.1).shape
+            == ()
+        )
         assert (
             F.cross_entropy(v1, torch.tensor([0, 1]), label_smoothing=0.1).shape == ()
         )
@@ -1369,63 +1711,48 @@ def test_nn_modules_and_functional_branches() -> None:
         assert F.bilinear(v1, v2, torch.ones((3, 2, 2)), bias=None).shape == (2, 3)
         assert F.bilinear(torch.ones(()), torch.ones(()), torch.ones(())).shape == ()
 
-        prev_eager = config.eager_mode
-        config.eager_mode = False
-        try:
-            for fn in [
-                F.softmax,
-                F.scaled_dot_product_attention,
-                F.celu,
-                F.multilabel_margin_loss,
-                F.elu,
-                F.ctc_loss,
-                F.multilabel_soft_margin_loss,
-                F.gelu,
-                F.cosine_embedding_loss,
-                F.multi_margin_loss,
-                F.glu,
-                F.gaussian_nll_loss,
-                F.hinge_embedding_loss,
-                F.poisson_nll_loss,
-                F.huber_loss,
-                F.soft_margin_loss,
-                F.hardswish,
-                F.margin_ranking_loss,
-                F.triplet_margin_loss,
-                F.leaky_relu,
-                F.log_softmax,
-                F.mish,
-                F.selu,
-                F.softplus,
-                F.activations,
-                F.adaptive_avg_pool2d,
-                F.alpha_dropout,
-                F.batch_norm,
-                F.complex,
-                F.conv_transpose1d,
-                F.conv_transpose2d,
-                F.conv_transpose3d,
-                F.dropout,
-                F.embedding,
-                F.feature_alpha_dropout,
-                F.fractional_max_pool2d,
-                F.group_norm,
-                F.gru_cell,
-                F.instance_norm,
-                F.layer_norm,
-                F.lstm_cell,
-                F.pad,
-                F.rms_norm,
-                F.rnn_cell,
-                F.spatial_dropout,
-                F.swish,
-                F.upsample_bilinear,
-                F.upsample_nearest,
-            ]:
-                with pytest.raises(NotImplementedError):
-                    fn(v1)
-        finally:
-            config.eager_mode = prev_eager
+    # Real TracingMode execution for functional and pooling ops
+    prev_eager = config.eager_mode
+    config.eager_mode = False
+    _tracer.start_tracing()
+    try:
+        tv = torch.ones((2, 2))
+        tx2d = torch.ones((2, 4, 4, 4))
+        w2d = torch.ones((4, 2, 2, 2))
+        assert F.softmax(tv).shape == (2, 2)
+        assert F.celu(tv).shape == (2, 2)
+        assert F.elu(tv).shape == (2, 2)
+        assert F.gelu(tv).shape == (2, 2)
+        assert F.hardswish(tv).shape == (2, 2)
+        assert F.leaky_relu(tv).shape == (2, 2)
+        assert F.log_softmax(tv).shape == (2, 2)
+        assert F.mish(tv).shape == (2, 2)
+        assert F.selu(tv).shape == (2, 2)
+        assert F.softplus(tv).shape == (2, 2)
+        assert F.swish(tv).shape == (2, 2)
+        assert F.adaptive_avg_pool2d(tx2d, 2).shape == (2, 4, 2, 2)
+        assert isinstance(FP.adaptive_max_pool2d(tx2d, 2, return_indices=False), Tensor)
+        assert isinstance(FP.adaptive_max_pool2d(tx2d, 2, return_indices=True), tuple)
+        assert FP.avg_pool2d(tx2d, 2).shape == (2, 4, 2, 2)
+        assert isinstance(FP.fractional_max_pool2d(tx2d, 2, output_size=2), Tensor)
+        assert isinstance(
+            FP.fractional_max_pool2d(tx2d, 2, output_size=2, return_indices=True), tuple
+        )
+        assert FP.max_unpool2d(tx2d, tx2d, 2).shape == (2, 4, 8, 8)
+        assert FP.unfold(tx2d, 2).shape == (2, 16, 9)
+        assert FP.fold(torch.ones((2, 16, 9)), (4, 4), 2).shape == (2, 4, 4, 4)
+        assert F.conv_transpose2d(tx2d, w2d).shape == (2, 2, 5, 5)
+        assert F.embedding(
+            torch.zeros((2, 3), dtype=DType.Int64), torch.ones((5, 4))
+        ).shape == (2, 3, 4)
+        assert F.pad(tx2d, (1, 1, 1, 1)).shape == (2, 4, 6, 6)
+        assert F.interpolate(tx2d, size=(6, 6)).shape == (2, 4, 6, 6)
+        assert F.multilabel_margin_loss(tv, tv).shape is not None
+        assert F.ctc_loss(tv).shape is not None
+        assert F.multi_margin_loss(tv).shape is not None
+    finally:
+        _tracer.stop_tracing()
+        config.eager_mode = prev_eager
 
 
 def test_rnn_and_transformer_full_coverage() -> None:
@@ -1441,6 +1768,8 @@ def test_rnn_and_transformer_full_coverage() -> None:
         rnn_cell_tanh = nn.RNNCell(2, 3, bias=True, nonlinearity="tanh")
         assert rnn_cell_tanh(torch.ones((2,))).shape == (2, 3)
         assert rnn_cell_tanh(torch.ones((4, 2)), torch.ones((4, 3))).shape == (4, 3)
+        with pytest.raises(ValueError):
+            rnn_cell_tanh(torch.ones((4, 2)), (torch.ones((4, 3)), torch.ones((4, 3))))
 
         rnn_cell_relu = nn.RNNCell(2, 3, bias=False, nonlinearity="relu")
         assert rnn_cell_relu(torch.ones((4, 2))).shape == (4, 3)
@@ -1457,6 +1786,8 @@ def test_rnn_and_transformer_full_coverage() -> None:
         gru_cell = nn.GRUCell(2, 3, bias=True)
         assert gru_cell(torch.ones((2,))).shape == (2, 3)
         assert gru_cell(torch.ones((4, 2)), torch.ones((4, 3))).shape == (4, 3)
+        with pytest.raises(ValueError):
+            gru_cell(torch.ones((4, 2)), (torch.ones((4, 3)), torch.ones((4, 3))))
         gru_cell_nb = nn.GRUCell(2, 3, bias=False)
         assert gru_cell_nb(torch.ones((4, 2))).shape == (4, 3)
 
@@ -1493,12 +1824,14 @@ def test_rnn_and_transformer_full_coverage() -> None:
         )
 
         gru = nn.GRU(4, 3, num_layers=1, bias=True, bidirectional=False)
-        out_g, h_g = gru(x_seq, (torch.ones((1, 2, 3)), torch.ones((1, 2, 3))))
+        out_g, h_g = gru(x_seq, torch.ones((1, 2, 3)))
         assert (
             isinstance(h_g, Tensor)
             and out_g.shape == (3, 2, 3)
             and h_g.shape == (1, 2, 3)
         )
+        with pytest.raises(ValueError):
+            gru(x_seq, (torch.ones((1, 2, 3)), torch.ones((1, 2, 3))))
 
         lstm = nn.LSTM(4, 3, num_layers=1, bias=True, bidirectional=False)
         out_l, hc_l = lstm(x_seq)
@@ -1518,7 +1851,16 @@ def test_rnn_and_transformer_full_coverage() -> None:
 
         q_3d = torch.ones((2, 3, 4))
         attn_out, attn_w = mha_same(
-            q_3d, q_3d, q_3d, need_weights=True, average_attn_weights=True
+            q_3d,
+            q_3d,
+            q_3d,
+            need_weights=True,
+            average_attn_weights=True,
+            is_causal=True,
+            key_padding_mask=torch.tensor(
+                [[False, True], [False, False], [False, True]], dtype="bool"
+            ),
+            attn_mask=torch.tensor([[False, True], [False, False]], dtype="bool"),
         )
         assert attn_out.shape == (2, 3, 4) and attn_w is not None
 
@@ -1527,6 +1869,7 @@ def test_rnn_and_transformer_full_coverage() -> None:
             q_3d,
             q_3d,
             attn_mask=torch.zeros((2, 2)),
+            key_padding_mask=torch.zeros((3, 2)),
             need_weights=True,
             average_attn_weights=False,
         )
@@ -1613,9 +1956,43 @@ def test_optim_and_lr_schedulers_full_coverage() -> None:
         p.grad = torch.tensor([0.5, 0.5])
         p_no_grad = nn.Parameter(torch.tensor([1.0]))
 
-        sgd_group: ParamGroupDict = {"params": [p, p_no_grad], "lr": 0.1}
+        sgd_group: ParamGroupDict = {
+            "params": [p, p_no_grad],
+            "lr": 0.1,
+            "initial_lr": 0.1,
+            "betas": (0.9, 0.999),
+            "eps": 1e-8,
+            "weight_decay": 0.0,
+            "amsgrad": False,
+            "momentum": 0.9,
+            "dampening": 0.0,
+            "nesterov": False,
+            "rho": 0.9,
+            "lr_decay": 0.0,
+            "initial_accumulator_value": 0.0,
+            "lambd": 1e-4,
+            "alpha": 0.75,
+            "t0": 1e6,
+            "max_iter": 20,
+            "max_eval": None,
+            "tolerance_grad": 1e-7,
+            "tolerance_change": 1e-9,
+            "history_size": 100,
+            "line_search_fn": None,
+            "momentum_decay": 0.004,
+            "decoupled_weight_decay": False,
+            "centered": False,
+            "etas": (0.5, 1.2),
+            "step_sizes": (1e-6, 50.0),
+            "ns_coefficients": (3.4445, -4.775, 2.0315),
+            "ns_steps": 5,
+            "adjust_lr_fn": None,
+            "maximize": True,
+            "beta2_decay": -0.8,
+            "d": 1.0,
+        }
         sgd = optim.SGD([sgd_group], momentum=0.9, maximize=True)
-        sgd.param_groups.append({"params": 123})
+        sgd.param_groups.append({})
         loss_val = sgd.step(closure=lambda: 1.5)
         assert loss_val == 1.5
         sgd.step()
@@ -1626,33 +2003,76 @@ def test_optim_and_lr_schedulers_full_coverage() -> None:
         assert p.grad is not None
 
         muon = optim.Muon([p], lr=0.01, weight_decay=0.1)
-        muon.param_groups.append({"params": 123})
+        muon.param_groups.append({})
         assert muon.step() is None
         assert muon.step(closure=lambda: 2.0) == 2.0
+        p2d_tall = nn.Parameter(torch.ones((3, 2)))
+        p2d_tall.grad = torch.ones((3, 2)) * 0.1
+        p2d_wide = nn.Parameter(torch.ones((2, 3)))
+        p2d_wide.grad = torch.ones((2, 3)) * 0.1
+        muon2d = optim.Muon([p2d_tall, p2d_wide, p_no_grad], lr=0.01, nesterov=False)
+        muon2d.step()
+        muon2d.add_param_group({"params": [p], "lr": 0.02})
+        muon2d_sd = muon2d.state_dict()
+        muon2d.load_state_dict(muon2d_sd)
+        muon2d.load_state_dict({})
 
-        assert _float_opt(torch.tensor(0.05), 0.1) == pytest.approx(0.05)
-        assert _float_opt("invalid", 0.1) == 0.1
-        assert _betas_opt("invalid", (0.9, 0.99)) == (0.9, 0.99)
+        asgd_p = nn.Parameter(torch.tensor([2.0, -2.0]))
+        asgd_p.grad = torch.tensor([0.5, -0.5])
+        asgd_opt = optim.ASGD([asgd_p, p_no_grad], lr=0.01)
+        asgd_opt.param_groups.append({})
+        assert asgd_opt.step() is None
+        assert asgd_opt.step(closure=lambda: 1.0) == 1.0
 
-        for opt_cls, kw in [
-            (optim.Adam, {"amsgrad": True, "weight_decay": 0.01}),
-            (optim.Adam, {"amsgrad": False, "decoupled_weight_decay": True}),
-            (optim.AdamW, {"weight_decay": 0.01}),
-            (optim.Adamax, {"weight_decay": 0.01}),
-            (optim.Adagrad, {"weight_decay": 0.01, "lr_decay": 0.01}),
-            (optim.Adadelta, {"weight_decay": 0.01}),
-            (optim.RMSprop, {"weight_decay": 0.01, "momentum": 0.9, "centered": True}),
-            (optim.RMSprop, {"weight_decay": 0.0, "momentum": 0.0, "centered": False}),
-            (optim.NAdam, {}),
-            (optim.RAdam, {}),
-            (optim.SparseAdam, {}),
-        ]:
+        base_opt = optim.Optimizer([p, p_no_grad], {"lr": 0.01})
+        base_opt.param_groups.append({})
+        assert base_opt.step(closure=lambda: 1.0) == 1.0
+
+        rprop_p = nn.Parameter(torch.tensor([2.0, -2.0]))
+        rprop_p.grad = torch.tensor([0.5, -0.5])
+        rprop_opt = optim.Rprop([rprop_p, p_no_grad], lr=0.01)
+        rprop_opt.param_groups.append({})
+        assert rprop_opt.step() is None
+        rprop_p.grad = torch.tensor([-0.5, 0.5])
+        assert rprop_opt.step(closure=lambda: 1.0) == 1.0
+
+        assert _scalar_to_float(torch.tensor(0.05)) == pytest.approx(0.05)
+        assert _scalar_to_float(0.1) == pytest.approx(0.1)
+
+        for opt_cls in (
+            optim.Adam,
+            optim.AdamW,
+            optim.Adamax,
+            optim.Adagrad,
+            optim.Adadelta,
+            optim.RMSprop,
+            optim.NAdam,
+            optim.RAdam,
+            optim.SparseAdam,
+        ):
             w_opt = nn.Parameter(torch.tensor([2.0, -2.0]))
             w_opt.grad = torch.tensor([0.5, -0.5])
-            inst = opt_cls([w_opt, p_no_grad], **kw)
-            inst.param_groups.append({"params": 123})
+            inst = opt_cls([w_opt, p_no_grad])
+            inst.param_groups.append({})
             assert inst.step(closure=lambda: 1.0) == 1.0
             inst.step()
+
+        w_ams = nn.Parameter(torch.tensor([2.0, -2.0]))
+        w_ams.grad = torch.tensor([0.5, -0.5])
+        opt_ams = optim.Adam([w_ams], amsgrad=True, weight_decay=0.01)
+        opt_ams.step()
+        opt_ams.step()
+
+        w_dec = nn.Parameter(torch.tensor([2.0, -2.0]))
+        w_dec.grad = torch.tensor([0.5, -0.5])
+        opt_dec = optim.Adam([w_dec], decoupled_weight_decay=True, weight_decay=0.01)
+        opt_dec.step()
+
+        w_rms = nn.Parameter(torch.tensor([2.0, -2.0]))
+        w_rms.grad = torch.tensor([0.5, -0.5])
+        opt_rms = optim.RMSprop([w_rms], weight_decay=0.01, momentum=0.9, centered=True)
+        opt_rms.step()
+        opt_rms.step()
 
         # LRScheduler base & subclasses
         opt = optim.SGD([p], lr=0.1)
@@ -1669,9 +2089,9 @@ def test_optim_and_lr_schedulers_full_coverage() -> None:
         s_lambda2 = lr_scheduler.LambdaLR(opt, lr_lambda=[lambda e: 0.9**e])
         s_lambda2.step()
 
-        s_mult1 = lr_scheduler.MultiplicativeLR(opt, lr_lambda=lambda e: 0.95)
+        s_mult1 = lr_scheduler.MultiplicativeLR(opt, lr_lambda=lambda _e: 0.95)
         s_mult1.step()
-        s_mult2 = lr_scheduler.MultiplicativeLR(opt, lr_lambda=[lambda e: 0.95])
+        s_mult2 = lr_scheduler.MultiplicativeLR(opt, lr_lambda=[lambda _e: 0.95])
         s_mult2.step()
 
         s_step = lr_scheduler.StepLR(opt, step_size=2, gamma=0.5)
@@ -1724,7 +2144,7 @@ def test_optim_and_lr_schedulers_full_coverage() -> None:
         )
         s_cyc3.step()
         s_cyc4 = lr_scheduler.CyclicLR(
-            opt, base_lr=0.01, max_lr=0.1, step_size_up=1, scale_fn=lambda c: 0.5
+            opt, base_lr=0.01, max_lr=0.1, step_size_up=1, scale_fn=lambda _c: 0.5
         )
         s_cyc4.step()
 
@@ -1777,6 +2197,10 @@ def test_utils_data_and_dataloader_full_coverage() -> None:
         ds = data.TensorDataset(torch.tensor([10.0, 20.0, 30.0]))
         assert len(ds) == 3
         assert ds[1][0].item() == 20.0
+        ds_multi = data.TensorDataset(torch.ones((2,)), torch.zeros((2,)))
+        assert len(ds_multi) == 2
+        with pytest.raises(ValueError):
+            data.TensorDataset(torch.ones((2,)), torch.ones((3,)))
 
         s_base: Sampler[int] = Sampler(ds)
         assert len(s_base) == 3
@@ -1896,3 +2320,4 @@ def test_utils_data_and_dataloader_full_coverage() -> None:
             torch.tensor(1.0), num_samples=1, replacement=True
         )
         assert len(list(wrs_scalar)) == 1
+        _ = Callable

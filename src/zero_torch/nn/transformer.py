@@ -5,6 +5,8 @@ from __future__ import annotations
 import copy
 import math
 
+from ml_switcheroo_compiler.core.dtype import DType
+
 import zero_torch
 from zero_torch._types import DeviceLike, DTypeLike
 from zero_torch.nn.init import uniform_, xavier_uniform_
@@ -80,14 +82,20 @@ class MultiheadAttention(Module):
             self.k_proj_weight = Parameter(zero_torch.empty((embed_dim, self.kdim)))
             self.v_proj_weight = Parameter(zero_torch.empty((embed_dim, self.vdim)))
             self.in_proj_weight = None
+        self.register_parameter("in_proj_weight", self.in_proj_weight)
+        self.register_parameter("q_proj_weight", self.q_proj_weight)
+        self.register_parameter("k_proj_weight", self.k_proj_weight)
+        self.register_parameter("v_proj_weight", self.v_proj_weight)
 
         self.in_proj_bias: Parameter | None
         if bias:
             self.in_proj_bias = Parameter(zero_torch.empty((3 * embed_dim,)))
         else:
             self.in_proj_bias = None
+        self.register_parameter("in_proj_bias", self.in_proj_bias)
 
         self.out_proj: Linear = Linear(embed_dim, embed_dim, bias=bias)
+        self.add_module("out_proj", self.out_proj)
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -95,43 +103,6 @@ class MultiheadAttention(Module):
         stdv = 1.0 / math.sqrt(self.embed_dim)
         for weight in self.parameters():
             uniform_(weight, -stdv, stdv)
-
-    def __call__(
-        self,
-        query: Tensor,
-        key: Tensor | None = None,
-        value: Tensor | None = None,
-        key_padding_mask: Tensor | None = None,
-        need_weights: bool = True,
-        attn_mask: Tensor | None = None,
-        average_attn_weights: bool = True,
-        is_causal: bool = False,
-    ) -> tuple[Tensor, Tensor | None]:
-        """Invokes `forward` on MultiheadAttention.
-
-        Args:
-            query: Query embeddings.
-            key: Key embeddings.
-            value: Value embeddings.
-            key_padding_mask: Mask for keys per batch.
-            need_weights: If True, returns `attn_output_weights`.
-            attn_mask: 2D or 3D mask preventing attention to certain positions.
-            average_attn_weights: If True, returns attention weights averaged across heads.
-            is_causal: If True, applies a causal mask.
-
-        Returns:
-            Tuple `(attn_output, attn_output_weights)`.
-        """
-        return self.forward(
-            query,
-            key=key,
-            value=value,
-            key_padding_mask=key_padding_mask,
-            need_weights=need_weights,
-            attn_mask=attn_mask,
-            average_attn_weights=average_attn_weights,
-            is_causal=is_causal,
-        )
 
     def forward(
         self,
@@ -159,7 +130,6 @@ class MultiheadAttention(Module):
         Returns:
             Tuple `(attn_output, attn_output_weights)`.
         """
-        _ = (key_padding_mask, is_causal)
         k_in = key if key is not None else query
         v_in = value if value is not None else query
 
@@ -204,8 +174,42 @@ class MultiheadAttention(Module):
             self.head_dim
         )
 
+        if is_causal:
+            causal_rows = [
+                [0.0 if j <= i else -1e9 for j in range(src_len)]
+                for i in range(tgt_len)
+            ]
+            causal_mask = zero_torch.tensor(
+                causal_rows, dtype=attn_output_weights.dtype
+            )
+            attn_output_weights = attn_output_weights + causal_mask
+
         if attn_mask is not None:
-            attn_output_weights = attn_output_weights + attn_mask
+            if attn_mask.dtype == DType.Bool:
+                attn_output_weights = zero_torch.where(
+                    attn_mask,
+                    zero_torch.full_like(attn_output_weights, -1e9),
+                    attn_output_weights,
+                )
+            else:
+                attn_output_weights = attn_output_weights + attn_mask
+
+        if key_padding_mask is not None:
+            weights_4d_kpm = attn_output_weights.view(
+                bsz, self.num_heads, tgt_len, src_len
+            )
+            mask_4d = zero_torch.reshape(key_padding_mask, (bsz, 1, 1, src_len))
+            if key_padding_mask.dtype == DType.Bool:
+                weights_4d_kpm = zero_torch.where(
+                    mask_4d,
+                    zero_torch.full_like(weights_4d_kpm, -1e9),
+                    weights_4d_kpm,
+                )
+            else:
+                weights_4d_kpm = weights_4d_kpm + mask_4d
+            attn_output_weights = weights_4d_kpm.view(
+                bsz * self.num_heads, tgt_len, src_len
+            )
 
         attn_output_weights = zero_torch.nn.functional.softmax(
             attn_output_weights, dim=-1
@@ -281,6 +285,15 @@ class TransformerEncoderLayer(Module):
 
         self.activation: Module = ReLU() if activation == "relu" else GELU()
         self.norm_first: bool = norm_first
+        self.add_module("self_attn", self.self_attn)
+        self.add_module("linear1", self.linear1)
+        self.add_module("dropout", self.dropout)
+        self.add_module("linear2", self.linear2)
+        self.add_module("norm1", self.norm1)
+        self.add_module("norm2", self.norm2)
+        self.add_module("dropout1", self.dropout1)
+        self.add_module("dropout2", self.dropout2)
+        self.add_module("activation", self.activation)
 
     def forward(
         self,
@@ -300,13 +313,17 @@ class TransformerEncoderLayer(Module):
         Returns:
             Encoded sequence tensor.
         """
-        _ = is_causal
         x = src
         if self.norm_first:
-            x = x + self._sa_block(self.norm1(x), src_mask, src_key_padding_mask)
+            x = x + self._sa_block(
+                self.norm1(x), src_mask, src_key_padding_mask, is_causal=is_causal
+            )
             x = x + self._ff_block(self.norm2(x))
         else:
-            x = self.norm1(x + self._sa_block(x, src_mask, src_key_padding_mask))
+            x = self.norm1(
+                x
+                + self._sa_block(x, src_mask, src_key_padding_mask, is_causal=is_causal)
+            )
             x = self.norm2(x + self._ff_block(x))
         return x
 
@@ -315,6 +332,7 @@ class TransformerEncoderLayer(Module):
         x: Tensor,
         attn_mask: Tensor | None,
         key_padding_mask: Tensor | None,
+        is_causal: bool = False,
     ) -> Tensor:
         """Executes the self-attention sub-block.
 
@@ -322,6 +340,7 @@ class TransformerEncoderLayer(Module):
             x: Input tensor.
             attn_mask: Optional attention mask.
             key_padding_mask: Optional key padding mask.
+            is_causal: Whether to apply a causal mask.
 
         Returns:
             Self-attention output tensor after dropout.
@@ -333,6 +352,7 @@ class TransformerEncoderLayer(Module):
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
             need_weights=False,
+            is_causal=is_causal,
         )
         return self.dropout1(attn_out)
 
@@ -404,6 +424,18 @@ class TransformerDecoderLayer(Module):
 
         self.activation: Module = ReLU() if activation == "relu" else GELU()
         self.norm_first: bool = norm_first
+        self.add_module("self_attn", self.self_attn)
+        self.add_module("multihead_attn", self.multihead_attn)
+        self.add_module("linear1", self.linear1)
+        self.add_module("dropout", self.dropout)
+        self.add_module("linear2", self.linear2)
+        self.add_module("norm1", self.norm1)
+        self.add_module("norm2", self.norm2)
+        self.add_module("norm3", self.norm3)
+        self.add_module("dropout1", self.dropout1)
+        self.add_module("dropout2", self.dropout2)
+        self.add_module("dropout3", self.dropout3)
+        self.add_module("activation", self.activation)
 
     def forward(
         self,
@@ -431,19 +463,39 @@ class TransformerDecoderLayer(Module):
         Returns:
             Decoded sequence tensor.
         """
-        _ = (tgt_is_causal, memory_is_causal)
         mem = memory if memory is not None else tgt
         x = tgt
         if self.norm_first:
-            x = x + self._sa_block(self.norm1(x), tgt_mask, tgt_key_padding_mask)
+            x = x + self._sa_block(
+                self.norm1(x),
+                tgt_mask,
+                tgt_key_padding_mask,
+                is_causal=tgt_is_causal,
+            )
             x = x + self._mha_block(
-                self.norm2(x), mem, memory_mask, memory_key_padding_mask
+                self.norm2(x),
+                mem,
+                memory_mask,
+                memory_key_padding_mask,
+                is_causal=memory_is_causal,
             )
             x = x + self._ff_block(self.norm3(x))
         else:
-            x = self.norm1(x + self._sa_block(x, tgt_mask, tgt_key_padding_mask))
+            x = self.norm1(
+                x
+                + self._sa_block(
+                    x, tgt_mask, tgt_key_padding_mask, is_causal=tgt_is_causal
+                )
+            )
             x = self.norm2(
-                x + self._mha_block(x, mem, memory_mask, memory_key_padding_mask)
+                x
+                + self._mha_block(
+                    x,
+                    mem,
+                    memory_mask,
+                    memory_key_padding_mask,
+                    is_causal=memory_is_causal,
+                )
             )
             x = self.norm3(x + self._ff_block(x))
         return x
@@ -453,6 +505,7 @@ class TransformerDecoderLayer(Module):
         x: Tensor,
         attn_mask: Tensor | None,
         key_padding_mask: Tensor | None,
+        is_causal: bool = False,
     ) -> Tensor:
         """Executes the self-attention sub-block.
 
@@ -460,6 +513,7 @@ class TransformerDecoderLayer(Module):
             x: Input tensor.
             attn_mask: Optional attention mask.
             key_padding_mask: Optional key padding mask.
+            is_causal: Whether to apply a causal mask.
 
         Returns:
             Self-attention output tensor after dropout.
@@ -471,6 +525,7 @@ class TransformerDecoderLayer(Module):
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
             need_weights=False,
+            is_causal=is_causal,
         )
         return self.dropout1(attn_out)
 
@@ -480,6 +535,7 @@ class TransformerDecoderLayer(Module):
         mem: Tensor,
         attn_mask: Tensor | None,
         key_padding_mask: Tensor | None,
+        is_causal: bool = False,
     ) -> Tensor:
         """Executes the cross multi-head attention sub-block.
 
@@ -488,6 +544,7 @@ class TransformerDecoderLayer(Module):
             mem: Encoder memory tensor.
             attn_mask: Optional cross-attention mask.
             key_padding_mask: Optional memory key padding mask.
+            is_causal: Whether to apply a causal mask.
 
         Returns:
             Cross-attention output tensor after dropout.
@@ -499,6 +556,7 @@ class TransformerDecoderLayer(Module):
             attn_mask=attn_mask,
             key_padding_mask=key_padding_mask,
             need_weights=False,
+            is_causal=is_causal,
         )
         return self.dropout2(attn_out)
 
@@ -544,6 +602,8 @@ class TransformerEncoder(Module):
         )
         self.num_layers: int = num_layers
         self.norm: Module | None = norm
+        self.add_module("layers", self.layers)
+        self.add_module("norm", self.norm)
 
     def forward(
         self,
@@ -563,11 +623,14 @@ class TransformerEncoder(Module):
         Returns:
             Encoded sequence tensor.
         """
-        _ = is_causal
+        causal_flag = bool(is_causal) if is_causal is not None else False
         output = src
         for mod in self.layers:
             output = mod(
-                output, src_mask=mask, src_key_padding_mask=src_key_padding_mask
+                output,
+                src_mask=mask,
+                src_key_padding_mask=src_key_padding_mask,
+                is_causal=causal_flag,
             )
         if self.norm is not None:
             output = self.norm(output)
@@ -598,6 +661,8 @@ class TransformerDecoder(Module):
         )
         self.num_layers: int = num_layers
         self.norm: Module | None = norm
+        self.add_module("layers", self.layers)
+        self.add_module("norm", self.norm)
 
     def forward(
         self,
@@ -625,7 +690,7 @@ class TransformerDecoder(Module):
         Returns:
             Decoded sequence tensor.
         """
-        _ = (tgt_is_causal, memory_is_causal)
+        tgt_causal = bool(tgt_is_causal) if tgt_is_causal is not None else False
         mem = memory if memory is not None else tgt
         output = tgt
         for mod in self.layers:
@@ -636,6 +701,8 @@ class TransformerDecoder(Module):
                 memory_mask=memory_mask,
                 tgt_key_padding_mask=tgt_key_padding_mask,
                 memory_key_padding_mask=memory_key_padding_mask,
+                tgt_is_causal=tgt_causal,
+                memory_is_causal=memory_is_causal,
             )
         if self.norm is not None:
             output = self.norm(output)
@@ -727,6 +794,8 @@ class Transformer(Module):
                 decoder_layer, num_decoder_layers, decoder_norm
             )
 
+        self.add_module("encoder", self.encoder)
+        self.add_module("decoder", self.decoder)
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -767,10 +836,12 @@ class Transformer(Module):
         Returns:
             Transformer output tensor.
         """
-        _ = (src_is_causal, tgt_is_causal, memory_is_causal)
         target_seq = tgt if tgt is not None else src
         memory = self.encoder(
-            src, mask=src_mask, src_key_padding_mask=src_key_padding_mask
+            src,
+            mask=src_mask,
+            src_key_padding_mask=src_key_padding_mask,
+            is_causal=src_is_causal,
         )
         return self.decoder(
             target_seq,
@@ -779,4 +850,6 @@ class Transformer(Module):
             memory_mask=memory_mask,
             tgt_key_padding_mask=tgt_key_padding_mask,
             memory_key_padding_mask=memory_key_padding_mask,
+            tgt_is_causal=tgt_is_causal,
+            memory_is_causal=memory_is_causal,
         )

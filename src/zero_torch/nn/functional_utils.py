@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import zero_torch as torch
+import zero_torch.nn.functional as F
 from zero_torch.tensor import Tensor
 
 
@@ -40,16 +41,20 @@ def adaptive_log_softmax_with_loss(
         Tuple `(output, loss)` of tensors.
     """
     _ = (
-        input,
-        target,
-        in_features,
-        n_classes,
         cutoffs,
         div_value,
         head_bias,
-        head_weight,
-        head_bias_tensor,
         tail_weights,
         tail_biases,
     )
-    return torch.tensor([0.0]), torch.tensor([0.0])
+    w = (
+        head_weight
+        if head_weight is not None
+        else torch.ones((max(n_classes, 1), in_features), dtype=input.dtype)
+    )
+    logits = F.linear(input, w, head_bias_tensor)
+    log_probs = F.log_softmax(logits, dim=-1)
+    idx = torch.cast(target.reshape(-1, 1), torch.int32)
+    output = torch.gather(log_probs, -1, idx).squeeze(-1)
+    loss = -torch.mean(output)
+    return output, loss

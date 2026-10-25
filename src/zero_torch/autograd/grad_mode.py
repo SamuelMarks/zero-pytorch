@@ -2,17 +2,24 @@
 
 from __future__ import annotations
 
+import functools
 import threading
+from collections.abc import Callable
 from types import TracebackType
+from typing import TypeVar
+
+from zero_torch._types import OpArg
+
+_A = TypeVar("_A")
+_R = TypeVar("_R")
+_ = OpArg
 
 
 class GradMode(threading.local):
     """Thread-local storage for gradient computation mode."""
 
-    enabled: bool = True
-
     def __init__(self) -> None:
-        """Initializes the GradMode with gradients enabled."""
+        """Initializes thread-local gradient mode with `enabled = True`."""
         self.enabled: bool = True
 
 
@@ -23,26 +30,27 @@ def is_grad_enabled() -> bool:
     """Returns True if grad mode is currently enabled.
 
     Returns:
-        True if gradients are enabled, False otherwise.
+        True if gradient computation is enabled, False otherwise.
     """
     return _grad_mode.enabled
 
 
 class set_grad_enabled:
-    """Context-manager that sets gradient calculation on or off."""
+    """Context-manager and decorator that sets gradient calculation on or off."""
 
     def __init__(self, mode: bool) -> None:
-        """Initializes the context manager.
+        """Initializes the gradient mode context manager.
 
         Args:
-            mode: Flag whether to enable grad (True) or disable (False).
+            mode: Whether to enable (`True`) or disable (`False`) gradient tracking.
         """
-        self.prev: bool = is_grad_enabled()
-        self.mode: bool = mode
+        self.prev: bool = _grad_mode.enabled
+        self.new_mode: bool = mode
+        _grad_mode.enabled = mode
 
     def __enter__(self) -> None:
-        """Enters the context manager and sets the specified mode."""
-        _grad_mode.enabled = self.mode
+        """Enters the gradient-mode context."""
+        _grad_mode.enabled = self.new_mode
 
     def __exit__(
         self,
@@ -50,19 +58,46 @@ class set_grad_enabled:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Exits the context manager and restores the previous mode.
+        """Restores the previous gradient mode on exit.
 
         Args:
-            exc_type: Exception type if raised inside the block.
-            exc_val: Exception instance if raised inside the block.
-            exc_tb: Exception traceback if raised inside the block.
+            exc_type: Exception type if raised, else None.
+            exc_val: Exception instance if raised, else None.
+            exc_tb: Traceback if raised, else None.
         """
         _ = (exc_type, exc_val, exc_tb)
         _grad_mode.enabled = self.prev
 
+    def __call__(self, func: Callable[[_A], _R]) -> Callable[[_A], _R]:
+        """Decorates a callable so it executes under `self.new_mode` gradient mode.
+
+        Args:
+            func: Callable to wrap.
+
+        Returns:
+            Wrapped callable that runs with gradient mode set to `self.new_mode`.
+        """
+        _grad_mode.enabled = self.prev
+        target_mode = self.new_mode
+
+        @functools.wraps(func)
+        def wrapper(arg: _A) -> _R:
+            """Executes `func` inside `set_grad_enabled(target_mode)`.
+
+            Args:
+                arg: Argument forwarded to `func`.
+
+            Returns:
+                Return value of `func`.
+            """
+            with set_grad_enabled(target_mode):
+                return func(arg)
+
+        return wrapper
+
 
 class no_grad(set_grad_enabled):
-    """Context-manager that disables gradient calculation."""
+    """Context-manager and decorator that disables gradient calculation."""
 
     def __init__(self) -> None:
         """Initializes the no_grad context manager."""

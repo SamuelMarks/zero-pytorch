@@ -2,14 +2,7 @@ ml-ecosystem-snapshots @ https://github.com/SamuelMarks/ml-ecosystem-snapshots/r
 pytest
 pytest-cov
 pytest-xdist
-expecttest
-hypothesis
 interrogate
 mypy
 ruff
-numpy
-typing_extensions
 torch
-torchvision
-mlx; sys_platform == 'darwin' and platform_machine == 'arm64'
-cupy-cuda12x; sys_platform == 'linux'

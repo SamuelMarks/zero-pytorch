@@ -107,7 +107,11 @@ def test_dataloader_more() -> None:
 
     ds = DummyDataset()
     dl = DataLoader(ds, batch_size=2, num_workers=2)
+    assert len(dl) == 2
     assert len(list(iter(dl))) == 2
+
+    dl_unbatched = DataLoader(ds, batch_size=None)
+    assert len(dl_unbatched) == 4
 
     dl_bad = DataLoader(ds, batch_size=None, sampler=Sampler())
     with pytest.raises(NotImplementedError):
@@ -159,6 +163,10 @@ def test_dataloader_more2() -> None:
     res = list(dl2)
     assert res == [0, 1]
 
+    dl_no_sampler = DataLoader(ds, batch_size=None)
+    dl_no_sampler.sampler = None
+    assert len(dl_no_sampler) == 4
+
 
 def test_dataloader_iterable_dataset() -> None:
     """Verifies `DataLoader` over an `IterableDataset`."""
@@ -179,3 +187,5 @@ def test_dataloader_iterable_dataset() -> None:
     ds = DummyIterable()
     dl = DataLoader(ds, batch_size=None)
     assert list(dl) == [1, 2, 3]
+    with pytest.raises(TypeError):
+        _ = len(dl)

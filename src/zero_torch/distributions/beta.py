@@ -7,8 +7,9 @@ from collections.abc import Sequence
 import zero_torch as torch
 from zero_torch.tensor import Tensor
 
+from .distribution import Distribution
 from .exp_family import ExponentialFamily
-from .utils import _broadcast_shape
+from .utils import _broadcast_shape, _check_positive
 
 
 class Beta(ExponentialFamily):
@@ -29,10 +30,75 @@ class Beta(ExponentialFamily):
             concentration0: Second concentration parameter (`beta`).
             validate_args: Whether to validate parameter constraints.
         """
+        if validate_args:
+            _check_positive(concentration1, "concentration1")
+            _check_positive(concentration0, "concentration0")
         self.concentration1: Tensor = concentration1
         self.concentration0: Tensor = concentration0
         batch_shape = _broadcast_shape(concentration1.shape, concentration0.shape)
         super().__init__(batch_shape, validate_args=validate_args)
+
+    def expand(
+        self, batch_shape: Sequence[int], _instance: Distribution | None = None
+    ) -> Beta:
+        """Returns a new Beta distribution with batch dimensions expanded to `batch_shape`.
+
+        Args:
+            batch_shape: Desired expanded batch shape.
+            _instance: Unused optional instance parameter.
+
+        Returns:
+            Expanded Beta distribution.
+        """
+        _ = _instance
+        b_shape = tuple(batch_shape)
+        return Beta(
+            torch.broadcast_to(self.concentration1, b_shape),
+            torch.broadcast_to(self.concentration0, b_shape),
+            validate_args=False,
+        )
+
+    @property
+    def _natural_params(self) -> tuple[Tensor, ...]:
+        """Returns the natural parameters `(concentration1, concentration0)` of the Beta distribution.
+
+        Returns:
+            Two-element tuple of concentration tensors.
+        """
+        return (self.concentration1, self.concentration0)
+
+    def _log_normalizer(self, *natural_params: Tensor) -> Tensor:
+        """Computes the log Beta function normalizer for given concentration parameters.
+
+        Args:
+            *natural_params: Natural parameters `(c1, c0)`.
+
+        Returns:
+            Log normalizer tensor.
+        """
+        c1 = natural_params[0]
+        c0 = natural_params[1]
+        return (
+            torch.special.gammaln(c1)
+            + torch.special.gammaln(c0)
+            - torch.special.gammaln(c1 + c0)
+        )
+
+    def entropy(self) -> Tensor:
+        """Returns the differential entropy of the Beta distribution.
+
+        Returns:
+            Entropy tensor.
+        """
+        c1 = self.concentration1
+        c0 = self.concentration0
+        total = c1 + c0
+        return (
+            self._log_normalizer(c1, c0)
+            - (c1 - 1.0) * torch.digamma(c1)
+            - (c0 - 1.0) * torch.digamma(c0)
+            + (total - 2.0) * torch.digamma(total)
+        )
 
     @property
     def mean(self) -> Tensor:
@@ -85,11 +151,7 @@ class Beta(ExponentialFamily):
         Returns:
             Log probability density tensor.
         """
-        log_b = (
-            torch.special.gammaln(self.concentration1)
-            + torch.special.gammaln(self.concentration0)
-            - torch.special.gammaln(self.concentration1 + self.concentration0)
-        )
+        log_b = self._log_normalizer(self.concentration1, self.concentration0)
         return (
             (self.concentration1 - 1) * torch.log(value)
             + (self.concentration0 - 1) * torch.log(1 - value)

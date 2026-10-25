@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import numpy as np
 from ml_switcheroo_compiler.core.config import EagerMode
 
 import zero_torch as torch
 import zero_torch.nn.functional as F
+from tests.conftest import assert_allclose
 from zero_torch import nn
 from zero_torch.tensor import Tensor
 
@@ -17,13 +17,13 @@ def test_module_lifecycle() -> None:
     class MyModule(nn.Module):
         """Test module with a Linear layer and registered running_mean buffer."""
 
-        running_mean: Tensor | None
-
         def __init__(self) -> None:
             """Initializes MyModule."""
             super().__init__()
             self.linear = nn.Linear(3, 4)
-            self.register_buffer("running_mean", torch.zeros(4))
+            self.add_module("linear", self.linear)
+            self.running_mean: Tensor | None = torch.zeros(4)
+            self.register_buffer("running_mean", self.running_mean)
 
         def forward(self, x: Tensor) -> Tensor:
             """Applies the linear transformation and adds `running_mean`.
@@ -67,7 +67,7 @@ def test_functional_linear() -> None:
 
         out = F.linear(x, w, b)
         assert out.shape == (2, 4)
-        np.testing.assert_allclose(out.tolist(), 7.0)
+        assert_allclose(out.tolist(), 7.0)
 
 
 def test_conv2d() -> None:
@@ -84,16 +84,26 @@ def test_conv2d() -> None:
 
 
 def test_batchnorm2d() -> None:
-    """Verifies `nn.BatchNorm2d` affine parameter registration and forward shape."""
+    """Verifies `nn.BatchNorm2d` affine parameter registration, running stats update, and eval mode."""
     with EagerMode():
         bn = nn.BatchNorm2d(3)
         assert bn.weight is not None and bn.weight.shape == (3,)
         assert bn.bias is not None and bn.bias.shape == (3,)
         assert bn.running_mean is not None and bn.running_mean.shape == (3,)
         assert bn.running_var is not None and bn.running_var.shape == (3,)
-        x = torch.ones((2, 3, 4, 4))
+        x = torch.ones((2, 3, 4, 4)) * 5.0
         out = bn(x)
         assert out.shape == (2, 3, 4, 4)
+        assert_allclose(bn.running_mean.tolist(), [0.5, 0.5, 0.5], rtol=1e-4)
+        bn.eval()
+        out_eval = bn(x)
+        assert out_eval.shape == (2, 3, 4, 4)
+
+        lazy_lin = nn.LazyLinear(4)
+        _ = lazy_lin(torch.ones((2, 3)))
+        sd = lazy_lin.state_dict()
+        assert "weight" in sd and "bias" in sd
+        assert sd["weight"].shape == (4, 3)
 
 
 def test_losses() -> None:
@@ -104,7 +114,7 @@ def test_losses() -> None:
         mse = nn.MSELoss()
         loss_mse = mse(pred, target_mse)
         assert loss_mse.shape == ()
-        np.testing.assert_allclose(loss_mse.tolist(), 0.125, rtol=1e-4)
+        assert_allclose(loss_mse.tolist(), 0.125, rtol=1e-4)
 
         ce = nn.CrossEntropyLoss()
         loss_ce = ce(pred, torch.tensor([0, 1]))

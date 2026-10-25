@@ -35,6 +35,7 @@ class DataParallel(Module):
         _ = (args, kwargs)
         super().__init__()
         self.module: Module = module
+        self.add_module("module", module)
         self.device_ids: Sequence[int | str] | None = device_ids
         self.output_device: DeviceLike = output_device
         self.dim: int = dim

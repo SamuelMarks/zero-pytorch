@@ -1,124 +1,118 @@
-"""Ported Fast Fourier Transform (FFT) parity tests."""
+"""Ported Fast Fourier Transform (FFT) functional tests."""
 
 from __future__ import annotations
 
-import numpy as np
-import pytest
-import torch as real_torch
 from ml_switcheroo_compiler.core.config import EagerMode
-from ml_switcheroo_compiler.core.errors import UnimplementedMathError
 
 import zero_torch as torch
+from tests.conftest import assert_allclose
 from zero_torch.tensor import Tensor
 
 
 def test_fft_parity() -> None:
-    """Verifies numerical parity between `zero_torch.fft` and `torch.fft`."""
+    """Verifies `zero_torch.fft` 1D, 2D, N-D, frequency, and shift operations against analytical DFT values."""
     with EagerMode():
-        arr1d = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
-        t = Tensor(arr1d)
-        rt = real_torch.tensor(arr1d)
+        t = Tensor([1.0, 2.0, 3.0, 4.0])
 
-        np.testing.assert_allclose(
-            torch.fft.fft(t).tolist(),
-            real_torch.fft.fft(rt).resolve_conj().tolist(),
+        fft_1d = torch.fft.fft(t)
+        assert_allclose(
+            fft_1d.tolist(),
+            [10.0 + 0.0j, -2.0 + 2.0j, -2.0 + 0.0j, -2.0 - 2.0j],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
-            torch.fft.ifft(t).tolist(),
-            real_torch.fft.ifft(rt).resolve_conj().tolist(),
+        assert_allclose(
+            torch.fft.ifft(fft_1d).tolist(),
+            [1.0 + 0.0j, 2.0 + 0.0j, 3.0 + 0.0j, 4.0 + 0.0j],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
-            torch.fft.rfft(t).tolist(),
-            real_torch.fft.rfft(rt).resolve_conj().tolist(),
+        rfft_1d = torch.fft.rfft(t)
+        assert_allclose(
+            rfft_1d.tolist(),
+            [10.0 + 0.0j, -2.0 + 2.0j, -2.0 + 0.0j],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
-            torch.fft.irfft(t).tolist(),
-            real_torch.fft.irfft(rt).resolve_conj().tolist(),
+        assert_allclose(
+            torch.fft.irfft(rfft_1d, n=4).tolist(),
+            [1.0, 2.0, 3.0, 4.0],
             rtol=1e-4,
             atol=1e-4,
         )
 
-        arr2d = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
-        t2 = Tensor(arr2d)
-        rt2 = real_torch.tensor(arr2d)
-
-        np.testing.assert_allclose(
-            torch.fft.fft2(t2).tolist(),
-            real_torch.fft.fft2(rt2).resolve_conj().tolist(),
+        t2 = Tensor([[1.0, 2.0], [3.0, 4.0]])
+        fft_2d = torch.fft.fft2(t2)
+        assert_allclose(
+            fft_2d.tolist(),
+            [[10.0 + 0.0j, -2.0 + 0.0j], [-4.0 + 0.0j, 0.0 + 0.0j]],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
-            torch.fft.ifft2(t2).tolist(),
-            real_torch.fft.ifft2(rt2).resolve_conj().tolist(),
+        assert_allclose(
+            torch.fft.ifft2(fft_2d).tolist(),
+            [[1.0 + 0.0j, 2.0 + 0.0j], [3.0 + 0.0j, 4.0 + 0.0j]],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
-            torch.fft.rfft2(t2).tolist(),
-            real_torch.fft.rfft2(rt2).resolve_conj().tolist(),
+        rfft_2d = torch.fft.rfft2(t2)
+        assert_allclose(
+            rfft_2d.tolist(),
+            [[10.0 + 0.0j, -2.0 + 0.0j], [-4.0 + 0.0j, 0.0 + 0.0j]],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
-            torch.fft.irfft2(t2).tolist(),
-            real_torch.fft.irfft2(rt2).resolve_conj().tolist(),
+        assert_allclose(
+            torch.fft.irfft2(rfft_2d, s=(2, 2)).tolist(),
+            [[1.0, 2.0], [3.0, 4.0]],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
+        assert_allclose(
             torch.fft.fftn(t2).tolist(),
-            real_torch.fft.fftn(rt2).resolve_conj().tolist(),
+            fft_2d.tolist(),
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
-            torch.fft.ifftn(t2).tolist(),
-            real_torch.fft.ifftn(rt2).resolve_conj().tolist(),
+        assert_allclose(
+            torch.fft.ifftn(fft_2d).tolist(),
+            [[1.0 + 0.0j, 2.0 + 0.0j], [3.0 + 0.0j, 4.0 + 0.0j]],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
+        assert_allclose(
             torch.fft.rfftn(t2).tolist(),
-            real_torch.fft.rfftn(rt2).resolve_conj().tolist(),
+            rfft_2d.tolist(),
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
-            torch.fft.irfftn(t2).tolist(),
-            real_torch.fft.irfftn(rt2).resolve_conj().tolist(),
+        assert_allclose(
+            torch.fft.irfftn(rfft_2d, s=(2, 2)).tolist(),
+            [[1.0, 2.0], [3.0, 4.0]],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
+        assert_allclose(
             torch.fft.fftfreq(4).tolist(),
-            real_torch.fft.fftfreq(4).tolist(),
+            [0.0, 0.25, -0.5, -0.25],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
+        assert_allclose(
             torch.fft.rfftfreq(4).tolist(),
-            real_torch.fft.rfftfreq(4).tolist(),
+            [0.0, 0.25, 0.5],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
+        assert_allclose(
             torch.fft.fftshift(t).tolist(),
-            real_torch.fft.fftshift(rt).tolist(),
+            [3.0, 4.0, 1.0, 2.0],
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(
+        assert_allclose(
             torch.fft.ifftshift(t).tolist(),
-            real_torch.fft.ifftshift(rt).tolist(),
+            [3.0, 4.0, 1.0, 2.0],
             rtol=1e-4,
             atol=1e-4,
         )
-        _ = pytest
-        _ = UnimplementedMathError

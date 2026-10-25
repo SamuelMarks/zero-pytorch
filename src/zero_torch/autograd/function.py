@@ -8,7 +8,46 @@ from typing import TYPE_CHECKING
 from zero_torch._types import OpArg, TensorLike
 
 if TYPE_CHECKING:
+    from typing import ParamSpec, Protocol, TypeVar
+
     from zero_torch.tensor import Tensor
+
+    _P = ParamSpec("_P")
+    _R_co = TypeVar("_R_co", covariant=True)
+
+    class _HasStaticForward(Protocol[_P, _R_co]):
+        """Structural protocol for `Function` subclasses defining a static `forward` method."""
+
+        output_nr: int
+        output_tensors: list[Tensor]
+
+        def __init__(self, ctx: Context, args: Sequence[TensorLike]) -> None:
+            """Initializes the function node instance.
+
+            Args:
+                ctx: Autograd context.
+                args: Input arguments passed to `apply`.
+            """
+
+        def _as_function(self) -> Function:
+            """Returns `self` typed as `Function`.
+
+            Returns:
+                The `Function` instance.
+            """
+
+        @staticmethod
+        def forward(ctx: Context, *args: _P.args, **kwargs: _P.kwargs) -> _R_co:
+            """Performs the forward pass computation.
+
+            Args:
+                ctx: Autograd context.
+                *args: Positional forward arguments.
+                **kwargs: Keyword forward arguments.
+
+            Returns:
+                Forward output.
+            """
 
 
 class Context:
@@ -31,7 +70,11 @@ class Function:
     """Base class to create custom autograd Functions."""
 
     @classmethod
-    def apply(cls, *args: TensorLike, **kwargs: OpArg) -> Tensor:
+    def apply(
+        cls: type[_HasStaticForward[_P, _R_co]],
+        *args: _P.args,
+        **kwargs: _P.kwargs,
+    ) -> _R_co:
         """Applies the custom autograd function.
 
         Args:
@@ -47,28 +90,42 @@ class Function:
 
         from .grad_mode import is_grad_enabled
 
+        raw_args: tuple[TensorLike, ...] = tuple(
+            a
+            for a in args
+            if isinstance(a, (Tensor, int, float, bool, complex, list, tuple))
+        )
         needs_grad = is_grad_enabled() and any(
-            isinstance(arg, Tensor) and arg.requires_grad for arg in args
+            isinstance(arg, Tensor) and arg.requires_grad for arg in raw_args
         )
 
         result = cls.forward(ctx, *args, **kwargs)
 
         if needs_grad:
             if isinstance(result, Tensor):
-                fn = cls(ctx, args)
+                fn = cls(ctx, raw_args)
                 fn.output_tensors = [result]
-                result.grad_fn = fn
+                result.grad_fn = fn._as_function()
                 result.requires_grad = True
             else:
-                for idx, r in enumerate(result):
+                seq_res = result if isinstance(result, tuple) else ()
+                for idx, r in enumerate(seq_res):
                     if isinstance(r, Tensor):
-                        fn = cls(ctx, args)
+                        fn = cls(ctx, raw_args)
                         fn.output_nr = idx
                         fn.output_tensors = [r]
-                        r.grad_fn = fn
+                        r.grad_fn = fn._as_function()
                         r.requires_grad = True
 
         return result
+
+    def _as_function(self) -> Function:
+        """Returns `self` typed as `Function`.
+
+        Returns:
+            `self`.
+        """
+        return self
 
     def __init__(self, ctx: Context, args: Sequence[TensorLike]) -> None:
         """Initializes the function node instance.
@@ -108,21 +165,6 @@ class Function:
             Computed input gradients.
         """
         return self.__class__.backward(self.ctx, *args, **kwargs)
-
-    @staticmethod
-    def forward(ctx: Context, *args: TensorLike, **kwargs: OpArg) -> Tensor:
-        """Performs the forward operation.
-
-        Args:
-            ctx: The context object.
-            *args: Positional input tensors or scalars.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            Output tensor produced by the operation.
-        """
-        _ = (ctx, args, kwargs)
-        raise NotImplementedError
 
     @staticmethod
     def backward(

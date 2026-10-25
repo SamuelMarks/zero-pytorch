@@ -9,7 +9,7 @@ import zero_torch
 import zero_torch.nn.functional as F
 from zero_torch.tensor import Tensor, _wrap
 
-from .module import Module
+from .module import Module, Parameter
 
 
 class CELU(Module):
@@ -311,7 +311,8 @@ class PReLU(Module):
         super().__init__()
         self.num_parameters: int = num_parameters
         self.init: float = init
-        self.weight: Tensor = zero_torch.full((num_parameters,), init)
+        self.weight: Parameter = Parameter(zero_torch.full((num_parameters,), init))
+        self.register_parameter("weight", self.weight)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies PReLU to `input`.

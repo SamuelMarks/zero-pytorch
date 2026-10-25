@@ -25,7 +25,7 @@ from .conv import (
     ConvTranspose3d,
 )
 from .linear import Linear
-from .module import Module
+from .module import Module, Parameter
 from .norm import (
     BatchNorm1d,
     BatchNorm2d,
@@ -36,7 +36,35 @@ from .norm import (
 )
 
 
-class LazyBatchNorm1d(Module):
+class _LazyModuleBase(Module):
+    """Typed base class for modules with lazy parameter/buffer materialization."""
+
+    weight: Parameter | None = None
+    bias: Parameter | None = None
+    running_mean: Tensor | None = None
+    running_var: Tensor | None = None
+    num_batches_tracked: Tensor | None = None
+
+
+def _materialize_onto_self(lazy_mod: _LazyModuleBase, impl_mod: Module) -> None:
+    """Materializes parameters and buffers from `impl_mod` directly onto `lazy_mod`.
+
+    Args:
+        lazy_mod: Lazy module instance receiving parameters and buffers.
+        impl_mod: Materialized underlying module instance.
+    """
+    for name, param in impl_mod._parameters.items():
+        lazy_mod.register_parameter(name, param)
+    for name, buf in impl_mod._buffers.items():
+        lazy_mod.register_buffer(name, buf)
+    lazy_mod.weight = impl_mod._parameters.get("weight")
+    lazy_mod.bias = impl_mod._parameters.get("bias")
+    lazy_mod.running_mean = impl_mod._buffers.get("running_mean")
+    lazy_mod.running_var = impl_mod._buffers.get("running_var")
+    lazy_mod.num_batches_tracked = impl_mod._buffers.get("num_batches_tracked")
+
+
+class LazyBatchNorm1d(_LazyModuleBase):
     """A `BatchNorm1d` module with lazy initialization of `num_features`."""
 
     def __init__(
@@ -83,11 +111,12 @@ class LazyBatchNorm1d(Module):
                 affine=self.affine,
                 track_running_stats=self.track_running_stats,
             )
-            self.add_module("batch_norm", self._module)
+            _materialize_onto_self(self, self._module)
+        self._module.training = self.training
         return self._module(input)
 
 
-class LazyBatchNorm2d(Module):
+class LazyBatchNorm2d(_LazyModuleBase):
     """A `BatchNorm2d` module with lazy initialization of `num_features`."""
 
     def __init__(
@@ -134,11 +163,12 @@ class LazyBatchNorm2d(Module):
                 affine=self.affine,
                 track_running_stats=self.track_running_stats,
             )
-            self.add_module("batch_norm", self._module)
+            _materialize_onto_self(self, self._module)
+        self._module.training = self.training
         return self._module(input)
 
 
-class LazyBatchNorm3d(Module):
+class LazyBatchNorm3d(_LazyModuleBase):
     """A `BatchNorm3d` module with lazy initialization of `num_features`."""
 
     def __init__(
@@ -185,11 +215,12 @@ class LazyBatchNorm3d(Module):
                 affine=self.affine,
                 track_running_stats=self.track_running_stats,
             )
-            self.add_module("batch_norm", self._module)
+            _materialize_onto_self(self, self._module)
+        self._module.training = self.training
         return self._module(input)
 
 
-class LazyConv1d(Module):
+class LazyConv1d(_LazyModuleBase):
     """A `Conv1d` module with lazy initialization of `in_channels`."""
 
     def __init__(
@@ -227,7 +258,7 @@ class LazyConv1d(Module):
         self.padding: PaddingArg1d = padding
         self.dilation: Size1d = dilation
         self.groups: int = groups
-        self.bias: bool = bias
+        self.bias_flag: bool = bias
         self.padding_mode: str = padding_mode
         self._module: Conv1d | None = None
 
@@ -249,14 +280,14 @@ class LazyConv1d(Module):
                 padding=self.padding,
                 dilation=self.dilation,
                 groups=self.groups,
-                bias=self.bias,
+                bias=self.bias_flag,
                 padding_mode=self.padding_mode,
             )
-            self.add_module("conv", self._module)
+            _materialize_onto_self(self, self._module)
         return self._module(input)
 
 
-class LazyConv2d(Module):
+class LazyConv2d(_LazyModuleBase):
     """A `Conv2d` module with lazy initialization of `in_channels`."""
 
     def __init__(
@@ -294,7 +325,7 @@ class LazyConv2d(Module):
         self.padding: PaddingArg2d = padding
         self.dilation: Size2d = dilation
         self.groups: int = groups
-        self.bias: bool = bias
+        self.bias_flag: bool = bias
         self.padding_mode: str = padding_mode
         self._module: Conv2d | None = None
 
@@ -316,14 +347,14 @@ class LazyConv2d(Module):
                 padding=self.padding,
                 dilation=self.dilation,
                 groups=self.groups,
-                bias=self.bias,
+                bias=self.bias_flag,
                 padding_mode=self.padding_mode,
             )
-            self.add_module("conv", self._module)
+            _materialize_onto_self(self, self._module)
         return self._module(input)
 
 
-class LazyConv3d(Module):
+class LazyConv3d(_LazyModuleBase):
     """A `Conv3d` module with lazy initialization of `in_channels`."""
 
     def __init__(
@@ -361,7 +392,7 @@ class LazyConv3d(Module):
         self.padding: PaddingArg3d = padding
         self.dilation: Size3d = dilation
         self.groups: int = groups
-        self.bias: bool = bias
+        self.bias_flag: bool = bias
         self.padding_mode: str = padding_mode
         self._module: Conv3d | None = None
 
@@ -383,14 +414,14 @@ class LazyConv3d(Module):
                 padding=self.padding,
                 dilation=self.dilation,
                 groups=self.groups,
-                bias=self.bias,
+                bias=self.bias_flag,
                 padding_mode=self.padding_mode,
             )
-            self.add_module("conv", self._module)
+            _materialize_onto_self(self, self._module)
         return self._module(input)
 
 
-class LazyConvTranspose1d(Module):
+class LazyConvTranspose1d(_LazyModuleBase):
     """A `ConvTranspose1d` module with lazy initialization of `in_channels`."""
 
     def __init__(
@@ -430,7 +461,7 @@ class LazyConvTranspose1d(Module):
         self.padding: Size1d = padding
         self.output_padding: Size1d = output_padding
         self.groups: int = groups
-        self.bias: bool = bias
+        self.bias_flag: bool = bias
         self.dilation: Size1d = dilation
         self.padding_mode: str = padding_mode
         self._module: ConvTranspose1d | None = None
@@ -456,15 +487,15 @@ class LazyConvTranspose1d(Module):
                 padding=self.padding,
                 output_padding=self.output_padding,
                 groups=self.groups,
-                bias=self.bias,
+                bias=self.bias_flag,
                 dilation=self.dilation,
                 padding_mode=self.padding_mode,
             )
-            self.add_module("conv_transpose", self._module)
+            _materialize_onto_self(self, self._module)
         return self._module.forward(input, output_size=output_size)
 
 
-class LazyConvTranspose2d(Module):
+class LazyConvTranspose2d(_LazyModuleBase):
     """A `ConvTranspose2d` module with lazy initialization of `in_channels`."""
 
     def __init__(
@@ -504,7 +535,7 @@ class LazyConvTranspose2d(Module):
         self.padding: Size2d = padding
         self.output_padding: Size2d = output_padding
         self.groups: int = groups
-        self.bias: bool = bias
+        self.bias_flag: bool = bias
         self.dilation: Size2d = dilation
         self.padding_mode: str = padding_mode
         self._module: ConvTranspose2d | None = None
@@ -530,15 +561,15 @@ class LazyConvTranspose2d(Module):
                 padding=self.padding,
                 output_padding=self.output_padding,
                 groups=self.groups,
-                bias=self.bias,
+                bias=self.bias_flag,
                 dilation=self.dilation,
                 padding_mode=self.padding_mode,
             )
-            self.add_module("conv_transpose", self._module)
+            _materialize_onto_self(self, self._module)
         return self._module.forward(input, output_size=output_size)
 
 
-class LazyConvTranspose3d(Module):
+class LazyConvTranspose3d(_LazyModuleBase):
     """A `ConvTranspose3d` module with lazy initialization of `in_channels`."""
 
     def __init__(
@@ -578,7 +609,7 @@ class LazyConvTranspose3d(Module):
         self.padding: Size3d = padding
         self.output_padding: Size3d = output_padding
         self.groups: int = groups
-        self.bias: bool = bias
+        self.bias_flag: bool = bias
         self.dilation: Size3d = dilation
         self.padding_mode: str = padding_mode
         self._module: ConvTranspose3d | None = None
@@ -604,15 +635,15 @@ class LazyConvTranspose3d(Module):
                 padding=self.padding,
                 output_padding=self.output_padding,
                 groups=self.groups,
-                bias=self.bias,
+                bias=self.bias_flag,
                 dilation=self.dilation,
                 padding_mode=self.padding_mode,
             )
-            self.add_module("conv_transpose", self._module)
+            _materialize_onto_self(self, self._module)
         return self._module.forward(input, output_size=output_size)
 
 
-class LazyInstanceNorm1d(Module):
+class LazyInstanceNorm1d(_LazyModuleBase):
     """An `InstanceNorm1d` module with lazy initialization of `num_features`."""
 
     def __init__(
@@ -659,11 +690,12 @@ class LazyInstanceNorm1d(Module):
                 affine=self.affine,
                 track_running_stats=self.track_running_stats,
             )
-            self.add_module("instance_norm", self._module)
+            _materialize_onto_self(self, self._module)
+        self._module.training = self.training
         return self._module(input)
 
 
-class LazyInstanceNorm2d(Module):
+class LazyInstanceNorm2d(_LazyModuleBase):
     """An `InstanceNorm2d` module with lazy initialization of `num_features`."""
 
     def __init__(
@@ -710,11 +742,12 @@ class LazyInstanceNorm2d(Module):
                 affine=self.affine,
                 track_running_stats=self.track_running_stats,
             )
-            self.add_module("instance_norm", self._module)
+            _materialize_onto_self(self, self._module)
+        self._module.training = self.training
         return self._module(input)
 
 
-class LazyInstanceNorm3d(Module):
+class LazyInstanceNorm3d(_LazyModuleBase):
     """An `InstanceNorm3d` module with lazy initialization of `num_features`."""
 
     def __init__(
@@ -761,11 +794,12 @@ class LazyInstanceNorm3d(Module):
                 affine=self.affine,
                 track_running_stats=self.track_running_stats,
             )
-            self.add_module("instance_norm", self._module)
+            _materialize_onto_self(self, self._module)
+        self._module.training = self.training
         return self._module(input)
 
 
-class LazyLinear(Module):
+class LazyLinear(_LazyModuleBase):
     """A `Linear` module where `in_features` is inferred on the first `forward` call."""
 
     def __init__(
@@ -786,7 +820,7 @@ class LazyLinear(Module):
         _ = (device, dtype)
         super().__init__()
         self.out_features: int = out_features
-        self.bias: bool = bias
+        self.bias_flag: bool = bias
         self._module: Linear | None = None
 
     def forward(self, input: Tensor) -> Tensor:
@@ -799,6 +833,8 @@ class LazyLinear(Module):
             Output tensor of shape `(*, out_features)`.
         """
         if self._module is None:
-            self._module = Linear(input.shape[-1], self.out_features, bias=self.bias)
-            self.add_module("linear", self._module)
+            self._module = Linear(
+                input.shape[-1], self.out_features, bias=self.bias_flag
+            )
+            _materialize_onto_self(self, self._module)
         return self._module(input)

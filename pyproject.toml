@@ -89,6 +89,8 @@ exclude_lines = [
 [tool.mypy]
 python_version = "3.10"
 strict = true
+mypy_path = "src"
+explicit_package_bases = true
 ignore_missing_imports = true
 disallow_any_explicit = true
 disallow_any_generics = true
@@ -99,6 +101,9 @@ no_implicit_optional = true
 warn_unused_ignores = true
 warn_return_any = true
 warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+module = "zero_torch.tensor"
 disable_error_code = ["override"]
 
 [tool.pytest.ini_options]

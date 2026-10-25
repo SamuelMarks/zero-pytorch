@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+export UV_DYNAMIC_VERSIONING_BYPASS="2.2.0"
+export PDM_BUILD_SCM_VERSION="2.2.0"
 echo "Setting up local editable environment..."
 pip install -e ../ml-switcheroo-ir
 pip install -e ../ml-switcheroo-compiler

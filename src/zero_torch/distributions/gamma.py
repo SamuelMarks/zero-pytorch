@@ -7,8 +7,9 @@ from collections.abc import Sequence
 import zero_torch as torch
 from zero_torch.tensor import Tensor
 
+from .distribution import Distribution
 from .exp_family import ExponentialFamily
-from .utils import _broadcast_shape
+from .utils import _broadcast_shape, _check_positive
 
 
 class Gamma(ExponentialFamily):
@@ -29,10 +30,69 @@ class Gamma(ExponentialFamily):
             rate: Inverse scale parameter (`beta`).
             validate_args: Whether to validate parameter constraints.
         """
+        if validate_args:
+            _check_positive(concentration, "concentration")
+            _check_positive(rate, "rate")
         self.concentration: Tensor = concentration
         self.rate: Tensor = rate
         batch_shape = _broadcast_shape(concentration.shape, rate.shape)
         super().__init__(batch_shape, validate_args=validate_args)
+
+    def expand(
+        self, batch_shape: Sequence[int], _instance: Distribution | None = None
+    ) -> Gamma:
+        """Returns a new Gamma distribution with batch dimensions expanded to `batch_shape`.
+
+        Args:
+            batch_shape: Desired expanded batch shape.
+            _instance: Unused optional instance parameter.
+
+        Returns:
+            Expanded Gamma distribution.
+        """
+        _ = _instance
+        b_shape = tuple(batch_shape)
+        return Gamma(
+            torch.broadcast_to(self.concentration, b_shape),
+            torch.broadcast_to(self.rate, b_shape),
+            validate_args=False,
+        )
+
+    @property
+    def _natural_params(self) -> tuple[Tensor, ...]:
+        """Returns the natural parameters `(concentration - 1, -rate)` of the Gamma distribution.
+
+        Returns:
+            Two-element tuple of natural parameter tensors.
+        """
+        return (self.concentration - 1.0, -self.rate)
+
+    def _log_normalizer(self, *natural_params: Tensor) -> Tensor:
+        """Computes the log normalizer function for given Gamma natural parameters.
+
+        Args:
+            *natural_params: Natural parameters `(concentration - 1, -rate)`.
+
+        Returns:
+            Log normalizer tensor.
+        """
+        x = natural_params[0]
+        y = natural_params[1]
+        c = x + 1.0
+        return torch.special.gammaln(c) - c * torch.log(-y)
+
+    def entropy(self) -> Tensor:
+        """Returns the differential entropy of the Gamma distribution.
+
+        Returns:
+            Entropy tensor.
+        """
+        return (
+            self.concentration
+            - torch.log(self.rate)
+            + torch.special.gammaln(self.concentration)
+            + (1.0 - self.concentration) * torch.digamma(self.concentration)
+        )
 
     @property
     def mean(self) -> Tensor:

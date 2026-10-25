@@ -5,12 +5,13 @@ from __future__ import annotations
 from ml_switcheroo_compiler.core.config import EagerMode
 
 import zero_torch as torch
+from tests.conftest import flatten_scalars
 from zero_torch import nn, optim
 from zero_torch._types import ParamGroupDict
 
 
 def test_all_optimizers() -> None:
-    """Verifies that all optimizers in `zero_torch.optim` execute `step()` and `zero_grad()` cleanly."""
+    """Verifies that all optimizers in `zero_torch.optim` strictly decrease a quadratic objective over multiple steps."""
     opts: list[type[optim.Optimizer]] = [
         optim.Adadelta,
         optim.Adafactor,
@@ -30,7 +31,20 @@ def test_all_optimizers() -> None:
     ]
 
     with EagerMode():
+        target = torch.tensor([[0.2, -0.3], [0.5, 0.1]])
         for opt_cls in opts:
+            w_quad = nn.Parameter(torch.ones((2, 2)))
+            q_group: ParamGroupDict = {"params": [w_quad], "lr": 0.05}
+            opt_q = opt_cls([q_group])
+            init_diff = w_quad - target
+            init_loss = float(torch.sum(init_diff * init_diff).item().real)
+            for _ in range(4):
+                w_quad.grad = w_quad - target
+                opt_q.step()
+            final_diff = w_quad - target
+            final_loss = float(torch.sum(final_diff * final_diff).item().real)
+            assert final_loss < init_loss
+
             w = nn.Parameter(torch.ones((2, 2)))
             w.grad = torch.ones((2, 2)) * 0.1
 
@@ -70,4 +84,7 @@ def test_all_optimizers() -> None:
                 opt3 = optim.SGD([w3], momentum=0.9, nesterov=False)
                 opt3.step()
                 opt3.step()
-                assert (w3.numpy() < 1.0).all()
+                assert all(
+                    isinstance(v, (int, float)) and float(v) < 1.0
+                    for v in flatten_scalars(w3.tolist())
+                )

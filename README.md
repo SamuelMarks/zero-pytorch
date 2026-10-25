@@ -26,7 +26,7 @@ Zero-dependency pure Python implementation of the [PyTorch](https://github.com/p
 Instead, it relies on the computational heart of the ecosystem, [`ml-switcheroo-compiler`](https://github.com/SamuelMarks/ml-switcheroo-compiler). When a user executes code in `zero-pytorch`, the operations are captured using `ProxyTensors` that overload Python math dunders. It dynamically lifts mutable states (such as `nn.Parameter` or buffers) into purely functional graph inputs and outputs via the compiler's internal `lift_state` pass. 
 
 ### Key Features:
-- **Strictly zero external dependencies:** Relies entirely on the Python Standard Library and `numpy` (for eager evaluations and broadcast rules).
+- **Strictly zero external dependencies:** Relies entirely on the Python Standard Library and `ml-switcheroo-compiler` (for eager evaluations and broadcast rules).
 - **Source-to-browser compilation ready:** Directly interoperates with [`ml-switcheroo-compiler`](https://github.com/SamuelMarks/ml-switcheroo-compiler)'s tracer tape, enabling compilation of [PyTorch](https://github.com/pytorch/pytorch) code into executable WASM or WebGPU binary code without pulling in the massive binaries of the real PyTorch framework.
 - **Identical API Surface:** Maintains strict signature compliance with [PyTorch](https://github.com/pytorch/pytorch) version 2.10.0, automatically validated against canonical JSON snapshots to ensure drop-in compatibility. 100% of the targeted API is currently implemented.
 

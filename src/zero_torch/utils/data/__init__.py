@@ -578,6 +578,13 @@ class TensorDataset(Dataset[tuple[Tensor, ...]]):
             *tensors: Tensors that have the same size of the first dimension.
         """
         super().__init__()
+        if len(tensors) > 1:
+            first_len = tensors[0].shape[0] if len(tensors[0].shape) > 0 else 0
+            if any(
+                (t.shape[0] if len(t.shape) > 0 else 0) != first_len
+                for t in tensors[1:]
+            ):
+                raise ValueError("Size mismatch between tensors")
         self.tensors: tuple[Tensor, ...] = tensors
 
     def __getitem__(self, index: int) -> tuple[Tensor, ...]:
@@ -589,11 +596,7 @@ class TensorDataset(Dataset[tuple[Tensor, ...]]):
         Returns:
             Tuple of tensor elements at `index`.
         """
-        out: list[Tensor] = []
-        for t in self.tensors:
-            lst = t.tolist()
-            out.append(Tensor(lst[index]) if isinstance(lst, list) else t)
-        return tuple(out)
+        return tuple(t[index] if len(t.shape) > 0 else t for t in self.tensors)
 
     def __len__(self) -> int:
         """Returns the size of the first dimension of the tensors.

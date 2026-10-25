@@ -45,14 +45,14 @@ class Upsample(Module):
         Returns:
             Upsampled tensor.
         """
-        if self.mode in ("bilinear", "bicubic"):
-            return F.upsample_bilinear(
-                input,
-                size=self.size,
-                scale_factor=self.scale_factor,
-                align_corners=bool(self.align_corners),
-            )
-        return F.upsample_nearest(input, size=self.size, scale_factor=self.scale_factor)
+        return F.interpolate(
+            input,
+            size=self.size,
+            scale_factor=self.scale_factor,
+            mode=self.mode,
+            align_corners=self.align_corners,
+            recompute_scale_factor=self.recompute_scale_factor,
+        )
 
 
 class UpsamplingBilinear2d(Module):

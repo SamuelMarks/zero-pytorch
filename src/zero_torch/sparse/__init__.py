@@ -137,7 +137,7 @@ def add(input: Tensor, other: Tensor, alpha: Scalar = 1, **kwargs: OpArg) -> Ten
         Sum tensor `input + alpha * other`.
     """
     if ml_switcheroo.core.config.eager_mode:
-        return torch.add(input, other * alpha, **kwargs)
+        return torch.add(input, other * alpha)
     return _wrap(_ops.sparse_add(input._tensor, other._tensor, **kwargs))
 
 

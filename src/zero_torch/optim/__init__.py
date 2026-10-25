@@ -11,7 +11,6 @@ import zero_torch
 from zero_torch._types import (
     LossClosure,
     ParamGroupDict,
-    ParamGroupValue,
     ParamsArg,
 )
 from zero_torch.tensor import Tensor
@@ -37,22 +36,19 @@ __all__ = [
 ]
 
 
-def _float_opt(val: ParamGroupValue, default: float) -> float:
-    """Extracts a float hyperparameter from a parameter group value.
+def _scalar_to_float(val: float | Tensor) -> float:
+    """Converts a float or 0D scalar `Tensor` into a Python `float`.
 
     Args:
-        val: Raw parameter group value.
-        default: Fallback default float.
+        val: Float or scalar Tensor.
 
     Returns:
-        Extracted float value.
+        Python float value.
     """
-    if isinstance(val, (int, float)):
-        return float(val)
-    if isinstance(val, Tensor) and val.numel() == 1:
-        item_val = val.item()
-        return float(item_val) if isinstance(item_val, (int, float)) else default
-    return default
+    if isinstance(val, Tensor):
+        raw = val.item()
+        return float(raw.real) if isinstance(raw, complex) else float(raw)
+    return float(val)
 
 
 def _step_count(state_tensor: Tensor) -> float:
@@ -65,29 +61,25 @@ def _step_count(state_tensor: Tensor) -> float:
         Incremented step count as a float.
     """
     raw = state_tensor.item()
-    return (float(raw) if isinstance(raw, (int, float)) else 0.0) + 1.0
+    return (float(raw.real) if isinstance(raw, complex) else float(raw)) + 1.0
 
 
-def _betas_opt(
-    val: ParamGroupValue, default: tuple[float, float] = (0.9, 0.999)
-) -> tuple[float, float]:
-    """Extracts a `(beta1, beta2)` float tuple from a parameter group value.
+def _merge_param_group(
+    group: ParamGroupDict, defaults: ParamGroupDict
+) -> ParamGroupDict:
+    """Copies `group` and fills in missing keys from `defaults`.
 
     Args:
-        val: Raw parameter group value.
-        default: Fallback default tuple.
+        group: Target parameter group dictionary.
+        defaults: Default hyperparameter dictionary.
 
     Returns:
-        Tuple of `(beta1, beta2)`.
+        Merged `ParamGroupDict`.
     """
-    if (
-        isinstance(val, tuple)
-        and len(val) == 2
-        and isinstance(val[0], (int, float))
-        and isinstance(val[1], (int, float))
-    ):
-        return float(val[0]), float(val[1])
-    return default
+    merged: ParamGroupDict = {}
+    merged.update(defaults)
+    merged.update(group)
+    return merged
 
 
 class Optimizer:
@@ -96,7 +88,7 @@ class Optimizer:
     def __init__(
         self,
         params: ParamsArg,
-        defaults: dict[str, ParamGroupValue] | None = None,
+        defaults: ParamGroupDict | None = None,
     ) -> None:
         """Initializes the Optimizer.
 
@@ -104,22 +96,20 @@ class Optimizer:
             params: Iterable of parameters to optimize or dicts defining parameter groups.
             defaults: Dictionary containing default values of optimization options.
         """
-        self.defaults: dict[str, ParamGroupValue] = defaults or {}
-        param_list = list(params)
-        if len(param_list) > 0 and isinstance(param_list[0], dict):
+        self.defaults: ParamGroupDict = defaults if defaults is not None else {}
+        param_list: list[Tensor | ParamGroupDict] = list(params)
+        if len(param_list) > 0 and not isinstance(param_list[0], Tensor):
             self.param_groups: list[ParamGroupDict] = [
-                dict(g) for g in param_list if isinstance(g, dict)
+                _merge_param_group(g, self.defaults)
+                for g in param_list
+                if not isinstance(g, Tensor)
             ]
         else:
             tensor_params: list[Tensor] = [
                 p for p in param_list if isinstance(p, Tensor)
             ]
-            self.param_groups = [{"params": tensor_params}]
-
-        for group in self.param_groups:
-            for k, v in self.defaults.items():
-                if k not in group:
-                    group[k] = v
+            base_group: ParamGroupDict = {"params": tensor_params}
+            self.param_groups = [_merge_param_group(base_group, self.defaults)]
 
         self.state: dict[int, dict[str, Tensor]] = {}
 
@@ -137,9 +127,9 @@ class Optimizer:
             loss = closure()
 
         for group in self.param_groups:
-            lr = _float_opt(group.get("lr"), 0.01)
-            wd = _float_opt(group.get("weight_decay"), 0.0)
-            maximize = bool(group.get("maximize", False))
+            lr = group.get("lr", 0.01)
+            wd = group.get("weight_decay", 0.0)
+            maximize = group.get("maximize", False)
             group_params = group.get("params")
             if not isinstance(group_params, list):
                 continue
@@ -147,10 +137,48 @@ class Optimizer:
                 if not isinstance(p, Tensor) or p.grad is None:
                     continue
                 d_p = (-p.grad if maximize else p.grad) + p * wd
-                updated = p - d_p * lr
-                p._tensor = updated._tensor
+                p.copy_(p - d_p * lr)
 
         return loss
+
+    def add_param_group(self, param_group: ParamGroupDict) -> None:
+        """Adds a parameter group to the `Optimizer`'s `param_groups`.
+
+        Args:
+            param_group: Specifies what Tensors should be optimized along with group-specific optimization options.
+        """
+        self.param_groups.append(_merge_param_group(param_group, self.defaults))
+
+    def state_dict(
+        self,
+    ) -> dict[str, dict[int, dict[str, Tensor]] | list[ParamGroupDict]]:
+        """Returns the state of the optimizer as a `dict`.
+
+        Returns:
+            Dictionary containing `'state'` and `'param_groups'`.
+        """
+        return {
+            "state": {k: dict(v) for k, v in self.state.items()},
+            "param_groups": [_merge_param_group(g, {}) for g in self.param_groups],
+        }
+
+    def load_state_dict(
+        self,
+        state_dict: dict[str, dict[int, dict[str, Tensor]] | list[ParamGroupDict]],
+    ) -> None:
+        """Loads the optimizer state.
+
+        Args:
+            state_dict: Optimizer state dictionary returned from `state_dict()`.
+        """
+        raw_state = state_dict.get("state")
+        if isinstance(raw_state, dict):
+            self.state = {k: dict(v) for k, v in raw_state.items()}
+        raw_groups = state_dict.get("param_groups")
+        if isinstance(raw_groups, list):
+            self.param_groups = [
+                _merge_param_group(g, self.defaults) for g in raw_groups
+            ]
 
     def zero_grad(self, set_to_none: bool = False) -> None:
         """Sets the gradients of all optimized parameters to zero or None.
@@ -189,12 +217,12 @@ def _adam_family_step(
         loss = closure()
 
     for group in opt.param_groups:
-        lr = _float_opt(group.get("lr"), 0.001)
-        beta1, beta2 = _betas_opt(group.get("betas"), (0.9, 0.999))
-        eps = _float_opt(group.get("eps"), 1e-8)
-        wd = _float_opt(group.get("weight_decay"), 0.0)
-        amsgrad = bool(group.get("amsgrad", False))
-        maximize = bool(group.get("maximize", False))
+        lr = group.get("lr", 0.001)
+        beta1, beta2 = group.get("betas", (0.9, 0.999))
+        eps = group.get("eps", 1e-8)
+        wd = group.get("weight_decay", 0.0)
+        amsgrad = group.get("amsgrad", False)
+        maximize = group.get("maximize", False)
 
         group_params = group.get("params")
         if not isinstance(group_params, list):
@@ -206,7 +234,7 @@ def _adam_family_step(
             grad = -p.grad if maximize else p.grad
             if wd != 0.0:
                 if decoupled_wd:
-                    p._tensor = (p * (1.0 - lr * wd))._tensor
+                    p.copy_(p * (1.0 - lr * wd))
                 else:
                     grad = grad + p * wd
 
@@ -238,8 +266,7 @@ def _adam_family_step(
                 ) + eps
 
             step_size = lr / bias_correction1
-            updated = p - (exp_avg / denom) * step_size
-            p._tensor = updated._tensor
+            p.copy_(p - (exp_avg / denom) * step_size)
 
     return loss
 
@@ -278,7 +305,7 @@ class ASGD(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "lambd": lambd,
                 "alpha": alpha,
                 "t0": t0,
@@ -286,6 +313,48 @@ class ASGD(Optimizer):
                 "maximize": maximize,
             },
         )
+
+    def step(self, closure: LossClosure = None) -> Tensor | float | None:
+        """Performs a single ASGD optimization step.
+
+        Args:
+            closure: A closure that reevaluates the model and returns the loss.
+
+        Returns:
+            Evaluated loss if `closure` is provided, else None.
+        """
+        loss: Tensor | float | None = None
+        if closure is not None:
+            loss = closure()
+        for group in self.param_groups:
+            lr = group.get("lr", 0.01)
+            lambd = group.get("lambd", 1e-4)
+            alpha = group.get("alpha", 0.75)
+            t0 = group.get("t0", 1e6)
+            wd = group.get("weight_decay", 0.0)
+            maximize = group.get("maximize", False)
+            group_params = group.get("params")
+            if not isinstance(group_params, list):
+                continue
+            for p in group_params:
+                if not isinstance(p, Tensor) or p.grad is None:
+                    continue
+                grad = (-p.grad if maximize else p.grad) + p * wd
+                p_state = self.state.setdefault(id(p), {})
+                if "step" not in p_state:
+                    p_state["step"] = zero_torch.tensor(0.0)
+                    p_state["eta"] = zero_torch.tensor(lr)
+                    p_state["mu"] = zero_torch.tensor(1.0)
+                    p_state["ax"] = p.detach()
+                step_val = _step_count(p_state["step"])
+                p_state["step"] = zero_torch.tensor(step_val)
+                eta = lr / ((1.0 + lambd * lr * step_val) ** alpha)
+                p_state["eta"] = zero_torch.tensor(eta)
+                p.copy_(p * (1.0 - lambd * eta) - grad * eta)
+                mu = 1.0 / max(1.0, step_val - t0)
+                p_state["mu"] = zero_torch.tensor(mu)
+                p_state["ax"] = p_state["ax"] + (p - p_state["ax"]) * mu
+        return loss
 
 
 class Adadelta(Optimizer):
@@ -320,7 +389,7 @@ class Adadelta(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "rho": rho,
                 "eps": eps,
                 "weight_decay": weight_decay,
@@ -341,11 +410,11 @@ class Adadelta(Optimizer):
         if closure is not None:
             loss = closure()
         for group in self.param_groups:
-            lr = _float_opt(group.get("lr"), 1.0)
-            rho = _float_opt(group.get("rho"), 0.9)
-            eps = _float_opt(group.get("eps"), 1e-6)
-            wd = _float_opt(group.get("weight_decay"), 0.0)
-            maximize = bool(group.get("maximize", False))
+            lr = group.get("lr", 1.0)
+            rho = group.get("rho", 0.9)
+            eps = group.get("eps", 1e-6)
+            wd = group.get("weight_decay", 0.0)
+            maximize = group.get("maximize", False)
             group_params = group.get("params")
             if not isinstance(group_params, list):
                 continue
@@ -364,7 +433,7 @@ class Adadelta(Optimizer):
                 p_state["acc_delta"] = p_state["acc_delta"] * rho + (delta * delta) * (
                     1.0 - rho
                 )
-                p._tensor = (p - delta * lr)._tensor
+                p.copy_(p - delta * lr)
         return loss
 
 
@@ -398,7 +467,7 @@ class Adafactor(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "beta2_decay": beta2_decay,
                 "d": d,
                 "weight_decay": weight_decay,
@@ -441,7 +510,7 @@ class Adagrad(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "lr_decay": lr_decay,
                 "weight_decay": weight_decay,
                 "initial_accumulator_value": initial_accumulator_value,
@@ -463,12 +532,12 @@ class Adagrad(Optimizer):
         if closure is not None:
             loss = closure()
         for group in self.param_groups:
-            lr = _float_opt(group.get("lr"), 0.01)
-            lr_decay = _float_opt(group.get("lr_decay"), 0.0)
-            wd = _float_opt(group.get("weight_decay"), 0.0)
-            init_acc = _float_opt(group.get("initial_accumulator_value"), 0.0)
-            eps = _float_opt(group.get("eps"), 1e-10)
-            maximize = bool(group.get("maximize", False))
+            lr = group.get("lr", 0.01)
+            lr_decay = group.get("lr_decay", 0.0)
+            wd = group.get("weight_decay", 0.0)
+            init_acc = group.get("initial_accumulator_value", 0.0)
+            eps = group.get("eps", 1e-10)
+            maximize = group.get("maximize", False)
             group_params = group.get("params")
             if not isinstance(group_params, list):
                 continue
@@ -485,7 +554,7 @@ class Adagrad(Optimizer):
                 clr = lr / (1.0 + (step_val - 1.0) * lr_decay)
                 p_state["sum"] = p_state["sum"] + grad * grad
                 std = zero_torch.sqrt(p_state["sum"]) + eps
-                p._tensor = (p - (grad / std) * clr)._tensor
+                p.copy_(p - (grad / std) * clr)
         return loss
 
 
@@ -528,7 +597,7 @@ class Adam(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "betas": betas,
                 "eps": eps,
                 "weight_decay": weight_decay,
@@ -587,7 +656,7 @@ class AdamW(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "betas": betas,
                 "eps": eps,
                 "weight_decay": weight_decay,
@@ -640,7 +709,7 @@ class Adamax(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "betas": betas,
                 "eps": eps,
                 "weight_decay": weight_decay,
@@ -661,11 +730,11 @@ class Adamax(Optimizer):
         if closure is not None:
             loss = closure()
         for group in self.param_groups:
-            lr = _float_opt(group.get("lr"), 0.002)
-            beta1, beta2 = _betas_opt(group.get("betas"), (0.9, 0.999))
-            eps = _float_opt(group.get("eps"), 1e-8)
-            wd = _float_opt(group.get("weight_decay"), 0.0)
-            maximize = bool(group.get("maximize", False))
+            lr = group.get("lr", 0.002)
+            beta1, beta2 = group.get("betas", (0.9, 0.999))
+            eps = group.get("eps", 1e-8)
+            wd = group.get("weight_decay", 0.0)
+            maximize = group.get("maximize", False)
             group_params = group.get("params")
             if not isinstance(group_params, list):
                 continue
@@ -685,9 +754,7 @@ class Adamax(Optimizer):
                     p_state["exp_inf"] * beta2, zero_torch.abs(grad) + eps
                 )
                 clr = lr / (1.0 - (beta1**step_val))
-                p._tensor = (
-                    p - (p_state["exp_avg"] / p_state["exp_inf"]) * clr
-                )._tensor
+                p.copy_(p - (p_state["exp_avg"] / p_state["exp_inf"]) * clr)
         return loss
 
 
@@ -720,7 +787,7 @@ class LBFGS(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": float(lr) if lr is not None else 1.0,
                 "max_iter": max_iter,
                 "max_eval": max_eval,
                 "tolerance_grad": tolerance_grad,
@@ -768,7 +835,7 @@ class NAdam(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "betas": betas,
                 "eps": eps,
                 "weight_decay": weight_decay,
@@ -826,7 +893,7 @@ class RAdam(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "betas": betas,
                 "eps": eps,
                 "weight_decay": weight_decay,
@@ -884,7 +951,7 @@ class RMSprop(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "alpha": alpha,
                 "eps": eps,
                 "weight_decay": weight_decay,
@@ -907,13 +974,13 @@ class RMSprop(Optimizer):
         if closure is not None:
             loss = closure()
         for group in self.param_groups:
-            lr = _float_opt(group.get("lr"), 0.01)
-            alpha = _float_opt(group.get("alpha"), 0.99)
-            eps = _float_opt(group.get("eps"), 1e-8)
-            wd = _float_opt(group.get("weight_decay"), 0.0)
-            mom = _float_opt(group.get("momentum"), 0.0)
-            centered = bool(group.get("centered", False))
-            maximize = bool(group.get("maximize", False))
+            lr = group.get("lr", 0.01)
+            alpha = group.get("alpha", 0.99)
+            eps = group.get("eps", 1e-8)
+            wd = group.get("weight_decay", 0.0)
+            mom = group.get("momentum", 0.0)
+            centered = group.get("centered", False)
+            maximize = group.get("maximize", False)
             group_params = group.get("params")
             if not isinstance(group_params, list):
                 continue
@@ -942,9 +1009,9 @@ class RMSprop(Optimizer):
                 if mom > 0.0 and "momentum_buffer" in p_state:
                     buf = p_state["momentum_buffer"] * mom + (grad / avg)
                     p_state["momentum_buffer"] = buf
-                    p._tensor = (p - buf * lr)._tensor
+                    p.copy_(p - buf * lr)
                 else:
-                    p._tensor = (p - (grad / avg) * lr)._tensor
+                    p.copy_(p - (grad / avg) * lr)
         return loss
 
 
@@ -978,12 +1045,61 @@ class Rprop(Optimizer):
         super().__init__(
             params,
             {
-                "lr": lr,
+                "lr": _scalar_to_float(lr),
                 "etas": etas,
                 "step_sizes": step_sizes,
                 "maximize": maximize,
             },
         )
+
+    def step(self, closure: LossClosure = None) -> Tensor | float | None:
+        """Performs a single Rprop optimization step.
+
+        Args:
+            closure: A closure that reevaluates the model and returns the loss.
+
+        Returns:
+            Evaluated loss if `closure` is provided, else None.
+        """
+        loss: Tensor | float | None = None
+        if closure is not None:
+            loss = closure()
+        for group in self.param_groups:
+            lr = group.get("lr", 0.01)
+            etaminus, etaplus = group.get("etas", (0.5, 1.2))
+            step_min, step_max = group.get("step_sizes", (1e-6, 50.0))
+            maximize = group.get("maximize", False)
+            group_params = group.get("params")
+            if not isinstance(group_params, list):
+                continue
+            for p in group_params:
+                if not isinstance(p, Tensor) or p.grad is None:
+                    continue
+                grad = -p.grad if maximize else p.grad
+                p_state = self.state.setdefault(id(p), {})
+                if "prev" not in p_state:
+                    p_state["prev"] = zero_torch.zeros_like(p)
+                    p_state["step_size"] = zero_torch.full_like(p, lr)
+                sign_prod = grad * p_state["prev"]
+                mult = zero_torch.where(
+                    sign_prod > 0.0,
+                    zero_torch.full_like(p, etaplus),
+                    zero_torch.where(
+                        sign_prod < 0.0,
+                        zero_torch.full_like(p, etaminus),
+                        zero_torch.ones_like(p),
+                    ),
+                )
+                step_size = zero_torch.clip(
+                    p_state["step_size"] * mult, step_min, step_max
+                )
+                p_state["step_size"] = step_size
+                grad_eff = zero_torch.where(
+                    sign_prod < 0.0, zero_torch.zeros_like(grad), grad
+                )
+                p.copy_(p - zero_torch.sign(grad_eff) * step_size)
+                p_state["prev"] = grad_eff
+        return loss
 
 
 class SGD(Optimizer):
@@ -1017,11 +1133,11 @@ class SGD(Optimizer):
             fused: Whether fused implementation is used.
         """
         _ = (foreach, differentiable, fused)
-        defaults: dict[str, ParamGroupValue] = {
-            "lr": lr,
+        defaults: ParamGroupDict = {
+            "lr": _scalar_to_float(lr),
             "momentum": momentum,
             "dampening": dampening,
-            "weight_decay": weight_decay,
+            "weight_decay": _scalar_to_float(weight_decay),
             "nesterov": nesterov,
             "maximize": maximize,
         }
@@ -1049,15 +1165,11 @@ class SGD(Optimizer):
             lr_raw = group.get("lr", 0.001)
 
             cfg = _opt.SGDConfig(
-                lr=float(lr_raw) if isinstance(lr_raw, (int, float)) else 0.001,
-                momentum=float(mom_raw) if isinstance(mom_raw, (int, float)) else 0.0,
-                dampening=(
-                    float(damp_raw) if isinstance(damp_raw, (int, float)) else 0.0
-                ),
-                weight_decay=(
-                    float(wd_raw) if isinstance(wd_raw, (int, float)) else 0.0
-                ),
-                nesterov=bool(nest_raw),
+                lr=lr_raw,
+                momentum=mom_raw,
+                dampening=damp_raw,
+                weight_decay=wd_raw,
+                nesterov=nest_raw,
             )
 
             group_params = group.get("params")
@@ -1067,7 +1179,7 @@ class SGD(Optimizer):
             for p in group_params:
                 if not isinstance(p, Tensor) or p.grad is None:
                     continue
-                d_p = -p.grad if bool(max_raw) else p.grad
+                d_p = -p.grad if max_raw else p.grad
 
                 param_state = self.state.setdefault(id(p), {})
                 s_state: dict[str, S_Tensor] = {}
@@ -1113,7 +1225,12 @@ class SparseAdam(Optimizer):
         """
         super().__init__(
             params,
-            {"lr": lr, "betas": betas, "eps": eps, "maximize": maximize},
+            {
+                "lr": _scalar_to_float(lr),
+                "betas": betas,
+                "eps": eps,
+                "maximize": maximize,
+            },
         )
 
     def step(self, closure: LossClosure = None) -> Tensor | float | None:
@@ -1156,7 +1273,7 @@ class Muon(Optimizer):
             ns_steps: Number of Newton-Schulz iteration steps.
             adjust_lr_fn: Optional learning rate adjustment strategy name.
         """
-        defaults: dict[str, ParamGroupValue] = {
+        defaults: ParamGroupDict = {
             "lr": lr,
             "weight_decay": weight_decay,
             "momentum": momentum,
@@ -1167,6 +1284,57 @@ class Muon(Optimizer):
             "adjust_lr_fn": adjust_lr_fn,
         }
         super().__init__(params, defaults)
+
+    def step(self, closure: LossClosure = None) -> Tensor | float | None:
+        """Performs a single Muon optimization step with Newton-Schulz orthogonalization.
+
+        Args:
+            closure: A closure that reevaluates the model and returns the loss.
+
+        Returns:
+            Evaluated loss if `closure` is provided, else None.
+        """
+        loss: Tensor | float | None = None
+        if closure is not None:
+            loss = closure()
+        for group in self.param_groups:
+            lr = group.get("lr", 0.001)
+            wd = group.get("weight_decay", 0.1)
+            mom = group.get("momentum", 0.95)
+            nesterov = group.get("nesterov", True)
+            eps = group.get("eps", 1e-7)
+            ns_steps = group.get("ns_steps", 5)
+            a, b, c = group.get("ns_coefficients", (3.4445, -4.775, 2.0315))
+            group_params = group.get("params")
+            if not isinstance(group_params, list):
+                continue
+            for p in group_params:
+                if not isinstance(p, Tensor) or p.grad is None:
+                    continue
+                grad = p.grad
+                p_state = self.state.setdefault(id(p), {})
+                if "momentum_buffer" not in p_state:
+                    p_state["momentum_buffer"] = zero_torch.zeros_like(p)
+                buf = p_state["momentum_buffer"] * mom + grad
+                p_state["momentum_buffer"] = buf
+                g = grad + buf * mom if nesterov else buf
+                if len(g.shape) == 2:
+                    norm_g = zero_torch.sqrt(zero_torch.sum(g * g)) + eps
+                    x = g / norm_g
+                    transposed = g.shape[0] > g.shape[1]
+                    if transposed:
+                        x = x.transpose(0, 1)
+                    for _ in range(ns_steps):
+                        gram = zero_torch.matmul(x, x.transpose(0, 1))
+                        gram2 = zero_torch.matmul(gram, gram)
+                        x = a * x + zero_torch.matmul(b * gram + c * gram2, x)
+                    if transposed:
+                        x = x.transpose(0, 1)
+                    update = x * max(1.0, g.shape[0] / max(1, g.shape[1])) ** 0.5
+                else:
+                    update = g
+                p.copy_(p * (1.0 - lr * wd) - update * lr)
+        return loss
 
 
 from . import lr_scheduler as lr_scheduler

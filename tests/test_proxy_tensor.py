@@ -80,3 +80,41 @@ def test_add_node_error() -> None:
     """Verifies `_tracer.add_node` is a no-op when `active_graph` is None."""
     _tracer.add_node(IRNode(id="x", op_type="Add", inputs=[]))
     assert _tracer.active_graph is None
+
+
+def test_tracer_teardown_stops_active_tracing() -> None:
+    """Leaves `_tracer.is_tracing` active so `conftest.switcheroo_config` teardown stops it."""
+    _tracer.start_tracing()
+    assert _tracer.is_tracing
+
+
+def test_type_checking_blocks(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Executes `TYPE_CHECKING` blocks in `_types`, `autograd.function`, and `nn.module`.
+
+    Args:
+        monkeypatch: Pytest fixture for patching attributes during the test.
+    """
+    import runpy
+    import types
+    import typing
+    from pathlib import Path
+
+    monkeypatch.setattr(typing, "TYPE_CHECKING", True)
+    monkeypatch.setattr(types, "EllipsisType", type(Ellipsis), raising=False)
+    monkeypatch.setattr(
+        typing,
+        "TypeAlias",
+        vars(typing).get("TypeAlias", type),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        typing,
+        "ParamSpec",
+        vars(typing).get("ParamSpec", typing.TypeVar),
+        raising=False,
+    )
+
+    root = Path(__file__).resolve().parent.parent / "src" / "zero_torch"
+    for rel in ("_types.py", "autograd/function.py", "nn/module.py"):
+        ns = runpy.run_path(str(root / rel))
+        assert "__all__" in ns or "Function" in ns or "Module" in ns

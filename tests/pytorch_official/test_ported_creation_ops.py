@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import numpy as np
 from ml_switcheroo_compiler.core.config import EagerMode
 
 import zero_torch as torch
+from tests.conftest import assert_allclose, linspace_list
 
 
 def test_zeros_empty_full() -> None:
@@ -55,7 +55,7 @@ def test_linspace() -> None:
     with EagerMode():
         lin = torch.linspace(0.0, 10.0, 5)
         assert lin.shape == (5,)
-        np.testing.assert_allclose(lin.tolist(), np.linspace(0.0, 10.0, 5))
+        assert_allclose(lin.tolist(), linspace_list(0.0, 10.0, 5))
 
 
 def test_eye() -> None:

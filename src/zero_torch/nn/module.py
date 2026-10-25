@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterable, Iterator, Mapping
+from typing import TYPE_CHECKING, overload
 
 from ml_switcheroo_compiler.core.config import config
 from ml_switcheroo_compiler.core.tensor import (
@@ -22,6 +23,26 @@ from zero_torch._types import (
 )
 from zero_torch.tensor import Tensor, _ArrayDataProtocol
 from zero_torch.tracing import ProxyTensor, _tracer
+
+if TYPE_CHECKING:
+    from typing import ParamSpec, Protocol, TypeVar
+
+    _P = ParamSpec("_P")
+    _R_co = TypeVar("_R_co", covariant=True)
+
+    class _HasForward(Protocol[_P, _R_co]):
+        """Structural protocol for `Module` subclasses defining a `forward` method."""
+
+        def forward(self, *args: _P.args, **kwargs: _P.kwargs) -> _R_co:
+            """Executes the forward pass of the module.
+
+            Args:
+                *args: Positional arguments for the forward pass.
+                **kwargs: Keyword arguments for the forward pass.
+
+            Returns:
+                Output produced by the module.
+            """
 
 
 class Parameter(Tensor):
@@ -106,7 +127,37 @@ class Module:
         self._buffers = {}
         self.training = True
 
-    def __call__(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+    if TYPE_CHECKING:
+
+        @overload
+        def __call__(
+            self: _HasForward[_P, _R_co], *args: _P.args, **kwargs: _P.kwargs
+        ) -> _R_co:
+            """Invokes the module's typed `forward` computation.
+
+            Args:
+                *args: Positional arguments for the forward pass.
+                **kwargs: Keyword arguments for the forward pass.
+
+            Returns:
+                The output of `self.forward(*args, **kwargs)`.
+            """
+
+        @overload
+        def __call__(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+            """Invokes the base module's `forward` computation.
+
+            Args:
+                *args: Positional arguments for the forward pass.
+                **kwargs: Keyword arguments for the forward pass.
+
+            Returns:
+                The output tensor.
+            """
+
+    def __call__(
+        self: _HasForward[_P, _R_co], *args: _P.args, **kwargs: _P.kwargs
+    ) -> _R_co:
         """Invokes the module's `forward` computation.
 
         Args:
@@ -131,7 +182,6 @@ class Module:
             self._modules[name] = module
         else:
             self._modules.pop(name, None)
-        super().__setattr__(name, module)
 
     def register_parameter(self, name: str, param: Parameter | None) -> None:
         """Adds a parameter to the module.
@@ -146,7 +196,6 @@ class Module:
             self._parameters[name] = param
         else:
             self._parameters.pop(name, None)
-        super().__setattr__(name, param)
 
     def register_buffer(
         self, name: str, tensor: Tensor | None, persistent: bool = True
@@ -165,53 +214,6 @@ class Module:
             self._buffers[name] = tensor
         else:
             self._buffers.pop(name, None)
-        super().__setattr__(name, tensor)
-
-    def forward(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
-        """Defines the computation performed at every call.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            Output tensor produced by the module.
-        """
-        _ = (args, kwargs)
-        raise NotImplementedError
-
-    def __setattr__(
-        self,
-        name: str,
-        value: Module
-        | Parameter
-        | Tensor
-        | OpArg
-        | dict[str, Module]
-        | dict[str, Parameter]
-        | dict[str, Tensor]
-        | list[Module]
-        | list[Parameter]
-        | tuple[int, ...],
-    ) -> None:
-        """Sets an attribute on the module, registering Parameters and child Modules.
-
-        Args:
-            name: Attribute name.
-            value: Attribute value to set.
-        """
-        if name in ("_modules", "_parameters", "_buffers", "training"):
-            super().__setattr__(name, value)
-            return
-        if isinstance(value, Parameter):
-            self._modules.pop(name, None)
-            self._buffers.pop(name, None)
-            self._parameters[name] = value
-        elif isinstance(value, Module):
-            self._parameters.pop(name, None)
-            self._buffers.pop(name, None)
-            self._modules[name] = value
-        super().__setattr__(name, value)
 
     def buffers(self, recurse: bool = True) -> Iterator[Tensor]:
         """Returns an iterator over module buffers.

@@ -8,7 +8,7 @@ import zero_torch as torch
 from zero_torch.tensor import Tensor
 
 from .distribution import Distribution
-from .utils import _broadcast_shape
+from .utils import _broadcast_shape, _check_less_than
 
 
 class Uniform(Distribution):
@@ -29,10 +29,32 @@ class Uniform(Distribution):
             high: Upper range (exclusive).
             validate_args: Whether to validate parameter constraints.
         """
+        if validate_args:
+            _check_less_than(low, high)
         self.low: Tensor = low
         self.high: Tensor = high
         batch_shape = _broadcast_shape(low.shape, high.shape)
         super().__init__(batch_shape, validate_args=validate_args)
+
+    def expand(
+        self, batch_shape: Sequence[int], _instance: Distribution | None = None
+    ) -> Uniform:
+        """Returns a new Uniform distribution with batch dimensions expanded to `batch_shape`.
+
+        Args:
+            batch_shape: Desired expanded batch shape.
+            _instance: Unused optional instance parameter.
+
+        Returns:
+            Expanded Uniform distribution.
+        """
+        _ = _instance
+        b_shape = tuple(batch_shape)
+        return Uniform(
+            torch.broadcast_to(self.low, b_shape),
+            torch.broadcast_to(self.high, b_shape),
+            validate_args=False,
+        )
 
     @property
     def mean(self) -> Tensor:

@@ -54,7 +54,7 @@ repos:
         name: Check Dependencies
         entry: python3 scripts/check_dependencies.py
         language: system
-        files: ^src/.*\.py$
+        files: ^(src|tests|scripts)/.*\.py$
         pass_filenames: false
 
       - id: check-api-compliance

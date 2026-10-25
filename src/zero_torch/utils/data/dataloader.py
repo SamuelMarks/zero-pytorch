@@ -298,3 +298,24 @@ class DataLoader(Generic[_T_co]):
                 yield self.dataset[index]
         elif isinstance(self.dataset, Iterable):
             yield from self.dataset
+
+    def __len__(self) -> int:
+        """Returns the number of batches (or items if unbatched) in the DataLoader.
+
+        Returns:
+            Number of batches or items.
+        """
+        from zero_torch.utils.data import IterableDataset
+
+        if isinstance(self.dataset, IterableDataset):
+            raise TypeError(
+                f"'{type(self).__name__}' object has no len() for IterableDataset"
+            )
+        try:
+            if self.batch_sampler is not None and isinstance(self.batch_sampler, Sized):
+                return len(self.batch_sampler)
+            if self.sampler is not None and isinstance(self.sampler, Sized):
+                return len(self.sampler)
+            return len(self.dataset)
+        except NotImplementedError as exc:
+            raise TypeError("Sampler does not support len()") from exc

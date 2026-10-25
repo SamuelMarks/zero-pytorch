@@ -47,6 +47,8 @@ class RNNCellBase(Module):
         self.weight_hh: Parameter = Parameter(
             zero_torch.empty((num_chunks * hidden_size, hidden_size))
         )
+        self.register_parameter("weight_ih", self.weight_ih)
+        self.register_parameter("weight_hh", self.weight_hh)
 
         self.bias_ih: Parameter | None
         self.bias_hh: Parameter | None
@@ -56,6 +58,8 @@ class RNNCellBase(Module):
         else:
             self.bias_ih = None
             self.bias_hh = None
+        self.register_parameter("bias_ih", self.bias_ih)
+        self.register_parameter("bias_hh", self.bias_hh)
 
         self.reset_parameters()
 
@@ -122,7 +126,9 @@ class RNNCell(RNNCellBase):
         Returns:
             Next hidden state tensor `h'`.
         """
-        if hx is None or isinstance(hx, tuple):
+        if isinstance(hx, tuple):
+            raise ValueError("Expected a Tensor as hidden state, got a tuple")
+        if hx is None:
             h_prev = zero_torch.zeros(
                 (input.shape[0], self.hidden_size), dtype=input.dtype
             )
@@ -161,22 +167,6 @@ class LSTMCell(RNNCellBase):
             dtype: Desired data type of parameters.
         """
         super().__init__(input_size, hidden_size, bias, 4, device=device, dtype=dtype)
-
-    def __call__(
-        self,
-        input: Tensor,
-        hx: Tensor | tuple[Tensor, Tensor] | None = None,
-    ) -> tuple[Tensor, Tensor]:
-        """Invokes `forward(input, hx)`.
-
-        Args:
-            input: Input tensor of shape `(batch, input_size)`.
-            hx: Optional tuple `(h_0, c_0)` of hidden and cell states.
-
-        Returns:
-            Tuple `(h_1, c_1)` of next hidden and cell state tensors.
-        """
-        return self.forward(input, hx)
 
     def forward(
         self,
@@ -254,7 +244,9 @@ class GRUCell(RNNCellBase):
         Returns:
             Next hidden state tensor `h_1`.
         """
-        if hx is None or isinstance(hx, tuple):
+        if isinstance(hx, tuple):
+            raise ValueError("Expected a Tensor as hidden state, got a tuple")
+        if hx is None:
             h_prev = zero_torch.zeros(
                 (input.shape[0], self.hidden_size), dtype=input.dtype
             )
@@ -410,22 +402,6 @@ class RNNBase(Module):
             return hy, cx
         return zero_torch.tanh(gi + gh), c_prev
 
-    def __call__(
-        self,
-        input: Tensor,
-        hx: Tensor | tuple[Tensor, Tensor] | None = None,
-    ) -> tuple[Tensor, Tensor | tuple[Tensor, Tensor]]:
-        """Invokes `forward(input, hx)`.
-
-        Args:
-            input: Input sequence tensor.
-            hx: Optional initial hidden state.
-
-        Returns:
-            Tuple `(output, h_n)` (or `(output, (h_n, c_n))` for LSTM).
-        """
-        return self.forward(input, hx)
-
     def forward(
         self,
         input: Tensor,
@@ -464,6 +440,10 @@ class RNNBase(Module):
                 dtype=seq_input.dtype,
             )
         elif isinstance(hx, tuple):
+            if self.mode != "LSTM":
+                raise ValueError(
+                    f"{self.mode} expected a Tensor as hidden state, got a tuple"
+                )
             h_0, c_0 = hx
         else:
             h_0 = hx

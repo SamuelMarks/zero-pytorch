@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks for disallowed 3rd party dependencies and dynamic imports in non-test code."""
+"""Checks for disallowed 3rd party dependencies and dynamic imports across source, scripts, and tests."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import ast
 import sys
 from pathlib import Path
 
-# Allowed 3rd-party root modules:
+# Allowed 3rd-party root modules in `src/` and `scripts/`:
 ALLOWED_MODULES: set[str] = {
     "pydantic",
     "cdd_python",
@@ -17,6 +17,17 @@ ALLOWED_MODULES: set[str] = {
     "ml_ecosystem_snapshots",
     "zero_torch",
 }
+
+# Additional allowed root modules in `tests/`:
+ALLOWED_TEST_MODULES: set[str] = {
+    "pytest",
+    "scripts",
+    "tests",
+    "conftest",
+}
+
+# Singular parity test exception allowed to import reference `torch`:
+PARITY_TEST_SUFFIX: tuple[str, ...] = ("tests", "pytorch_official", "test_parity.py")
 
 
 def is_std_lib(module_name: str) -> bool:
@@ -42,6 +53,7 @@ def is_std_lib(module_name: str) -> bool:
         "sys",
         "re",
         "math",
+        "cmath",
         "collections",
         "typing",
         "itertools",
@@ -76,6 +88,7 @@ def is_std_lib(module_name: str) -> bool:
         "tempfile",
         "importlib",
         "builtins",
+        "runpy",
     }
     return module_name in common_stdlib
 
@@ -111,6 +124,24 @@ def is_sys_modules(node: ast.AST) -> bool:
     )
 
 
+def _allowed_modules_for_path(file_path: Path) -> set[str]:
+    """Determines the set of allowed third-party root modules for a given file path.
+
+    Args:
+        file_path: Path to the Python file being checked.
+
+    Returns:
+        Set of allowed root module names for `file_path`.
+    """
+    parts = file_path.parts
+    allowed = set(ALLOWED_MODULES)
+    if "tests" in parts:
+        allowed |= ALLOWED_TEST_MODULES
+        if parts[-3:] == PARITY_TEST_SUFFIX:
+            allowed.add("torch")
+    return allowed
+
+
 def check_file(file_path: Path) -> bool:
     """Checks a single Python source file for disallowed imports and dynamic imports.
 
@@ -127,6 +158,7 @@ def check_file(file_path: Path) -> bool:
             return True
 
     violations: list[tuple[int, str]] = []
+    allowed_for_file = _allowed_modules_for_path(file_path)
 
     def check_module(lineno: int, full_name: str, context: str = "") -> None:
         """Validates a single imported module name against allowed modules.
@@ -137,7 +169,7 @@ def check_file(file_path: Path) -> bool:
             context: Optional context string describing how the import occurred.
         """
         base_module = full_name.split(".")[0]
-        if not is_std_lib(base_module) and base_module not in ALLOWED_MODULES:
+        if not is_std_lib(base_module) and base_module not in allowed_for_file:
             violations.append((lineno, f"{full_name} {context}".strip()))
 
     for node in ast.walk(tree):
@@ -225,19 +257,21 @@ def check_file(file_path: Path) -> bool:
 
 
 def main() -> int:
-    """Runs the dependency checker across all Python files in `src/`.
+    """Runs the dependency checker across all Python files in `src/` and `tests/`.
 
     Returns:
         Exit code (0 for success, 1 for failure).
     """
     success = True
-    src_dir = Path("src")
-    if not src_dir.exists():
+    target_dirs = [Path("src"), Path("tests")]
+    if not any(d.exists() for d in target_dirs):
         return 0
 
-    for py_file in sorted(src_dir.rglob("*.py")):
-        if not check_file(py_file):
-            success = False
+    for target_dir in target_dirs:
+        if target_dir.exists():
+            for py_file in sorted(target_dir.rglob("*.py")):
+                if not check_file(py_file):
+                    success = False
 
     if not success:
         sys.exit(1)

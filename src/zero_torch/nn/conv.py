@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from ml_switcheroo_compiler.ops.reductions.frontend import fold, unfold
-
 import zero_torch
 import zero_torch.nn.functional as F
 from zero_torch._types import (
@@ -18,8 +16,10 @@ from zero_torch._types import (
     Size2d,
     Size3d,
 )
-from zero_torch.tensor import Tensor, _to_tensor, _wrap
+from zero_torch.tensor import Tensor
 
+from .functional_pooling import fold as _fp_fold
+from .functional_pooling import unfold as _fp_unfold
 from .module import Module, Parameter
 
 
@@ -73,6 +73,8 @@ class Conv1d(Module):
         self.bias: Parameter | None = (
             Parameter(zero_torch.zeros((out_channels,))) if bias else None
         )
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 1D convolution to `input`.
@@ -144,6 +146,8 @@ class Conv2d(Module):
         self.bias: Parameter | None = (
             Parameter(zero_torch.zeros((out_channels,))) if bias else None
         )
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 2D convolution to `input`.
@@ -219,6 +223,8 @@ class Conv3d(Module):
         self.bias: Parameter | None = (
             Parameter(zero_torch.zeros((out_channels,))) if bias else None
         )
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 3D convolution to `input`.
@@ -293,6 +299,8 @@ class ConvTranspose1d(Module):
         self.bias: Parameter | None = (
             Parameter(zero_torch.zeros((out_channels,))) if bias else None
         )
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(
         self, input: Tensor, output_size: Sequence[int] | None = None
@@ -372,6 +380,8 @@ class ConvTranspose2d(Module):
         self.bias: Parameter | None = (
             Parameter(zero_torch.zeros((out_channels,))) if bias else None
         )
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(
         self, input: Tensor, output_size: Sequence[int] | None = None
@@ -455,6 +465,8 @@ class ConvTranspose3d(Module):
         self.bias: Parameter | None = (
             Parameter(zero_torch.zeros((out_channels,))) if bias else None
         )
+        self.register_parameter("weight", self.weight)
+        self.register_parameter("bias", self.bias)
 
     def forward(
         self, input: Tensor, output_size: Sequence[int] | None = None
@@ -509,20 +521,18 @@ class Unfold(Module):
         """Extracts sliding blocks from `input`.
 
         Args:
-            input: 4D input tensor `(N, C, H, W)`.
+            input: 4D input tensor `(N, C, H, W)` or 3D `(C, H, W)`.
 
         Returns:
-            Unfolded 3D tensor `(N, C * prod(kernel_size), L)`.
+            Unfolded tensor `(N, C * prod(kernel_size), L)`.
         """
-        input_t = _to_tensor(input)
-        res = unfold(
-            input_t,
+        return _fp_unfold(
+            input,
             kernel_size=self.kernel_size,
             dilation=self.dilation,
             padding=self.padding,
             stride=self.stride,
         )
-        return _wrap(res)
 
 
 class Fold(Module):
@@ -556,18 +566,16 @@ class Fold(Module):
         """Combines sliding blocks in `input` into a spatial tensor.
 
         Args:
-            input: 3D input tensor `(N, C * prod(kernel_size), L)`.
+            input: 3D input tensor `(N, C * prod(kernel_size), L)` or 2D `(C * prod(kernel_size), L)`.
 
         Returns:
-            Folded 4D tensor `(N, C, H_out, W_out)`.
+            Folded tensor `(N, C, H_out, W_out)`.
         """
-        input_t = _to_tensor(input)
-        res = fold(
-            input_t,
+        return _fp_fold(
+            input,
             output_size=self.output_size,
             kernel_size=self.kernel_size,
             dilation=self.dilation,
             padding=self.padding,
             stride=self.stride,
         )
-        return _wrap(res)

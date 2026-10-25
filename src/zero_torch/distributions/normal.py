@@ -8,8 +8,9 @@ from collections.abc import Sequence
 import zero_torch as torch
 from zero_torch.tensor import Tensor
 
+from .distribution import Distribution
 from .exp_family import ExponentialFamily
-from .utils import _broadcast_shape
+from .utils import _broadcast_shape, _check_positive
 
 
 class Normal(ExponentialFamily):
@@ -30,10 +31,54 @@ class Normal(ExponentialFamily):
             scale: Standard deviation of the distribution.
             validate_args: Whether to validate parameter constraints.
         """
+        if validate_args:
+            _check_positive(scale, "scale")
         self.loc: Tensor = loc
         self.scale: Tensor = scale
         batch_shape = _broadcast_shape(loc.shape, scale.shape)
         super().__init__(batch_shape, validate_args=validate_args)
+
+    def expand(
+        self, batch_shape: Sequence[int], _instance: Distribution | None = None
+    ) -> Normal:
+        """Returns a new Normal distribution with batch dimensions expanded to `batch_shape`.
+
+        Args:
+            batch_shape: Desired expanded batch shape.
+            _instance: Unused optional instance parameter.
+
+        Returns:
+            Expanded Normal distribution.
+        """
+        _ = _instance
+        b_shape = tuple(batch_shape)
+        return Normal(
+            torch.broadcast_to(self.loc, b_shape),
+            torch.broadcast_to(self.scale, b_shape),
+            validate_args=False,
+        )
+
+    @property
+    def _natural_params(self) -> tuple[Tensor, ...]:
+        """Returns the natural parameters `(loc / scale^2, -0.5 / scale^2)` of the Normal distribution.
+
+        Returns:
+            Two-element tuple of natural parameter tensors.
+        """
+        return (self.loc / (self.scale**2), -0.5 / (self.scale**2))
+
+    def _log_normalizer(self, *natural_params: Tensor) -> Tensor:
+        """Computes the log normalizer function for given Normal natural parameters.
+
+        Args:
+            *natural_params: Natural parameters `(eta_1, eta_2)`.
+
+        Returns:
+            Log normalizer tensor.
+        """
+        x = natural_params[0]
+        y = natural_params[1]
+        return -0.25 * (x**2) / y + 0.5 * torch.log(-math.pi / y)
 
     @property
     def mean(self) -> Tensor:

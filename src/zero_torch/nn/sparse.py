@@ -54,6 +54,7 @@ class Embedding(Module):
             )
         else:
             self.weight = Parameter(_weight)
+        self.register_parameter("weight", self.weight)
 
     def forward(self, input: Tensor) -> Tensor:
         """Looks up embedding vectors for the given input indices.
@@ -127,6 +128,7 @@ class EmbeddingBag(Module):
             )
         else:
             self.weight = Parameter(_weight)
+        self.register_parameter("weight", self.weight)
 
     def forward(
         self,

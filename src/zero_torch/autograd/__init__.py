@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from zero_torch.tensor import Tensor
 
 from .engine import _backward as _backward
 from .function import Context as Context
@@ -16,9 +16,6 @@ from .grad_mode import (
 from .grad_mode import (
     set_grad_enabled as set_grad_enabled,
 )
-
-if TYPE_CHECKING:
-    from zero_torch.tensor import Tensor
 
 
 def backward(t: Tensor) -> None:

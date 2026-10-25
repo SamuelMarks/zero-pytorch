@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+
+from zero_torch.tensor import Tensor
 
 from .function import Function
-
-if TYPE_CHECKING:
-    from zero_torch.tensor import Tensor
 
 
 def _backward(
@@ -25,8 +23,6 @@ def _backward(
         retain_graph: If False, the graph used to compute the grad will be freed.
         create_graph: If True, graph of the derivative will be constructed.
     """
-    from zero_torch.tensor import Tensor
-
     if retain_graph is None:
         retain_graph = create_graph
 
