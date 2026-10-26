@@ -116,3 +116,22 @@ def test_fft_parity() -> None:
             rtol=1e-4,
             atol=1e-4,
         )
+        out_buf = Tensor([0.0, 0.0, 0.0, 0.0])
+        assert torch.fft.fftfreq(4, out=out_buf) is out_buf
+        assert_allclose(out_buf.tolist(), [0.0, 0.25, -0.5, -0.25], rtol=1e-4)
+        ih_1d = torch.fft.ihfft(t)
+        assert_allclose(
+            torch.fft.hfft(ih_1d, n=4).tolist(), [1.0, 2.0, 3.0, 4.0], rtol=1e-4
+        )
+        ih_2d = torch.fft.ihfft2(t2)
+        assert_allclose(
+            torch.fft.hfft2(ih_2d, s=(2, 2)).tolist(),
+            [[1.0, 2.0], [3.0, 4.0]],
+            rtol=1e-4,
+        )
+        ih_nd = torch.fft.ihfftn(t2)
+        assert_allclose(
+            torch.fft.hfftn(ih_nd, s=(2, 2)).tolist(),
+            [[1.0, 2.0], [3.0, 4.0]],
+            rtol=1e-4,
+        )

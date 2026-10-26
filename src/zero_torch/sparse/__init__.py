@@ -40,6 +40,12 @@ def sparse_coo_tensor(
     indices: TensorLike,
     values: TensorLike,
     size: Sequence[int] | None = None,
+    *,
+    dtype: OpArg = None,
+    device: OpArg = None,
+    requires_grad: bool = False,
+    check_invariants: bool | None = None,
+    is_coalesced: bool | None = None,
     **kwargs: OpArg,
 ) -> Tensor:
     """Constructs a sparse tensor in Coordinate (COO) format.
@@ -48,11 +54,17 @@ def sparse_coo_tensor(
         indices: 2D array/tensor of coordinate indices of shape `(ndim, nnz)`.
         values: 1D array/tensor of values of length `nnz`.
         size: Optional dense shape tuple of the sparse tensor.
-        **kwargs: Additional tensor creation arguments (`dtype`, `device`, `requires_grad`).
+        dtype: Desired data type of returned tensor.
+        device: Desired device of returned tensor.
+        requires_grad: If autograd should record operations on the returned tensor.
+        check_invariants: If Python/C++ invariants should be checked.
+        is_coalesced: Whether the input indices are already coalesced.
+        **kwargs: Additional tensor creation arguments.
 
     Returns:
         Constructed sparse COO tensor.
     """
+    _ = (dtype, device, requires_grad, check_invariants, is_coalesced)
     indices_t = torch.tensor(indices)
     values_t = torch.tensor(values)
 
@@ -153,5 +165,5 @@ def mm(mat1: Tensor, mat2: Tensor, **kwargs: OpArg) -> Tensor:
         Matrix product tensor.
     """
     if ml_switcheroo.core.config.eager_mode:
-        return torch.matmul(mat1, mat2, **kwargs)
+        return torch.matmul(mat1, mat2)
     return _wrap(_ops.smm(mat1._tensor, mat2._tensor, **kwargs))

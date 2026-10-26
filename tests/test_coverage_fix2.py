@@ -242,7 +242,7 @@ def test_top_level_ops_and_branches() -> None:
         assert_allclose(torch.mod(int_vec, int_vec2).tolist(), [0, 0, 0])
 
         # Integer / bitwise / logical ops
-        for int_bin_fn in [
+        int_bin_fns: list[Callable[[Tensor, Tensor], Tensor]] = [
             torch.bitwise_and,
             torch.bitwise_or,
             torch.bitwise_xor,
@@ -250,20 +250,22 @@ def test_top_level_ops_and_branches() -> None:
             torch.lcm,
             torch.left_shift,
             torch.right_shift,
-        ]:
+        ]
+        for int_bin_fn in int_bin_fns:
             assert int_bin_fn(int_vec, int_vec2).shape == (3,)
         assert torch.bitwise_not(int_vec).shape == (3,)
 
-        for log_bin_fn in [
+        log_bin_fns: list[Callable[[Tensor, Tensor], Tensor]] = [
             torch.logical_and,
             torch.logical_or,
             torch.logical_xor,
-        ]:
+        ]
+        for log_bin_fn in log_bin_fns:
             assert log_bin_fn(bool_vec, bool_vec2).shape == (3,)
         assert torch.logical_not(bool_vec).shape == (3,)
 
         # Reductions
-        for red_fn in [
+        red_fns: list[Callable[[Tensor], Tensor]] = [
             torch.all,
             torch.any,
             torch.argmax,
@@ -277,7 +279,8 @@ def test_top_level_ops_and_branches() -> None:
             torch.std,
             torch.sum,
             torch.variance,
-        ]:
+        ]
+        for red_fn in red_fns:
             assert red_fn(vec).shape == ()
 
         assert torch.allclose(vec, vec) is True
@@ -2321,3 +2324,291 @@ def test_utils_data_and_dataloader_full_coverage() -> None:
         )
         assert len(list(wrs_scalar)) == 1
         _ = Callable
+
+        # Weighted mse_loss and l1_loss
+        w_loss = torch.tensor([1.0, 2.0])
+        assert (
+            F.mse_loss(
+                torch.tensor([1.0, 2.0]), torch.tensor([0.0, 1.0]), weight=w_loss
+            ).item()
+            == 1.5
+        )
+        assert (
+            F.l1_loss(
+                torch.tensor([1.0, 2.0]), torch.tensor([0.0, 1.0]), weight=w_loss
+            ).item()
+            == 1.5
+        )
+
+        # New F.* functions
+        pool_1d = torch.ones((1, 2, 4))
+        pool_2d = torch.ones((1, 2, 4, 4))
+        pool_3d = torch.ones((1, 2, 4, 4, 4))
+        assert F.adaptive_max_pool1d_with_indices(pool_1d, 2)[0].shape == (1, 2, 2)
+        assert F.adaptive_max_pool2d_with_indices(pool_2d, (2, 2))[0].shape == (
+            1,
+            2,
+            2,
+            2,
+        )
+        assert F.adaptive_max_pool3d_with_indices(pool_3d, (2, 2, 2))[0].shape == (
+            1,
+            2,
+            2,
+            2,
+            2,
+        )
+        assert F.max_pool1d_with_indices(pool_1d, 2)[0].shape == (1, 2, 2)
+        assert F.max_pool2d_with_indices(pool_2d, 2)[0].shape == (1, 2, 2, 2)
+        assert F.max_pool3d_with_indices(pool_3d, 2)[0].shape == (1, 2, 2, 2, 2)
+        assert F.fractional_max_pool2d_with_indices(pool_2d, 2, output_size=(2, 2))[
+            0
+        ].shape == (1, 2, 2, 2)
+        assert F.fractional_max_pool3d_with_indices(pool_3d, 2, output_size=(2, 2, 2))[
+            0
+        ].shape == (1, 2, 2, 2, 2)
+
+        in_t = torch.tensor([-1.0, 0.5, 2.0])
+        assert F.celu_(torch.tensor([-1.0, 0.5, 2.0])).shape == (3,)
+        assert F.elu_(torch.tensor([-1.0, 0.5, 2.0])).shape == (3,)
+        assert F.hardtanh_(torch.tensor([-1.0, 0.5, 2.0])).shape == (3,)
+        assert F.leaky_relu_(torch.tensor([-1.0, 0.5, 2.0])).shape == (3,)
+        assert F.relu_(torch.tensor([-1.0, 0.5, 2.0])).shape == (3,)
+        assert F.rrelu_(torch.tensor([-1.0, 0.5, 2.0])).shape == (3,)
+        assert F.selu_(torch.tensor([-1.0, 0.5, 2.0])).shape == (3,)
+        assert F.threshold_(torch.tensor([-1.0, 0.5, 2.0]), 0.0, -1.0).shape == (3,)
+
+        assert F.channel_shuffle(torch.ones((1, 4, 2, 2)), 2).shape == (1, 4, 2, 2)
+        assert F.native_channel_shuffle(torch.ones((1, 4, 2, 2)), 2).shape == (
+            1,
+            4,
+            2,
+            2,
+        )
+        assert F.pixel_shuffle(torch.ones((1, 4, 2, 2)), 2).shape == (1, 1, 4, 4)
+        assert F.pixel_unshuffle(torch.ones((1, 1, 4, 4)), 2).shape == (1, 4, 2, 2)
+        assert F.cosine_similarity(torch.ones((2, 3)), torch.ones((2, 3))).shape == (2,)
+        assert F.pairwise_distance(torch.ones((2, 3)), torch.zeros((2, 3))).shape == (
+            2,
+        )
+        assert F.pdist(torch.ones((3, 4))).shape == (3,)
+        assert F.pdist(torch.ones((1, 4))).shape == (0,)
+        norm_out = torch.zeros((2, 3))
+        assert F.normalize(torch.ones((2, 3))).shape == (2, 3)
+        assert F.normalize(torch.ones((2, 3)), out=norm_out) is norm_out
+        assert F.one_hot(torch.tensor([0, 2, 1])).shape == (3, 3)
+        assert F.one_hot(torch.tensor([0, 2, 1]), num_classes=4).shape == (3, 4)
+        assert F.local_response_norm(torch.ones((1, 2, 3, 3)), size=2).shape == (
+            1,
+            2,
+            3,
+            3,
+        )
+        assert F.embedding_bag(
+            torch.tensor([[0, 1], [1, 2]]), torch.ones((4, 3))
+        ).shape == (2, 3)
+        assert F.upsample(torch.ones((1, 1, 2, 2)), scale_factor=2.0).shape == (
+            1,
+            1,
+            4,
+            4,
+        )
+        assert F.gumbel_softmax(torch.ones((2, 3)), hard=False).shape == (2, 3)
+        assert F.gumbel_softmax(torch.ones((2, 3)), hard=True).shape == (2, 3)
+        grid = F.affine_grid(torch.zeros((1, 2, 3)), [1, 1, 4, 4])
+        assert grid.shape == (1, 4, 4, 2)
+        assert F.grid_sample(torch.ones((1, 2, 4, 4)), grid).shape == (1, 2, 4, 4)
+        assert F.conv_tbc(
+            torch.ones((4, 2, 3)), torch.ones((2, 3, 5)), torch.zeros((5,))
+        ).shape == (3, 2, 5)
+        assert (
+            F.linear_cross_entropy(
+                torch.ones((2, 3)),
+                torch.ones((4, 3)),
+                torch.tensor([0, 1]),
+                linear_bias=torch.zeros((4,)),
+            ).shape
+            == ()
+        )
+        mha_out, mha_w = F.multi_head_attention_forward(
+            torch.ones((3, 2, 4)),
+            torch.ones((3, 2, 4)),
+            torch.ones((3, 2, 4)),
+            4,
+            2,
+            torch.ones((12, 4)),
+            torch.zeros((12,)),
+            None,
+            None,
+            False,
+            0.0,
+            torch.ones((4, 4)),
+            torch.zeros((4,)),
+        )
+        assert mha_out.shape == (3, 2, 4) and mha_w is not None
+        assert F.grouped_mm(torch.ones((2, 3)), torch.ones((3, 4))).shape == (2, 4)
+        assert F.grouped_mm(
+            torch.ones((2, 3)), torch.ones((3, 4)), bias=torch.ones((4,))
+        ).shape == (2, 4)
+        assert F.scaled_mm(
+            torch.ones((2, 3)),
+            torch.ones((3, 4)),
+            torch.tensor(2.0),
+            scale_b=torch.tensor(0.5),
+            bias=torch.ones((4,)),
+        ).shape == (2, 4)
+        assert F.scaled_mm(
+            torch.ones((2, 3)),
+            torch.ones((3, 4)),
+            [torch.tensor(2.0)],
+            scale_b=None,
+        ).shape == (2, 4)
+        assert F.scaled_grouped_mm(
+            torch.ones((2, 3)), torch.ones((3, 4)), torch.tensor(1.0)
+        ).shape == (2, 4)
+        F.assert_int_or_pair(2, "k", "err")
+        F.assert_int_or_pair((2, 2), "k", "err")
+        with pytest.raises(RuntimeError):
+            F.assert_int_or_pair((1, 2, 3), "k", "err")
+        assert F.boolean_dispatch("flag", 0, True, F.relu, F.celu, "m", "f") is F.relu
+        assert F.boolean_dispatch("flag", 0, False, F.relu, F.celu, "m", "f") is F.celu
+        assert not F.has_torch_function_unary(in_t)
+        assert not F.has_torch_function_variadic(in_t, in_t)
+
+        # Comprehensive test of zero_torch.distributed
+        import datetime
+
+        import zero_torch.distributed as dist
+
+        assert dist.GroupName("world") == "world"
+        assert dist.is_available()
+        assert not dist.is_initialized()
+        assert dist.is_backend_available("gloo")
+        assert not dist.is_backend_available("nccl")
+        assert dist.is_gloo_available()
+        assert not dist.is_mpi_available()
+        assert not dist.is_nccl_available()
+        assert not dist.is_ucc_available()
+        assert not dist.is_xccl_available()
+        assert not dist.is_torchelastic_launched()
+        assert dist.get_pg_count() == 0
+        assert dist.get_rank() == 0
+        assert dist.get_world_size() == 1
+        assert dist.get_backend() == "gloo"
+        assert dist.get_backend_config() == "gloo"
+        assert dist.get_backend_impl() == "gloo"
+        assert dist.get_backend_impl("custom_bg") == "custom_bg"
+        assert dist.get_default_backend_for_device("cpu") == "gloo"
+        assert dist.get_default_backend_for_device("cuda:0") == "nccl"
+        assert dist.get_node_local_rank() == 0
+        assert dist.get_node_local_rank(2) == 2
+        assert dist.get_process_group_ranks() == [0]
+
+        dist.init_process_group(backend="gloo", world_size=2, rank=0)
+        assert dist.is_initialized()
+        assert dist.get_pg_count() == 1
+        assert dist.get_world_size() == 2
+        assert dist.get_process_group_ranks() == [0, 1]
+
+        pg_custom = dist.new_group(ranks=[1, 0], sort_ranks=True)
+        assert pg_custom.ranks == [0, 1]
+        assert dist.get_global_rank(pg_custom, 1) == 1
+        assert dist.get_global_rank(pg_custom, 99) == 99
+        assert dist.get_group_rank(pg_custom, 1) == 1
+        assert dist.get_group_rank(pg_custom, 99) == 99
+
+        sub_pg, all_subs = dist.new_subgroups(group_size=2)
+        assert len(all_subs) == 1 and sub_pg.world_size == 2
+        enum_pg, enum_subs = dist.new_subgroups_by_enumeration([[0, 1]])
+        assert enum_pg is not None and len(enum_subs) == 1
+        empty_pg, empty_subs = dist.new_subgroups_by_enumeration([])
+        assert empty_pg is None and len(empty_subs) == 0
+        sp_pg = dist.split_group(split_ranks=[[0, 1]])
+        assert sp_pg.world_size == 2
+        sp_pg_default = dist.split_group()
+        assert sp_pg_default.world_size == 1
+        shrunk = dist.shrink_group([1], group=pg_custom)
+        assert shrunk.ranks == [0]
+        shrunk_all = dist.shrink_group([0, 1], group=pg_custom)
+        assert shrunk_all.ranks == [0]
+
+        dist.set_debug_level(dist.DebugLevel.INFO)
+        assert dist.get_debug_level() == dist.DebugLevel.INFO
+        dist.set_debug_level_from_env()
+        assert dist.get_debug_level() == dist.DebugLevel.OFF
+        dist.set_timeout(datetime.timedelta(seconds=10))
+        mesh = dist.init_device_mesh("cpu", (2, 2), mesh_dim_names=("dp", "tp"))
+        assert mesh.device_type == "cpu" and mesh.mesh_shape == (2, 2)
+
+        w_handle = dist.Work(completed=False)
+        assert not w_handle.is_completed()
+        assert w_handle.wait()
+        assert w_handle.is_completed()
+
+        assert dist.barrier() is None
+        assert dist.barrier(async_op=True) is not None
+        dist.monitored_barrier()
+        dt = torch.tensor([1.0, 2.0])
+        dt_out = torch.zeros((2,))
+        assert dist.broadcast(dt) is None
+        assert dist.broadcast(dt, async_op=True) is not None
+        from zero_torch._types import OpArg
+
+        obj_list: list[OpArg] = ["a"]
+        dist.broadcast_object_list(obj_list)
+        assert dist.all_reduce(dt) is None
+        assert dist.all_reduce(dt, async_op=True) is not None
+        assert dist.all_reduce_coalesced([dt]) is None
+        assert dist.all_reduce_coalesced([dt], async_op=True) is not None
+        assert dist.reduce(dt) is None
+        assert dist.reduce(dt, async_op=True) is not None
+        assert dist.all_gather([dt_out], dt) is None
+        assert dist.all_gather([], dt, async_op=True) is not None
+        assert dist.all_gather_into_tensor(dt_out, dt) is None
+        assert dist.all_gather_single(dt_out, dt, async_op=True) is not None
+        assert dist.all_gather_coalesced([[dt_out]], [dt]) is None
+        assert dist.all_gather_coalesced([], [dt], async_op=True) is not None
+        dist.all_gather_object(obj_list, "b")
+        assert obj_list[0] == "b"
+        dist.all_gather_object([], "b")
+        assert dist.gather(dt, [dt_out]) is None
+        assert dist.gather(dt, None, async_op=True) is not None
+        assert dist.gather_into_tensor(dt, dt_out) is None
+        assert dist.gather_single(dt, None, async_op=True) is not None
+        dist.gather_object("c", obj_list)
+        assert obj_list[0] == "c"
+        dist.gather_object("c", None)
+        assert dist.scatter(dt_out, [dt]) is None
+        assert dist.scatter(dt_out, None, async_op=True) is not None
+        dist.scatter_object_list(obj_list, ["d"])
+        assert obj_list[0] == "d"
+        dist.scatter_object_list([], ["d"])
+        assert dist.reduce_scatter(dt_out, [dt]) is None
+        assert dist.reduce_scatter(dt_out, [], async_op=True) is not None
+        assert dist.reduce_scatter_tensor(dt_out, dt) is None
+        assert dist.reduce_scatter_single(dt_out, dt, async_op=True) is not None
+        assert dist.all_to_all([dt_out], [dt]) is None
+        assert dist.all_to_all([dt_out], [dt], async_op=True) is not None
+        assert dist.all_to_all_single(dt_out, dt) is None
+        assert dist.all_to_all_single(dt_out, dt, async_op=True) is not None
+        dist.send(dt, dst=0)
+        assert dist.recv(dt, src=1) == 1
+        assert dist.recv(dt) == 0
+        assert dist.isend(dt).is_completed()
+        assert dist.irecv(dt).is_completed()
+        assert len(dist.batch_isend_irecv([1, 2])) == 2
+        assert dist.send_object_list(["x"]) == 0
+        assert dist.recv_object_list(obj_list, src=2) == 2
+        assert dist.recv_object_list(obj_list) == 0
+        dist.breakpoint()
+        with dist.record_comm("test_comm"):
+            pass
+        dist.register_rendezvous_handler("custom", lambda: None)
+        rdzv = list(dist.rendezvous("custom://localhost", rank=0, world_size=1))
+        assert len(rdzv) == 1 and rdzv[0][1] == 0
+        assert dist.supports_complex(dist.ReduceOp.SUM)
+        assert not dist.supports_complex(dist.ReduceOp.MAX)
+        dist.destroy_process_group(pg_custom)
+        assert dist.is_initialized()
+        dist.destroy_process_group()
+        assert not dist.is_initialized()

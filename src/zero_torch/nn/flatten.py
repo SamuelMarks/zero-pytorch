@@ -13,12 +13,14 @@ from .module import Module
 class Flatten(Module):
     """Flattens a contiguous range of dims into a tensor."""
 
+    __constants__: list[str] = ["start_dim", "end_dim"]
+
     def __init__(self, start_dim: int = 1, end_dim: int = -1) -> None:
         """Initializes Flatten.
 
         Args:
-            start_dim: First dimension to flatten.
-            end_dim: Last dimension to flatten.
+            start_dim: First dim to flatten.
+            end_dim: Last dim to flatten.
         """
         super().__init__()
         self.start_dim: int = start_dim
@@ -33,11 +35,13 @@ class Flatten(Module):
         Returns:
             Flattened tensor.
         """
-        return zero_torch.flatten(input, self.start_dim, self.end_dim)
+        return zero_torch.flatten(input, start_dim=self.start_dim, end_dim=self.end_dim)
 
 
 class Unflatten(Module):
-    """Unflattens a tensor dimension into multiple dimensions."""
+    """Unflattens a tensor dim expanding it to a desired shape."""
+
+    __constants__: list[str] = ["dim", "unflattened_size"]
 
     def __init__(self, dim: int, unflattened_size: int | Sequence[int]) -> None:
         """Initializes Unflatten.

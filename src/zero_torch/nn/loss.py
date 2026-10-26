@@ -16,6 +16,8 @@ from .module import Module
 class _Loss(Module):
     """Base class for all neural network loss functions."""
 
+    __constants__: list[str] = ["reduction"]
+
     def __init__(
         self,
         size_average: bool | None = None,
@@ -132,6 +134,8 @@ class BCEWithLogitsLoss(_Loss):
 class CTCLoss(_Loss):
     """The Connectionist Temporal Classification loss."""
 
+    __constants__: list[str] = ["blank", "reduction"]
+
     def __init__(
         self,
         blank: int = 0,
@@ -186,6 +190,8 @@ class CTCLoss(_Loss):
 class CosineEmbeddingLoss(_Loss):
     """Measures the loss given two input tensors and a label tensor with values `1` or `-1`."""
 
+    __constants__: list[str] = ["margin", "reduction"]
+
     def __init__(
         self,
         margin: float = 0.0,
@@ -232,6 +238,8 @@ class CosineEmbeddingLoss(_Loss):
 
 class CrossEntropyLoss(_WeightedLoss):
     """Computes the cross entropy loss between input logits and target."""
+
+    __constants__: list[str] = ["ignore_index", "reduction", "label_smoothing"]
 
     def __init__(
         self,

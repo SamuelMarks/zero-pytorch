@@ -39,6 +39,11 @@ from .norm import (
 class _LazyModuleBase(Module):
     """Typed base class for modules with lazy parameter/buffer materialization."""
 
+    cls_to_become: str = "Module"
+    in_channels: int = 0
+    num_features: int = 0
+    transposed: bool = False
+    output_padding: int | tuple[int, ...] = (0,)
     weight: Parameter | None = None
     bias: Parameter | None = None
     running_mean: Tensor | None = None

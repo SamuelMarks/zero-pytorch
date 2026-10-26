@@ -125,6 +125,8 @@ class ConstantPad1d(Module):
 class ConstantPad2d(Module):
     """Pads the 2D input tensor boundaries with a constant value."""
 
+    __constants__: list[str] = ["padding", "value"]
+
     def __init__(self, padding: SizeNd, value: float) -> None:
         """Initializes ConstantPad2d.
 

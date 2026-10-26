@@ -71,10 +71,9 @@ color = true
 
 [tool.coverage.run]
 branch = true
-source = ["src/zero_torch"]
+source = ["src/zero_torch", "scripts"]
 omit = [
     "tests/*",
-    "scripts/*",
     "src/**/generate_*.py",
 ]
 

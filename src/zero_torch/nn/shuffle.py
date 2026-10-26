@@ -11,6 +11,8 @@ from .module import Module
 class ChannelShuffle(Module):
     """Divides and rearranges the channels in a tensor into `groups` groups."""
 
+    __constants__: list[str] = ["groups"]
+
     def __init__(self, groups: int) -> None:
         """Initializes ChannelShuffle.
 

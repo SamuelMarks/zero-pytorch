@@ -15,6 +15,8 @@ from .module import Module
 class CosineSimilarity(Module):
     """Returns cosine similarity between `x1` and `x2`, computed along `dim`."""
 
+    __constants__: list[str] = ["dim", "eps"]
+
     def __init__(self, dim: int = 1, eps: float = 1e-08) -> None:
         """Initializes CosineSimilarity.
 
@@ -47,6 +49,9 @@ class CosineSimilarity(Module):
 class PairwiseDistance(Module):
     """Computes the pairwise distance between vectors using the `p`-norm."""
 
+    __constants__: list[str] = ["norm", "eps", "keepdim"]
+    norm: float = 2.0
+
     def __init__(
         self, p: float = 2.0, eps: float = 1e-06, keepdim: bool = False
     ) -> None:
@@ -59,6 +64,7 @@ class PairwiseDistance(Module):
         """
         super().__init__()
         self.p: float = p
+        self.norm = p
         self.eps: float = eps
         self.keepdim: bool = keepdim
 

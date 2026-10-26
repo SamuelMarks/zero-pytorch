@@ -66,11 +66,11 @@ class _BatchNormBase(Module):
     momentum: float | None
     affine: bool
     track_running_stats: bool
-    weight: Parameter | None
-    bias: Parameter | None
-    running_mean: Tensor | None
-    running_var: Tensor | None
-    num_batches_tracked: Tensor | None
+    weight: Parameter | None = None
+    bias: Parameter | None = None
+    running_mean: Tensor | None = None
+    running_var: Tensor | None = None
+    num_batches_tracked: Tensor | None = None
 
     def _forward_batch_norm(self, input: Tensor) -> Tensor:
         """Executes batch normalization with running statistics tracking.
@@ -337,8 +337,9 @@ class CrossMapLRN2d(Module):
 class GroupNorm(Module):
     """Applies Group Normalization over a mini-batch of inputs."""
 
-    weight: Parameter | None
-    bias: Parameter | None
+    __constants__: list[str] = ["num_groups", "num_channels", "eps", "affine"]
+    weight: Parameter | None = None
+    bias: Parameter | None = None
 
     def __init__(
         self,
@@ -527,8 +528,9 @@ class InstanceNorm3d(_BatchNormBase):
 class LayerNorm(Module):
     """Applies Layer Normalization over a mini-batch of inputs."""
 
-    weight: Parameter | None
-    bias: Parameter | None
+    __constants__: list[str] = ["normalized_shape", "eps", "elementwise_affine"]
+    weight: Parameter | None = None
+    bias: Parameter | None = None
 
     def __init__(
         self,
@@ -585,6 +587,8 @@ class LayerNorm(Module):
 class LocalResponseNorm(Module):
     """Applies local response normalization over an input signal."""
 
+    __constants__: list[str] = ["size", "alpha", "beta", "k"]
+
     def __init__(
         self, size: int, alpha: float = 1e-4, beta: float = 0.75, k: float = 1.0
     ) -> None:
@@ -627,7 +631,8 @@ class LocalResponseNorm(Module):
 class RMSNorm(Module):
     """Applies Root Mean Square Layer Normalization over a mini-batch of inputs."""
 
-    weight: Parameter | None
+    __constants__: list[str] = ["normalized_shape", "eps", "elementwise_affine"]
+    weight: Parameter | None = None
 
     def __init__(
         self,

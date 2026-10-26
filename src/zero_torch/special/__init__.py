@@ -8,67 +8,89 @@ import ml_switcheroo_compiler.ops as _ops
 from ml_switcheroo_compiler.ops.base import get_op
 
 import zero_torch
-from zero_torch._types import OpArg, Scalar
+from zero_torch._types import DTypeLike, OpArg, Scalar
 from zero_torch.tensor import Tensor, _flatten_nested, _wrap
 
 
-def bessel_j0(input: Tensor, **kwargs: OpArg) -> Tensor:
+def _copy_if_out(res: Tensor, out: Tensor | None) -> Tensor:
+    """Copies `res` into `out` if `out` is provided, and returns the resulting tensor.
+
+    Args:
+        res: Computed result tensor.
+        out: Optional destination tensor.
+
+    Returns:
+        Result tensor (`out` if provided, otherwise `res`).
+    """
+    if out is not None:
+        return out.copy_(res)
+    return res
+
+
+def bessel_j0(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
     """Computes the Bessel function of the first kind of order 0.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with `J_0(input)`.
     """
-    return _wrap(get_op("BesselJ0")()(input._tensor, **kwargs))
+    return _copy_if_out(_wrap(get_op("BesselJ0")()(input._tensor, **kwargs)), out)
 
 
-def bessel_j1(input: Tensor, **kwargs: OpArg) -> Tensor:
+def bessel_j1(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
     """Computes the Bessel function of the first kind of order 1.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with `J_1(input)`.
     """
-    return _wrap(get_op("BesselJ1")()(input._tensor, **kwargs))
+    return _copy_if_out(_wrap(get_op("BesselJ1")()(input._tensor, **kwargs)), out)
 
 
-def bessel_y0(input: Tensor, **kwargs: OpArg) -> Tensor:
+def bessel_y0(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
     """Computes the Bessel function of the second kind of order 0.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with `Y_0(input)`.
     """
-    return _wrap(get_op("BesselY0")()(input._tensor, **kwargs))
+    return _copy_if_out(_wrap(get_op("BesselY0")()(input._tensor, **kwargs)), out)
 
 
-def bessel_y1(input: Tensor, **kwargs: OpArg) -> Tensor:
+def bessel_y1(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
     """Computes the Bessel function of the second kind of order 1.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with `Y_1(input)`.
     """
-    return _wrap(get_op("BesselY1")()(input._tensor, **kwargs))
+    return _copy_if_out(_wrap(get_op("BesselY1")()(input._tensor, **kwargs)), out)
 
 
-def modified_bessel_i0(input: Tensor, **kwargs: OpArg) -> Tensor:
+def modified_bessel_i0(
+    input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the modified Bessel function of the first kind of order 0.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -81,14 +103,17 @@ def modified_bessel_i0(input: Tensor, **kwargs: OpArg) -> Tensor:
     for k in range(1, 15):
         term = term * quarter_x2 / float(k * k)
         res = res + term
-    return res
+    return _copy_if_out(res, out)
 
 
-def modified_bessel_i1(input: Tensor, **kwargs: OpArg) -> Tensor:
+def modified_bessel_i1(
+    input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the modified Bessel function of the first kind of order 1.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -102,14 +127,17 @@ def modified_bessel_i1(input: Tensor, **kwargs: OpArg) -> Tensor:
     for k in range(1, 15):
         term = term * quarter_x2 / float(k * (k + 1))
         res = res + term
-    return res
+    return _copy_if_out(res, out)
 
 
-def modified_bessel_k0(input: Tensor, **kwargs: OpArg) -> Tensor:
+def modified_bessel_k0(
+    input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the modified Bessel function of the second kind of order 0.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -136,14 +164,17 @@ def modified_bessel_k0(input: Tensor, **kwargs: OpArg) -> Tensor:
             - 225.0 / (3072.0 * input * input * input)
         )
     )
-    return zero_torch.where(input <= 2.0, small_res, large_res)
+    return _copy_if_out(zero_torch.where(input <= 2.0, small_res, large_res), out)
 
 
-def modified_bessel_k1(input: Tensor, **kwargs: OpArg) -> Tensor:
+def modified_bessel_k1(
+    input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the modified Bessel function of the second kind of order 1.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -174,49 +205,526 @@ def modified_bessel_k1(input: Tensor, **kwargs: OpArg) -> Tensor:
             + 315.0 / (3072.0 * input * input * input)
         )
     )
-    return zero_torch.where(input <= 2.0, small_res, large_res)
+    return _copy_if_out(zero_torch.where(input <= 2.0, small_res, large_res), out)
 
 
-def erfcx(input: Tensor, **kwargs: OpArg) -> Tensor:
+def i0(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the zeroth-order modified Bessel function of the first kind.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `I_0(input)`.
+    """
+    return modified_bessel_i0(input, out=out)
+
+
+def i0e(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the exponentially scaled zeroth-order modified Bessel function of the first kind.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `exp(-|x|) * I_0(x)`.
+    """
+    return _copy_if_out(
+        zero_torch.exp(-zero_torch.abs(input)) * modified_bessel_i0(input), out
+    )
+
+
+def i1(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the first-order modified Bessel function of the first kind.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `I_1(input)`.
+    """
+    return modified_bessel_i1(input, out=out)
+
+
+def i1e(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the exponentially scaled first-order modified Bessel function of the first kind.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `exp(-|x|) * I_1(x)`.
+    """
+    return _copy_if_out(
+        zero_torch.exp(-zero_torch.abs(input)) * modified_bessel_i1(input), out
+    )
+
+
+def scaled_modified_bessel_k0(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the scaled modified Bessel function of the second kind of order 0 (`exp(x) * K_0(x)`).
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `exp(input) * K_0(input)`.
+    """
+    return _copy_if_out(zero_torch.exp(input) * modified_bessel_k0(input), out)
+
+
+def scaled_modified_bessel_k1(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the scaled modified Bessel function of the second kind of order 1 (`exp(x) * K_1(x)`).
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `exp(input) * K_1(input)`.
+    """
+    return _copy_if_out(zero_torch.exp(input) * modified_bessel_k1(input), out)
+
+
+def spherical_bessel_j0(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the spherical Bessel function of the first kind of order 0 (`sin(x) / x`).
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `j_0(input)`.
+    """
+    safe_x = zero_torch.where(input == 0.0, zero_torch.ones_like(input), input)
+    res = zero_torch.where(
+        input == 0.0, zero_torch.ones_like(input), zero_torch.sin(safe_x) / safe_x
+    )
+    return _copy_if_out(res, out)
+
+
+def sinc(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the normalized sinc function `sin(pi * x) / (pi * x)`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `sinc(input)`.
+    """
+    return spherical_bessel_j0(input * math.pi, out=out)
+
+
+def airy_ai(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the Airy function `Ai(input)`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `Ai(input)`.
+    """
+    c1 = 0.35502805388781724
+    c2 = 0.2588194037928068
+    x2 = input * input
+    x3 = x2 * input
+    f_part = 1.0 + x3 / 6.0 + (x3 * x3) / 180.0
+    g_part = input + (x2 * x2) / 12.0 + (x3 * x3 * input) / 504.0
+    return _copy_if_out(f_part * c1 - g_part * c2, out)
+
+
+def erf(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the error function of `input`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `erf(input)`.
+    """
+    return _copy_if_out(zero_torch.erf(input), out)
+
+
+def erfc(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the complementary error function of `input`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `erfc(input)`.
+    """
+    return _copy_if_out(zero_torch.erfc(input), out)
+
+
+def erfcx(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
     """Computes the scaled complementary error function `exp(x^2) * erfc(x)`.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with `erfcx(input)`.
     """
     _ = kwargs
-    return zero_torch.exp(input * input) * zero_torch.erfc(input)
+    return _copy_if_out(zero_torch.exp(input * input) * zero_torch.erfc(input), out)
 
 
-def ndtr(input: Tensor, **kwargs: OpArg) -> Tensor:
+def erfinv(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the inverse error function of `input`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `erfinv(input)`.
+    """
+    return _copy_if_out(zero_torch.erfinv(input), out)
+
+
+def exp2(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the base-2 exponential `2^input`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `2^input`.
+    """
+    return _copy_if_out(zero_torch.exp2(input), out)
+
+
+def expm1(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes `exp(input) - 1`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `exp(input) - 1`.
+    """
+    return _copy_if_out(zero_torch.expm1(input), out)
+
+
+def expit(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the expit (logistic sigmoid) function `1 / (1 + exp(-input))`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `expit(input)`.
+    """
+    return _copy_if_out(zero_torch.sigmoid(input), out)
+
+
+def logit(
+    input: Tensor,
+    eps: float | None = None,
+    *,
+    out: Tensor | None = None,
+) -> Tensor:
+    """Computes the logit function `log(x / (1 - x))`.
+
+    Args:
+        input: Input probability tensor.
+        eps: Optional clamping epsilon for `[eps, 1 - eps]`.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `logit(input)`.
+    """
+    x = zero_torch.clamp(input, min=eps, max=1.0 - eps) if eps is not None else input
+    return _copy_if_out(zero_torch.log(x / (1.0 - x)), out)
+
+
+def log1p(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes `log(1 + input)`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `log(1 + input)`.
+    """
+    return _copy_if_out(zero_torch.log1p(input), out)
+
+
+def entr(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the element-wise entropy `-input * log(input)` for `input > 0`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Entropy tensor.
+    """
+    safe_x = zero_torch.where(input > 0.0, input, zero_torch.ones_like(input))
+    pos_val = -safe_x * zero_torch.log(safe_x)
+    res = zero_torch.where(
+        input > 0.0,
+        pos_val,
+        zero_torch.where(
+            input == 0.0,
+            zero_torch.zeros_like(input),
+            zero_torch.full(input.shape, float("-inf"), dtype=input.dtype),
+        ),
+    )
+    return _copy_if_out(res, out)
+
+
+def xlogy(
+    input: Tensor | float,
+    other: Tensor | float,
+    *,
+    out: Tensor | None = None,
+) -> Tensor:
+    """Computes `input * log(other)` with `0 * log(0) = 0`.
+
+    Args:
+        input: Multiplier tensor or scalar.
+        other: Logarithm argument tensor or scalar.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `input * log(other)`.
+    """
+    x = input if isinstance(input, Tensor) else Tensor(input)
+    y = other if isinstance(other, Tensor) else Tensor(other)
+    safe_y = zero_torch.where(x == 0.0, zero_torch.ones_like(y), y)
+    res = zero_torch.where(
+        x == 0.0, zero_torch.zeros_like(x), x * zero_torch.log(safe_y)
+    )
+    return _copy_if_out(res, out)
+
+
+def xlog1py(
+    input: Tensor | float,
+    other: Tensor | float,
+    *,
+    out: Tensor | None = None,
+) -> Tensor:
+    """Computes `input * log1p(other)` with `0 * log1p(other) = 0`.
+
+    Args:
+        input: Multiplier tensor or scalar.
+        other: `log1p` argument tensor or scalar.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `input * log1p(other)`.
+    """
+    x = input if isinstance(input, Tensor) else Tensor(input)
+    y = other if isinstance(other, Tensor) else Tensor(other)
+    safe_y = zero_torch.where(x == 0.0, zero_torch.zeros_like(y), y)
+    res = zero_torch.where(
+        x == 0.0, zero_torch.zeros_like(x), x * zero_torch.log1p(safe_y)
+    )
+    return _copy_if_out(res, out)
+
+
+def digamma(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the logarithmic derivative of the gamma function on `input`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `psi(input)`.
+    """
+    return _copy_if_out(zero_torch.digamma(input), out)
+
+
+def psi(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Alias for `torch.special.digamma`.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `psi(input)`.
+    """
+    return digamma(input, out=out)
+
+
+def gammainc(
+    input: Tensor,
+    other: Tensor,
+    *,
+    out: Tensor | None = None,
+) -> Tensor:
+    """Computes the regularized lower incomplete gamma function `P(input, other)`.
+
+    Args:
+        input: Positive shape parameter tensor `a`.
+        other: Non-negative upper integration limit tensor `x`.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `gammainc(input, other)`.
+    """
+    a = input
+    x = zero_torch.maximum(other, 1e-12)
+    term = 1.0 / a
+    total = term
+    for k in range(1, 20):
+        term = term * x / (a + float(k))
+        total = total + term
+    log_prefactor = a * zero_torch.log(x) - x - gammaln(a)
+    res = zero_torch.clamp(zero_torch.exp(log_prefactor) * total, min=0.0, max=1.0)
+    return _copy_if_out(res, out)
+
+
+def gammaincc(
+    input: Tensor,
+    other: Tensor,
+    *,
+    out: Tensor | None = None,
+) -> Tensor:
+    """Computes the regularized upper incomplete gamma function `Q(input, other)`.
+
+    Args:
+        input: Positive shape parameter tensor `a`.
+        other: Non-negative lower integration limit tensor `x`.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `gammaincc(input, other)`.
+    """
+    return _copy_if_out(1.0 - gammainc(input, other), out)
+
+
+def ndtr(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
     """Computes the area under the standard Gaussian probability density function.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with `ndtr(input)`.
     """
     _ = kwargs
-    return 0.5 * (1.0 + zero_torch.erf(input / math.sqrt(2.0)))
+    return _copy_if_out(0.5 * (1.0 + zero_torch.erf(input / math.sqrt(2.0))), out)
 
 
-def ndtri(input: Tensor, **kwargs: OpArg) -> Tensor:
+def log_ndtr(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Computes the natural logarithm of the area under the standard Gaussian PDF.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Output tensor with `log(ndtr(input))`.
+    """
+    return _copy_if_out(zero_torch.log(ndtr(input)), out)
+
+
+def ndtri(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
     """Computes the argument `x` for which the area under the Gaussian PDF is equal to `input`.
 
     Args:
         input: Input probability tensor in `(0, 1)`.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output quantile tensor with `ndtri(input)`.
     """
     _ = kwargs
-    return zero_torch.erfinv(2.0 * input - 1.0) * math.sqrt(2.0)
+    return _copy_if_out(zero_torch.erfinv(2.0 * input - 1.0) * math.sqrt(2.0), out)
+
+
+def log_softmax(
+    input: Tensor,
+    dim: int,
+    *,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Computes `softmax(input)` followed by `log`.
+
+    Args:
+        input: Input tensor.
+        dim: Dimension along which `log_softmax` will be computed.
+        dtype: Optional desired data type of returned tensor.
+
+    Returns:
+        Output tensor after `log_softmax`.
+    """
+    return zero_torch.nn.functional.log_softmax(input, dim=dim, dtype=dtype)
+
+
+def softmax(
+    input: Tensor,
+    dim: int,
+    *,
+    dtype: DTypeLike = None,
+) -> Tensor:
+    """Computes the softmax function along `dim`.
+
+    Args:
+        input: Input tensor.
+        dim: Dimension along which `softmax` will be computed.
+        dtype: Optional desired data type of returned tensor.
+
+    Returns:
+        Output probability tensor.
+    """
+    return zero_torch.nn.functional.softmax(input, dim=dim, dtype=dtype)
+
+
+def logsumexp(
+    input: Tensor,
+    dim: int | tuple[int, ...],
+    keepdim: bool = False,
+    *,
+    out: Tensor | None = None,
+) -> Tensor:
+    """Computes the logarithm of summed exponentials of each row of `input` in `dim`.
+
+    Args:
+        input: Input tensor.
+        dim: Dimension or tuple of dimensions to reduce.
+        keepdim: Whether the output tensor has `dim` retained or not.
+        out: Optional output tensor.
+
+    Returns:
+        Reduced `logsumexp` tensor.
+    """
+    return _copy_if_out(zero_torch.logsumexp(input, dim=dim, keepdim=keepdim), out)
+
+
+def round(input: Tensor, *, out: Tensor | None = None) -> Tensor:
+    """Rounds elements of `input` to the nearest integer.
+
+    Args:
+        input: Input tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Rounded tensor.
+    """
+    return _copy_if_out(zero_torch.round(input), out)
 
 
 def _safe_lgamma(val: Scalar) -> float:
@@ -234,11 +742,12 @@ def _safe_lgamma(val: Scalar) -> float:
     return math.lgamma(x)
 
 
-def gammaln(input: Tensor, **kwargs: OpArg) -> Tensor:
+def gammaln(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
     """Computes the natural logarithm of the absolute value of the gamma function.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -247,49 +756,61 @@ def gammaln(input: Tensor, **kwargs: OpArg) -> Tensor:
     _ = kwargs
     flat: list[Scalar] = _flatten_nested(input.tolist())
     vals = [_safe_lgamma(v) for v in flat]
-    return zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape)
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )
 
 
-def polygamma(n: int, input: Tensor, **kwargs: OpArg) -> Tensor:
+def polygamma(
+    n: int, input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the `n`-th derivative of the digamma function on `input`.
 
     Args:
         n: Non-negative derivative order.
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with `psi^(n)(input)`.
     """
-    return _wrap(_ops.polygamma(n, input._tensor, **kwargs))
+    return _copy_if_out(_wrap(_ops.polygamma(n, input._tensor, **kwargs)), out)
 
 
-def multigammaln(input: Tensor, p: int, **kwargs: OpArg) -> Tensor:
+def multigammaln(
+    input: Tensor, p: int, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the multivariate log-gamma function of dimension `p`.
 
     Args:
         input: Input tensor.
         p: Number of dimensions.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with multivariate log-gamma values.
     """
-    return zero_torch.mvlgamma(input, p, **kwargs)
+    _ = kwargs
+    return _copy_if_out(zero_torch.mvlgamma(input, p, out=out), out)
 
 
-def zeta(input: Tensor, other: Tensor, **kwargs: OpArg) -> Tensor:
+def zeta(
+    input: Tensor, other: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the Hurwitz zeta function.
 
     Args:
         input: Exponent tensor `x`.
         other: Shift tensor `q`.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Output tensor with `zeta(input, other)`.
     """
-    return _wrap(_ops.zeta(input._tensor, other._tensor, **kwargs))
+    return _copy_if_out(_wrap(_ops.zeta(input._tensor, other._tensor, **kwargs)), out)
 
 
 def _eval_chebyshev_t(x: float, deg: int) -> float:
@@ -312,6 +833,66 @@ def _eval_chebyshev_t(x: float, deg: int) -> float:
     return t1
 
 
+def _eval_chebyshev_u(x: float, deg: int) -> float:
+    """Evaluates Chebyshev polynomial of the second kind `U_deg(x)` via recurrence.
+
+    Args:
+        x: Evaluation point.
+        deg: Non-negative integer degree.
+
+    Returns:
+        Evaluated polynomial scalar.
+    """
+    if deg <= 0:
+        return 1.0
+    if deg == 1:
+        return 2.0 * x
+    u0, u1 = 1.0, 2.0 * x
+    for _ in range(2, deg + 1):
+        u0, u1 = u1, 2.0 * x * u1 - u0
+    return u1
+
+
+def _eval_chebyshev_v(x: float, deg: int) -> float:
+    """Evaluates Chebyshev polynomial of the third kind `V_deg(x)` via recurrence.
+
+    Args:
+        x: Evaluation point.
+        deg: Non-negative integer degree.
+
+    Returns:
+        Evaluated polynomial scalar.
+    """
+    if deg <= 0:
+        return 1.0
+    if deg == 1:
+        return 2.0 * x - 1.0
+    v0, v1 = 1.0, 2.0 * x - 1.0
+    for _ in range(2, deg + 1):
+        v0, v1 = v1, 2.0 * x * v1 - v0
+    return v1
+
+
+def _eval_chebyshev_w(x: float, deg: int) -> float:
+    """Evaluates Chebyshev polynomial of the fourth kind `W_deg(x)` via recurrence.
+
+    Args:
+        x: Evaluation point.
+        deg: Non-negative integer degree.
+
+    Returns:
+        Evaluated polynomial scalar.
+    """
+    if deg <= 0:
+        return 1.0
+    if deg == 1:
+        return 2.0 * x + 1.0
+    w0, w1 = 1.0, 2.0 * x + 1.0
+    for _ in range(2, deg + 1):
+        w0, w1 = w1, 2.0 * x * w1 - w0
+    return w1
+
+
 def _eval_hermite_h(x: float, deg: int) -> float:
     """Evaluates physicist's Hermite polynomial `H_deg(x)` via recurrence.
 
@@ -329,6 +910,26 @@ def _eval_hermite_h(x: float, deg: int) -> float:
     h0, h1 = 1.0, 2.0 * x
     for k in range(1, deg):
         h0, h1 = h1, 2.0 * x * h1 - 2.0 * float(k) * h0
+    return h1
+
+
+def _eval_hermite_he(x: float, deg: int) -> float:
+    """Evaluates probabilist's Hermite polynomial `He_deg(x)` via recurrence.
+
+    Args:
+        x: Evaluation point.
+        deg: Non-negative integer degree.
+
+    Returns:
+        Evaluated polynomial scalar.
+    """
+    if deg <= 0:
+        return 1.0
+    if deg == 1:
+        return x
+    h0, h1 = 1.0, x
+    for k in range(1, deg):
+        h0, h1 = h1, x * h1 - float(k) * h0
     return h1
 
 
@@ -378,12 +979,15 @@ def _eval_legendre_p(x: float, deg: int) -> float:
     return p1
 
 
-def chebyshev_polynomial_t(input: Tensor, n: Tensor, **kwargs: OpArg) -> Tensor:
+def chebyshev_polynomial_t(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the Chebyshev polynomial of the first kind `T_n(input)`.
 
     Args:
         input: Input evaluation points tensor.
         n: Polynomial degree tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -400,15 +1004,168 @@ def chebyshev_polynomial_t(input: Tensor, n: Tensor, **kwargs: OpArg) -> Tensor:
         )
         for x, d in zip(xs, ns)
     ]
-    return zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape)
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )
 
 
-def hermite_polynomial_h(input: Tensor, n: Tensor, **kwargs: OpArg) -> Tensor:
+def chebyshev_polynomial_u(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None
+) -> Tensor:
+    """Computes the Chebyshev polynomial of the second kind `U_n(input)`.
+
+    Args:
+        input: Input evaluation points tensor.
+        n: Polynomial degree tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Evaluated Chebyshev polynomial tensor.
+    """
+    b_n = zero_torch.broadcast_to(n, input.shape)
+    xs = _flatten_nested(input.tolist())
+    ns = _flatten_nested(b_n.tolist())
+    vals = [
+        _eval_chebyshev_u(
+            float(x) if isinstance(x, (int, float)) else 0.0,
+            int(float(d)) if isinstance(d, (int, float)) else 0,
+        )
+        for x, d in zip(xs, ns)
+    ]
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )
+
+
+def chebyshev_polynomial_v(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None
+) -> Tensor:
+    """Computes the Chebyshev polynomial of the third kind `V_n(input)`.
+
+    Args:
+        input: Input evaluation points tensor.
+        n: Polynomial degree tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Evaluated Chebyshev polynomial tensor.
+    """
+    b_n = zero_torch.broadcast_to(n, input.shape)
+    xs = _flatten_nested(input.tolist())
+    ns = _flatten_nested(b_n.tolist())
+    vals = [
+        _eval_chebyshev_v(
+            float(x) if isinstance(x, (int, float)) else 0.0,
+            int(float(d)) if isinstance(d, (int, float)) else 0,
+        )
+        for x, d in zip(xs, ns)
+    ]
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )
+
+
+def chebyshev_polynomial_w(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None
+) -> Tensor:
+    """Computes the Chebyshev polynomial of the fourth kind `W_n(input)`.
+
+    Args:
+        input: Input evaluation points tensor.
+        n: Polynomial degree tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Evaluated Chebyshev polynomial tensor.
+    """
+    b_n = zero_torch.broadcast_to(n, input.shape)
+    xs = _flatten_nested(input.tolist())
+    ns = _flatten_nested(b_n.tolist())
+    vals = [
+        _eval_chebyshev_w(
+            float(x) if isinstance(x, (int, float)) else 0.0,
+            int(float(d)) if isinstance(d, (int, float)) else 0,
+        )
+        for x, d in zip(xs, ns)
+    ]
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )
+
+
+def shifted_chebyshev_polynomial_t(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None
+) -> Tensor:
+    """Computes the shifted Chebyshev polynomial of the first kind `T_n^*(input) = T_n(2 * input - 1)`.
+
+    Args:
+        input: Input evaluation points tensor.
+        n: Polynomial degree tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Evaluated shifted Chebyshev polynomial tensor.
+    """
+    return chebyshev_polynomial_t(2.0 * input - 1.0, n, out=out)
+
+
+def shifted_chebyshev_polynomial_u(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None
+) -> Tensor:
+    """Computes the shifted Chebyshev polynomial of the second kind `U_n^*(input) = U_n(2 * input - 1)`.
+
+    Args:
+        input: Input evaluation points tensor.
+        n: Polynomial degree tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Evaluated shifted Chebyshev polynomial tensor.
+    """
+    return chebyshev_polynomial_u(2.0 * input - 1.0, n, out=out)
+
+
+def shifted_chebyshev_polynomial_v(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None
+) -> Tensor:
+    """Computes the shifted Chebyshev polynomial of the third kind `V_n^*(input) = V_n(2 * input - 1)`.
+
+    Args:
+        input: Input evaluation points tensor.
+        n: Polynomial degree tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Evaluated shifted Chebyshev polynomial tensor.
+    """
+    return chebyshev_polynomial_v(2.0 * input - 1.0, n, out=out)
+
+
+def shifted_chebyshev_polynomial_w(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None
+) -> Tensor:
+    """Computes the shifted Chebyshev polynomial of the fourth kind `W_n^*(input) = W_n(2 * input - 1)`.
+
+    Args:
+        input: Input evaluation points tensor.
+        n: Polynomial degree tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Evaluated shifted Chebyshev polynomial tensor.
+    """
+    return chebyshev_polynomial_w(2.0 * input - 1.0, n, out=out)
+
+
+def hermite_polynomial_h(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the physicist's Hermite polynomial `H_n(input)`.
 
     Args:
         input: Input evaluation points tensor.
         n: Polynomial degree tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -425,15 +1182,48 @@ def hermite_polynomial_h(input: Tensor, n: Tensor, **kwargs: OpArg) -> Tensor:
         )
         for x, d in zip(xs, ns)
     ]
-    return zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape)
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )
 
 
-def laguerre_polynomial_l(input: Tensor, n: Tensor, **kwargs: OpArg) -> Tensor:
+def hermite_polynomial_he(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None
+) -> Tensor:
+    """Computes the probabilist's Hermite polynomial `He_n(input)`.
+
+    Args:
+        input: Input evaluation points tensor.
+        n: Polynomial degree tensor.
+        out: Optional output tensor.
+
+    Returns:
+        Evaluated probabilist's Hermite polynomial tensor.
+    """
+    b_n = zero_torch.broadcast_to(n, input.shape)
+    xs = _flatten_nested(input.tolist())
+    ns = _flatten_nested(b_n.tolist())
+    vals = [
+        _eval_hermite_he(
+            float(x) if isinstance(x, (int, float)) else 0.0,
+            int(float(d)) if isinstance(d, (int, float)) else 0,
+        )
+        for x, d in zip(xs, ns)
+    ]
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )
+
+
+def laguerre_polynomial_l(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the Laguerre polynomial `L_n(input)`.
 
     Args:
         input: Input evaluation points tensor.
         n: Polynomial degree tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -450,15 +1240,20 @@ def laguerre_polynomial_l(input: Tensor, n: Tensor, **kwargs: OpArg) -> Tensor:
         )
         for x, d in zip(xs, ns)
     ]
-    return zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape)
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )
 
 
-def legendre_polynomial_p(input: Tensor, n: Tensor, **kwargs: OpArg) -> Tensor:
+def legendre_polynomial_p(
+    input: Tensor, n: Tensor, *, out: Tensor | None = None, **kwargs: OpArg
+) -> Tensor:
     """Computes the Legendre polynomial of the first kind `P_n(input)`.
 
     Args:
         input: Input evaluation points tensor.
         n: Polynomial degree tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
@@ -475,4 +1270,6 @@ def legendre_polynomial_p(input: Tensor, n: Tensor, **kwargs: OpArg) -> Tensor:
         )
         for x, d in zip(xs, ns)
     ]
-    return zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape)
+    return _copy_if_out(
+        zero_torch.reshape(Tensor(vals, dtype=input.dtype), input.shape), out
+    )

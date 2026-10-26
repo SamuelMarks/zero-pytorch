@@ -44,7 +44,7 @@ jobs:
         pip install ruff pytest pytest-cov pytest-xdist interrogate mypy build
         pip install -e ./ml-switcheroo-ir
         pip install -e ./ml-switcheroo-compiler
-        pip install https://github.com/SamuelMarks/ml-ecosystem-snapshots/releases/download/v0.0.4/ml_ecosystem_snapshots-0.0.4-py3-none-any.whl
+        pip install https://github.com/SamuelMarks/ml-ecosystem-snapshots/releases/download/v0.0.5/ml_ecosystem_snapshots-0.0.5-py3-none-any.whl
         pip install -e .
         pip install -r requirements.txt
         pip install -r requirements-test.txt

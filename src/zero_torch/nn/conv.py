@@ -26,6 +26,9 @@ from .module import Module, Parameter
 class Conv1d(Module):
     """Applies a 1D convolution over an input signal composed of several input planes."""
 
+    transposed: bool = False
+    output_padding: tuple[int, ...] = (0,)
+
     def __init__(
         self,
         in_channels: int,
@@ -99,6 +102,9 @@ class Conv1d(Module):
 class Conv2d(Module):
     """Applies a 2D convolution over an input signal composed of several input planes."""
 
+    transposed: bool = False
+    output_padding: tuple[int, ...] = (0, 0)
+
     def __init__(
         self,
         in_channels: int,
@@ -171,6 +177,9 @@ class Conv2d(Module):
 
 class Conv3d(Module):
     """Applies a 3D convolution over an input signal composed of several input planes."""
+
+    transposed: bool = False
+    output_padding: tuple[int, ...] = (0, 0, 0)
 
     def __init__(
         self,
@@ -248,6 +257,8 @@ class Conv3d(Module):
 
 class ConvTranspose1d(Module):
     """Applies a 1D transposed convolution operator over an input signal."""
+
+    transposed: bool = True
 
     def __init__(
         self,
@@ -330,6 +341,8 @@ class ConvTranspose1d(Module):
 class ConvTranspose2d(Module):
     """Applies a 2D transposed convolution operator over an input image."""
 
+    transposed: bool = True
+
     def __init__(
         self,
         in_channels: int,
@@ -410,6 +423,8 @@ class ConvTranspose2d(Module):
 
 class ConvTranspose3d(Module):
     """Applies a 3D transposed convolution operator over an input volume."""
+
+    transposed: bool = True
 
     def __init__(
         self,
@@ -496,6 +511,8 @@ class ConvTranspose3d(Module):
 class Unfold(Module):
     """Extracts sliding local blocks from a batched input tensor."""
 
+    __constants__: list[str] = ["kernel_size", "dilation", "padding", "stride"]
+
     def __init__(
         self,
         kernel_size: Size2d,
@@ -537,6 +554,14 @@ class Unfold(Module):
 
 class Fold(Module):
     """Combines an array of sliding local blocks into a large containing tensor."""
+
+    __constants__: list[str] = [
+        "output_size",
+        "kernel_size",
+        "dilation",
+        "padding",
+        "stride",
+    ]
 
     def __init__(
         self,

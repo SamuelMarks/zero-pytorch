@@ -137,20 +137,6 @@ def _extract_tensor(val: OpArg) -> Tensor:
     return Tensor(val)
 
 
-def _extract_reduction(kwargs: dict[str, OpArg], default: str = "mean") -> str:
-    """Extracts the `reduction` string from keyword arguments.
-
-    Args:
-        kwargs: Keyword argument dictionary.
-        default: Default reduction mode.
-
-    Returns:
-        Reduction mode string.
-    """
-    r = kwargs.get("reduction", default)
-    return r if isinstance(r, str) else default
-
-
 def _conv_pad_pairs(
     padding: int | Sequence[int] | str,
     k: tuple[int, ...],
@@ -457,18 +443,25 @@ def _conv_transpose_nd(
     return zero_torch.reshape(Tensor(out_buf, dtype=x.dtype), out_shape)
 
 
-def relu(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def relu(
+    input: Tensor | float = 0.0,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the rectified linear unit function element-wise.
 
     Args:
-        *args: Input tensor and optional positional arguments.
-        **kwargs: Optional keyword arguments (`inplace`).
+        input: Input tensor.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Tensor with ReLU applied.
     """
-    _ = kwargs
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
+    _ = (inplace, args, kwargs)
+    x = _extract_tensor(input)
     if x.requires_grad:
         from ..autograd.math_ops import ReluBackward
 
@@ -476,89 +469,136 @@ def relu(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(_ops.maximum(_to_tensor(x), 0.0))
 
 
-def softmax(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def softmax(
+    input: Tensor | float = 0.0,
+    dim: int | None = None,
+    _stacklevel: int = 3,
+    dtype: OpArg = None,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies a softmax function.
 
     Args:
-        *args: Input tensor and optional dimension.
-        **kwargs: Optional keyword arguments (`dim`, `dtype`).
+        input: Input tensor.
+        dim: Dimension along which softmax will be computed.
+        _stacklevel: Internal stacklevel for deprecation warnings.
+        dtype: Desired data type of returned tensor.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Softmax probability tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    dim_raw = args[1] if len(args) > 1 else kwargs.get("dim", -1)
-    dim = int(dim_raw) if isinstance(dim_raw, int) else -1
-    max_x = zero_torch.max(x, axis=dim, keepdims=True)
+    _ = (_stacklevel, dtype, args, kwargs)
+    x = _extract_tensor(input)
+    eff_dim = dim if isinstance(dim, int) else -1
+    max_x = zero_torch.max(x, axis=eff_dim, keepdims=True)
     exp_x = zero_torch.exp(x - max_x)
-    sum_exp = zero_torch.sum(exp_x, axis=dim, keepdims=True)
+    sum_exp = zero_torch.sum(exp_x, axis=eff_dim, keepdims=True)
     return exp_x / sum_exp
 
 
-def scaled_dot_product_attention(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def scaled_dot_product_attention(
+    query: Tensor | float = 0.0,
+    key: Tensor | None = None,
+    value: Tensor | None = None,
+    attn_mask: Tensor | None = None,
+    dropout_p: float = 0.0,
+    is_causal: bool = False,
+    *,
+    scale: float | None = None,
+    enable_gqa: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes scaled dot product attention on query, key and value tensors.
 
     Args:
-        *args: Query, key, and value tensors.
-        **kwargs: Optional keyword arguments (`attn_mask`, `dropout_p`, `is_causal`, `scale`).
+        query: Query tensor.
+        key: Key tensor.
+        value: Value tensor.
+        attn_mask: Optional attention mask tensor.
+        dropout_p: Dropout probability.
+        is_causal: If True, assumes causal attention masking.
+        scale: Optional scaling factor prior to softmax.
+        enable_gqa: If True, enables grouped query attention.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Attention output tensor.
     """
-    q = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("query", 0.0))
-    k = _extract_tensor(args[1] if len(args) > 1 else kwargs.get("key", q))
-    v = _extract_tensor(args[2] if len(args) > 2 else kwargs.get("value", k))
+    _ = (dropout_p, is_causal, enable_gqa, kwargs)
+    q = _extract_tensor(query)
+    k = key if isinstance(key, Tensor) else q
+    v = value if isinstance(value, Tensor) else k
     d_k = q.shape[-1] if len(q.shape) > 0 else 1
-    scale_raw = kwargs.get("scale")
-    scale = (
-        float(scale_raw)
-        if isinstance(scale_raw, (int, float))
+    eff_scale = (
+        float(scale)
+        if isinstance(scale, (int, float))
         else 1.0 / math.sqrt(max(1, d_k))
     )
     if len(q.shape) >= 2:
         k_t = zero_torch.swapaxes(k, -2, -1)
-        scores = zero_torch.matmul(q, k_t) * scale
-        attn_mask = kwargs.get("attn_mask")
+        scores = zero_torch.matmul(q, k_t) * eff_scale
         if isinstance(attn_mask, Tensor):
             scores = scores + attn_mask
         weights = softmax(scores, dim=-1)
         return zero_torch.matmul(weights, v)
-    return q * scale
+    return q * eff_scale
 
 
-def celu(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def celu(
+    input: Tensor | float = 0.0,
+    alpha: float = 1.0,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies element-wise `CELU(x) = max(0, x) + min(0, alpha * (exp(x/alpha) - 1))`.
 
     Args:
-        *args: Input tensor and optional `alpha`.
-        **kwargs: Optional keyword arguments (`alpha`, `inplace`).
+        input: Input tensor.
+        alpha: The `alpha` value for the CELU formulation.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    alpha_raw = args[1] if len(args) > 1 else kwargs.get("alpha", 1.0)
-    alpha = float(alpha_raw) if isinstance(alpha_raw, (int, float)) else 1.0
+    _ = (inplace, args, kwargs)
+    x = _extract_tensor(input)
     pos = zero_torch.maximum(x, 0.0)
     neg = zero_torch.minimum(0.0, alpha * (zero_torch.exp(x / alpha) - 1.0))
     return pos + neg
 
 
-def multilabel_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def multilabel_margin_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | None = None,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes multi-label margin loss over target class indices terminated by `-1`.
 
     Args:
-        *args: Input and target tensors.
-        **kwargs: Optional keyword arguments (`reduction`).
+        input: Input tensor.
+        target: Target class index tensor.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    t = _extract_tensor(
-        args[1] if len(args) > 1 else kwargs.get("target", zero_torch.zeros_like(x))
-    )
-    reduction = _extract_reduction(kwargs)
+    _ = (size_average, reduce, args, kwargs)
+    x = _extract_tensor(input)
+    t = target if isinstance(target, Tensor) else zero_torch.zeros_like(x)
     if not config.eager_mode or len(x.shape) == 0:
         return _reduce_loss(zero_torch.maximum(0.0, 1.0 - (x - t)), reduction)
 
@@ -592,32 +632,60 @@ def multilabel_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _reduce_loss(loss_tensor, reduction)
 
 
-def multi_label_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def multi_label_margin_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | None = None,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Alias for `multilabel_margin_loss`.
 
     Args:
-        *args: Input and target tensors.
-        **kwargs: Optional keyword arguments (`reduction`).
+        input: Input tensor.
+        target: Target class index tensor.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    return multilabel_margin_loss(*args, **kwargs)
+    _ = (args, kwargs)
+    return multilabel_margin_loss(
+        input,
+        target,
+        size_average=size_average,
+        reduce=reduce,
+        reduction=reduction,
+    )
 
 
-def elu(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def elu(
+    input: Tensor | float = 0.0,
+    alpha: float = 1.0,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies Exponential Linear Unit (ELU) element-wise.
 
     Args:
-        *args: Input tensor and optional `alpha`.
-        **kwargs: Optional keyword arguments (`alpha`, `inplace`).
+        input: Input tensor.
+        alpha: The `alpha` value for the ELU formulation.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    alpha_raw = args[1] if len(args) > 1 else kwargs.get("alpha", 1.0)
-    alpha = float(alpha_raw) if isinstance(alpha_raw, (int, float)) else 1.0
+    _ = (inplace, args, kwargs)
+    x = _extract_tensor(input)
     return zero_torch.where(x > 0, x, alpha * (zero_torch.exp(x) - 1.0))
 
 
@@ -637,39 +705,51 @@ def _logaddexp(a: float, b: float) -> float:
     return m + math.log(math.exp(a - m) + math.exp(b - m))
 
 
-def ctc_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def ctc_loss(
+    log_probs: Tensor | float = 0.0,
+    targets: Tensor | None = None,
+    input_lengths: Tensor | Sequence[int] | None = None,
+    target_lengths: Tensor | Sequence[int] | None = None,
+    blank: int = 0,
+    reduction: str = "mean",
+    zero_infinity: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the Connectionist Temporal Classification (CTC) forward-backward loss.
 
     Args:
-        *args: `log_probs`, `targets`, `input_lengths`, `target_lengths`.
-        **kwargs: Optional keyword arguments (`blank`, `reduction`, `zero_infinity`).
+        log_probs: Log-probabilities tensor of shape `(T, N, C)` or `(T, C)`.
+        targets: Target sequence indices tensor.
+        input_lengths: Lengths of the inputs.
+        target_lengths: Lengths of the targets.
+        blank: Blank label index.
+        reduction: Specifies the reduction to apply (`'none'`, `'mean'`, `'sum'`).
+        zero_infinity: Whether to zero infinite losses and the associated gradients.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed CTC loss tensor.
     """
-    log_probs = _extract_tensor(
-        args[0] if len(args) > 0 else kwargs.get("log_probs", 0.0)
-    )
-    reduction = _extract_reduction(kwargs)
-    targets_raw = args[1] if len(args) > 1 else kwargs.get("targets")
-    in_lens_raw = args[2] if len(args) > 2 else kwargs.get("input_lengths")
-    tgt_lens_raw = args[3] if len(args) > 3 else kwargs.get("target_lengths")
-    blank_raw = args[4] if len(args) > 4 else kwargs.get("blank", 0)
-    blank = int(blank_raw) if isinstance(blank_raw, int) else 0
-    zero_infinity = bool(kwargs.get("zero_infinity", False))
+    _ = (args, kwargs)
+    lp_tensor = _extract_tensor(log_probs)
+    targets_raw = targets
+    in_lens_raw = input_lengths
+    tgt_lens_raw = target_lengths
 
     if (
         not config.eager_mode
         or not isinstance(targets_raw, Tensor)
-        or len(log_probs.shape) < 2
+        or len(lp_tensor.shape) < 2
     ):
-        return _reduce_loss(-log_probs, reduction)
+        return _reduce_loss(-lp_tensor, reduction)
 
     # Support both (T, N, C) and (T, C) unbatched inputs
-    if len(log_probs.shape) == 2:
-        lp_tnc = zero_torch.unsqueeze(log_probs, 1)
+    if len(lp_tensor.shape) == 2:
+        lp_tnc = zero_torch.unsqueeze(lp_tensor, 1)
     else:
-        lp_tnc = log_probs
+        lp_tnc = lp_tensor
     t_max, batch_size, num_classes = lp_tnc.shape[0], lp_tnc.shape[1], lp_tnc.shape[2]
     lp_flat = _to_float_list(lp_tnc)
     tgt_flat = [int(v) for v in _to_float_list(targets_raw)]
@@ -736,92 +816,149 @@ def ctc_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
         nll = 0.0 if (zero_infinity and math.isinf(log_prob)) else -log_prob
         losses.append(nll)
 
-    loss_vec = Tensor(losses, dtype=log_probs.dtype)
+    loss_vec = Tensor(losses, dtype=lp_tensor.dtype)
     if reduction == "none":
         return (
             loss_vec
-            if len(log_probs.shape) == 3
-            else Tensor(losses[0], dtype=log_probs.dtype)
+            if len(lp_tensor.shape) == 3
+            else Tensor(losses[0], dtype=lp_tensor.dtype)
         )
     if reduction == "sum":
         return zero_torch.sum(loss_vec)
     denom = [float(max(1, tl)) for tl in tgt_lens]
     norm_losses = [l_val / d_val for l_val, d_val in zip(losses, denom)]
     return Tensor(
-        sum(norm_losses) / float(max(1, len(norm_losses))), dtype=log_probs.dtype
+        sum(norm_losses) / float(max(1, len(norm_losses))), dtype=lp_tensor.dtype
     )
 
 
-def multilabel_soft_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def multilabel_soft_margin_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | float = 0.0,
+    weight: Tensor | None = None,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes multi-label soft margin loss.
 
     Args:
-        *args: Input and target tensors.
-        **kwargs: Optional keyword arguments (`weight`, `reduction`).
+        input: Input tensor.
+        target: Target tensor.
+        weight: Optional class weight tensor.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    t = _extract_tensor(args[1] if len(args) > 1 else kwargs.get("target", 0.0))
-    reduction = _extract_reduction(kwargs)
+    _ = (size_average, reduce, args, kwargs)
+    x = _extract_tensor(input)
+    t = _extract_tensor(target)
     loss = -(t * logsigmoid(x) + (1.0 - t) * logsigmoid(-x))
-    w = kwargs.get("weight")
-    if isinstance(w, Tensor):
-        loss = loss * w
+    if isinstance(weight, Tensor):
+        loss = loss * weight
     loss = zero_torch.mean(loss, axis=-1)
     return _reduce_loss(loss, reduction)
 
 
-def multi_label_soft_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def multi_label_soft_margin_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | float = 0.0,
+    weight: Tensor | None = None,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Alias for `multilabel_soft_margin_loss`.
 
     Args:
-        *args: Input and target tensors.
-        **kwargs: Optional keyword arguments (`weight`, `reduction`).
+        input: Input tensor.
+        target: Target tensor.
+        weight: Optional class weight tensor.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    return multilabel_soft_margin_loss(*args, **kwargs)
+    _ = (args, kwargs)
+    return multilabel_soft_margin_loss(
+        input,
+        target,
+        weight=weight,
+        size_average=size_average,
+        reduce=reduce,
+        reduction=reduction,
+    )
 
 
-def gelu(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def gelu(
+    input: Tensor | float = 0.0,
+    approximate: str = "none",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies Gaussian Error Linear Units function.
 
     Args:
-        *args: Input tensor.
-        **kwargs: Optional keyword arguments (`approximate`).
+        input: Input tensor.
+        approximate: Approximation mode (`'none'` or `'tanh'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    approx = kwargs.get("approximate", "none")
-    if approx == "tanh":
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
+    if approximate == "tanh":
         inner = math.sqrt(2.0 / math.pi) * (x + 0.044715 * (x**3))
         return 0.5 * x * (1.0 + tanh(inner))
     return 0.5 * x * (1.0 + zero_torch.erf(x / math.sqrt(2.0)))
 
 
-def cosine_embedding_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def cosine_embedding_loss(
+    input1: Tensor | float = 0.0,
+    input2: Tensor | None = None,
+    target: Tensor | None = None,
+    margin: float = 0.0,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes cosine embedding loss.
 
     Args:
-        *args: `input1`, `input2`, and `target` tensors.
-        **kwargs: Optional keyword arguments (`margin`, `reduction`).
+        input1: First input tensor.
+        input2: Second input tensor.
+        target: Target label tensor (`1` or `-1`).
+        margin: Margin factor.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x1 = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input1", 0.0))
-    x2 = _extract_tensor(args[1] if len(args) > 1 else kwargs.get("input2", x1))
-    y = _extract_tensor(
-        args[2] if len(args) > 2 else kwargs.get("target", zero_torch.ones_like(x1))
-    )
-    margin_raw = kwargs.get("margin", 0.0)
-    margin = float(margin_raw) if isinstance(margin_raw, (int, float)) else 0.0
-    reduction = _extract_reduction(kwargs)
+    _ = (size_average, reduce, args, kwargs)
+    x1 = _extract_tensor(input1)
+    x2 = input2 if isinstance(input2, Tensor) else x1
+    y = target if isinstance(target, Tensor) else zero_torch.ones_like(x1)
     norm1 = zero_torch.sqrt(zero_torch.sum(x1 * x1, axis=-1) + 1e-8)
     norm2 = zero_torch.sqrt(zero_torch.sum(x2 * x2, axis=-1) + 1e-8)
     cos = zero_torch.sum(x1 * x2, axis=-1) / (norm1 * norm2)
@@ -836,24 +973,39 @@ def cosine_embedding_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _reduce_loss(loss, reduction)
 
 
-def multi_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def multi_margin_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | None = None,
+    p: int = 1,
+    margin: float = 1.0,
+    weight: Tensor | None = None,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes multi-class hinge margin loss over target class indices.
 
     Args:
-        *args: Input and target tensors.
-        **kwargs: Optional keyword arguments (`p`, `margin`, `weight`, `reduction`).
+        input: Input tensor.
+        target: Target class index tensor.
+        p: Standard exponent (`1` or `2`).
+        margin: Margin offset.
+        weight: Optional class rescaling weight tensor.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    t_raw = args[1] if len(args) > 1 else kwargs.get("target")
-    p_raw = args[2] if len(args) > 2 else kwargs.get("p", 1)
-    margin_raw = args[3] if len(args) > 3 else kwargs.get("margin", 1.0)
-    w_raw = args[4] if len(args) > 4 else kwargs.get("weight")
-    margin = float(margin_raw) if isinstance(margin_raw, (int, float)) else 1.0
-    p = int(p_raw) if isinstance(p_raw, int) else 1
-    reduction = _extract_reduction(kwargs)
+    _ = (size_average, reduce, args, kwargs)
+    x = _extract_tensor(input)
+    t_raw = target
+    w_raw = weight
 
     if not config.eager_mode or not isinstance(t_raw, Tensor) or len(x.shape) == 0:
         loss = zero_torch.maximum(0.0, margin - x) ** p
@@ -886,19 +1038,25 @@ def multi_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _reduce_loss(loss_tensor, reduction)
 
 
-def glu(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def glu(
+    input: Tensor | float = 0.0,
+    dim: int = -1,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the gated linear unit function `GLU(a, b) = a * sigmoid(b)`.
 
     Args:
-        *args: Input tensor and optional dimension.
-        **kwargs: Optional keyword arguments (`dim`).
+        input: Input tensor.
+        dim: Dimension on which to split the input.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    dim_raw = args[1] if len(args) > 1 else kwargs.get("dim", -1)
-    dim = int(dim_raw) if isinstance(dim_raw, int) else -1
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     if len(x.shape) > 0:
         norm_dim = dim if dim >= 0 else len(x.shape) + dim
         if x.shape[norm_dim] % 2 == 0:
@@ -910,26 +1068,36 @@ def glu(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return x * sigmoid(x)
 
 
-def gaussian_nll_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def gaussian_nll_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | float = 0.0,
+    var: Tensor | float = 1.0,
+    full: bool = False,
+    eps: float = 1e-06,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes Gaussian negative log likelihood loss.
 
     Args:
-        *args: `input`, `target`, and `var` tensors.
-        **kwargs: Optional keyword arguments (`full`, `eps`, `reduction`).
+        input: Expectation of the Gaussian distribution.
+        target: Sample from the Gaussian distribution.
+        var: Tensor of positive variance(s).
+        full: Include the constant term in the loss calculation.
+        eps: Value added to var for stability.
+        reduction: Specifies the reduction to apply (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    t = _extract_tensor(args[1] if len(args) > 1 else kwargs.get("target", 0.0))
-    var = _extract_tensor(
-        args[2] if len(args) > 2 else kwargs.get("var", zero_torch.ones_like(x))
-    )
-    eps_raw = kwargs.get("eps", 1e-6)
-    eps = float(eps_raw) if isinstance(eps_raw, (int, float)) else 1e-6
-    full = bool(kwargs.get("full", False))
-    reduction = _extract_reduction(kwargs)
-    var_clamped = zero_torch.maximum(var, eps)
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
+    t = _extract_tensor(target)
+    v = _extract_tensor(var)
+    var_clamped = zero_torch.maximum(v, eps)
     loss = 0.5 * (zero_torch.log(var_clamped) + ((x - t) ** 2) / var_clamped)
     if full:
         loss = loss + 0.5 * math.log(2.0 * math.pi)
@@ -1019,45 +1187,71 @@ def hardshrink(input: Tensor, lambd: float = 0.5) -> Tensor:
     return _wrap(_where(cond, t, _to_tensor(0.0)))
 
 
-def hinge_embedding_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def hinge_embedding_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | None = None,
+    margin: float = 1.0,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes hinge embedding loss.
 
     Args:
-        *args: Input and target tensors.
-        **kwargs: Optional keyword arguments (`margin`, `reduction`).
+        input: Input tensor.
+        target: Target tensor (`1` or `-1`).
+        margin: Margin threshold.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    y = _extract_tensor(
-        args[1] if len(args) > 1 else kwargs.get("target", zero_torch.ones_like(x))
-    )
-    margin_raw = kwargs.get("margin", 1.0)
-    margin = float(margin_raw) if isinstance(margin_raw, (int, float)) else 1.0
-    reduction = _extract_reduction(kwargs)
+    _ = (size_average, reduce, args, kwargs)
+    x = _extract_tensor(input)
+    y = target if isinstance(target, Tensor) else zero_torch.ones_like(x)
     loss = zero_torch.where(y == 1, x, zero_torch.maximum(0.0, margin - x))
     return _reduce_loss(loss, reduction)
 
 
-def poisson_nll_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def poisson_nll_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | float = 0.0,
+    log_input: bool = True,
+    full: bool = False,
+    size_average: bool | None = None,
+    eps: float = 1e-08,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes Poisson negative log likelihood loss.
 
     Args:
-        *args: `input` and `target` tensors.
-        **kwargs: Optional keyword arguments (`log_input`, `full`, `eps`, `reduction`).
+        input: Expectation of underlying Poisson distribution.
+        target: Random sample `target ~ Poisson(input)`.
+        log_input: If True, loss is computed as `exp(input) - target * input`.
+        full: Whether to compute full loss including Stirling approximation term.
+        size_average: Deprecated flag.
+        eps: Small value to avoid evaluation of `log(0)` when `log_input=False`.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    t = _extract_tensor(args[1] if len(args) > 1 else kwargs.get("target", 0.0))
-    log_inp = bool(kwargs.get("log_input", True))
-    full = bool(kwargs.get("full", False))
-    eps_raw = kwargs.get("eps", 1e-8)
-    eps = float(eps_raw) if isinstance(eps_raw, (int, float)) else 1e-8
-    reduction = _extract_reduction(kwargs)
-    loss = zero_torch.exp(x) - t * x if log_inp else x - t * zero_torch.log(x + eps)
+    _ = (size_average, reduce, args, kwargs)
+    x = _extract_tensor(input)
+    t = _extract_tensor(target)
+    loss = zero_torch.exp(x) - t * x if log_input else x - t * zero_torch.log(x + eps)
     if full:
         stirling = (
             t * zero_torch.log(zero_torch.maximum(t, 1.0))
@@ -1068,18 +1262,23 @@ def poisson_nll_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _reduce_loss(loss, reduction)
 
 
-def sigmoid(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def sigmoid(
+    input: Tensor | float = 0.0,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the element-wise function `Sigmoid(x) = 1 / (1 + exp(-x))`.
 
     Args:
-        *args: Input tensor.
-        **kwargs: Optional keyword arguments.
+        input: Input tensor.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    _ = kwargs
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     if x.requires_grad:
         from ..autograd.math_ops import SigmoidBackward
 
@@ -1089,21 +1288,32 @@ def sigmoid(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def huber_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def huber_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | float = 0.0,
+    reduction: str = "mean",
+    delta: float = 1.0,
+    weight: Tensor | None = None,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes Huber loss.
 
     Args:
-        *args: Input and target tensors.
-        **kwargs: Optional keyword arguments (`reduction`, `delta`).
+        input: Input tensor.
+        target: Target tensor.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        delta: Threshold at which to change between delta-scaled L1 and L2 loss.
+        weight: Optional element-wise weight tensor.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    t = _extract_tensor(args[1] if len(args) > 1 else kwargs.get("target", 0.0))
-    delta_raw = kwargs.get("delta", 1.0)
-    delta = float(delta_raw) if isinstance(delta_raw, (int, float)) else 1.0
-    reduction = _extract_reduction(kwargs)
+    _ = (weight, args, kwargs)
+    x = _extract_tensor(input)
+    t = _extract_tensor(target)
     diff = zero_torch.abs(x - t)
     loss = zero_torch.where(diff < delta, 0.5 * (diff**2), delta * (diff - 0.5 * delta))
     return _reduce_loss(loss, reduction)
@@ -1199,83 +1409,130 @@ def kl_div(
     return loss
 
 
-def soft_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def soft_margin_loss(
+    input: Tensor | float = 0.0,
+    target: Tensor | None = None,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes soft margin loss.
 
     Args:
-        *args: Input and target tensors.
-        **kwargs: Optional keyword arguments (`reduction`).
+        input: Input tensor.
+        target: Target tensor (`1` or `-1`).
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    y = _extract_tensor(
-        args[1] if len(args) > 1 else kwargs.get("target", zero_torch.ones_like(x))
-    )
-    reduction = _extract_reduction(kwargs)
+    _ = (size_average, reduce, args, kwargs)
+    x = _extract_tensor(input)
+    y = target if isinstance(target, Tensor) else zero_torch.ones_like(x)
     loss = zero_torch.log(1.0 + zero_torch.exp(-y * x))
     return _reduce_loss(loss, reduction)
 
 
-def hardswish(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def hardswish(
+    input: Tensor | float = 0.0,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the hardswish function element-wise.
 
     Args:
-        *args: Input tensor.
-        **kwargs: Optional keyword arguments (`inplace`).
+        input: Input tensor.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    _ = kwargs
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
+    _ = (inplace, args, kwargs)
+    x = _extract_tensor(input)
     return x * zero_torch.clip(x + 3.0, 0.0, 6.0) / 6.0
 
 
-def margin_ranking_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def margin_ranking_loss(
+    input1: Tensor | float = 0.0,
+    input2: Tensor | None = None,
+    target: Tensor | None = None,
+    margin: float = 0.0,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes margin ranking loss.
 
     Args:
-        *args: `input1`, `input2`, and `target` tensors.
-        **kwargs: Optional keyword arguments (`margin`, `reduction`).
+        input1: First input tensor.
+        input2: Second input tensor.
+        target: Target label tensor (`1` or `-1`).
+        margin: Margin offset.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    x1 = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input1", 0.0))
-    x2 = _extract_tensor(args[1] if len(args) > 1 else kwargs.get("input2", x1))
-    y = _extract_tensor(
-        args[2] if len(args) > 2 else kwargs.get("target", zero_torch.ones_like(x1))
-    )
-    margin_raw = kwargs.get("margin", 0.0)
-    margin = float(margin_raw) if isinstance(margin_raw, (int, float)) else 0.0
-    reduction = _extract_reduction(kwargs)
+    _ = (size_average, reduce, args, kwargs)
+    x1 = _extract_tensor(input1)
+    x2 = input2 if isinstance(input2, Tensor) else x1
+    y = target if isinstance(target, Tensor) else zero_torch.ones_like(x1)
     loss = zero_torch.maximum(0.0, -y * (x1 - x2) + margin)
     return _reduce_loss(loss, reduction)
 
 
-def triplet_margin_loss(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def triplet_margin_loss(
+    anchor: Tensor | float = 0.0,
+    positive: Tensor | None = None,
+    negative: Tensor | None = None,
+    margin: float = 1.0,
+    p: float = 2.0,
+    eps: float = 1e-06,
+    swap: bool = False,
+    size_average: bool | None = None,
+    reduce: bool | None = None,
+    reduction: str = "mean",
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes triplet margin loss.
 
     Args:
-        *args: `anchor`, `positive`, and `negative` tensors.
-        **kwargs: Optional keyword arguments (`margin`, `p`, `eps`, `swap`, `reduction`).
+        anchor: Anchor input tensor.
+        positive: Positive input tensor.
+        negative: Negative input tensor.
+        margin: Margin value.
+        p: Norm degree for pairwise distance.
+        eps: Small constant for numerical stability.
+        swap: Distance swap flag.
+        size_average: Deprecated flag.
+        reduce: Deprecated flag.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    a = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("anchor", 0.0))
-    p_t = _extract_tensor(args[1] if len(args) > 1 else kwargs.get("positive", a))
-    n_t = _extract_tensor(args[2] if len(args) > 2 else kwargs.get("negative", a))
-    margin_raw = kwargs.get("margin", 1.0)
-    margin = float(margin_raw) if isinstance(margin_raw, (int, float)) else 1.0
-    p_raw = kwargs.get("p", 2.0)
-    p = float(p_raw) if isinstance(p_raw, (int, float)) else 2.0
-    eps_raw = kwargs.get("eps", 1e-6)
-    eps = float(eps_raw) if isinstance(eps_raw, (int, float)) else 1e-6
-    swap = bool(kwargs.get("swap", False))
-    reduction = _extract_reduction(kwargs)
+    _ = (size_average, reduce, args, kwargs)
+    a = _extract_tensor(anchor)
+    p_t = positive if isinstance(positive, Tensor) else a
+    n_t = negative if isinstance(negative, Tensor) else a
     d_pos = (zero_torch.sum(zero_torch.abs(a - p_t) ** p, axis=-1) + eps) ** (1.0 / p)
     d_neg = (zero_torch.sum(zero_torch.abs(a - n_t) ** p, axis=-1) + eps) ** (1.0 / p)
     if swap:
@@ -1309,35 +1566,40 @@ def hardtanh(
 
 
 def triplet_margin_with_distance_loss(
-    *args: OpArg | Callable[[Tensor, Tensor], Tensor],
-    **kwargs: OpArg | Callable[[Tensor, Tensor], Tensor],
+    anchor: Tensor | float = 0.0,
+    positive: Tensor | None = None,
+    negative: Tensor | None = None,
+    *,
+    distance_function: Callable[[Tensor, Tensor], Tensor] | None = None,
+    margin: float = 1.0,
+    swap: bool = False,
+    reduction: str = "mean",
+    **kwargs: OpArg,
 ) -> Tensor:
     """Computes triplet margin loss with a custom distance function.
 
     Args:
-        *args: `anchor`, `positive`, and `negative` tensors.
-        **kwargs: Optional keyword arguments (`distance_function`, `margin`, `swap`, `reduction`).
+        anchor: Anchor tensor.
+        positive: Positive tensor.
+        negative: Negative tensor.
+        distance_function: Optional pairwise distance function.
+        margin: Margin threshold.
+        swap: Whether to use distance swap.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed loss tensor.
     """
-    a_raw = args[0] if len(args) > 0 else kwargs.get("anchor", 0.0)
-    p_raw = args[1] if len(args) > 1 else kwargs.get("positive", a_raw)
-    n_raw = args[2] if len(args) > 2 else kwargs.get("negative", a_raw)
-    a = a_raw if isinstance(a_raw, Tensor) else Tensor(0.0)
-    p_t = p_raw if isinstance(p_raw, Tensor) else a
-    n_t = n_raw if isinstance(n_raw, Tensor) else a
-    dist_fn = kwargs.get("distance_function")
-    margin_raw = kwargs.get("margin", 1.0)
-    margin = float(margin_raw) if isinstance(margin_raw, (int, float)) else 1.0
-    swap = bool(kwargs.get("swap", False))
-    red_raw = kwargs.get("reduction", "mean")
-    reduction = red_raw if isinstance(red_raw, str) else "mean"
-    if callable(dist_fn):
-        d_pos = dist_fn(a, p_t)
-        d_neg = dist_fn(a, n_t)
+    _ = kwargs
+    a = anchor if isinstance(anchor, Tensor) else Tensor(0.0)
+    p_t = positive if isinstance(positive, Tensor) else a
+    n_t = negative if isinstance(negative, Tensor) else a
+    if callable(distance_function):
+        d_pos = distance_function(a, p_t)
+        d_neg = distance_function(a, n_t)
         if swap:
-            d_neg = zero_torch.minimum(d_neg, dist_fn(p_t, n_t))
+            d_neg = zero_torch.minimum(d_neg, distance_function(p_t, n_t))
     else:
         d_pos = zero_torch.sqrt(zero_torch.sum((a - p_t) ** 2, axis=-1) + 1e-6)
         d_neg = zero_torch.sqrt(zero_torch.sum((a - n_t) ** 2, axis=-1) + 1e-6)
@@ -1348,20 +1610,28 @@ def triplet_margin_with_distance_loss(
     return _reduce_loss(loss, reduction)
 
 
-def leaky_relu(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def leaky_relu(
+    input: Tensor | float = 0.0,
+    negative_slope: float = 0.01,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the element-wise function `LeakyReLU(x) = max(0, x) + negative_slope * min(0, x)`.
 
     Args:
-        *args: Input tensor and optional `negative_slope`.
-        **kwargs: Optional keyword arguments (`negative_slope`, `inplace`).
+        input: Input tensor.
+        negative_slope: Controls the angle of the negative slope.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    slope_raw = args[1] if len(args) > 1 else kwargs.get("negative_slope", 0.01)
-    slope = float(slope_raw) if isinstance(slope_raw, (int, float)) else 0.01
-    return zero_torch.where(x >= 0, x, slope * x)
+    _ = (inplace, args, kwargs)
+    x = _extract_tensor(input)
+    return zero_torch.where(x >= 0, x, negative_slope * x)
 
 
 def logsigmoid(input: Tensor) -> Tensor:
@@ -1376,39 +1646,57 @@ def logsigmoid(input: Tensor) -> Tensor:
     return -softplus(-input)
 
 
-def log_softmax(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def log_softmax(
+    input: Tensor | float = 0.0,
+    dim: int | None = None,
+    _stacklevel: int = 3,
+    dtype: OpArg = None,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies a softmax followed by a logarithm.
 
     Args:
-        *args: Input tensor and optional `dim`.
-        **kwargs: Optional keyword arguments (`dim`, `dtype`).
+        input: Input tensor.
+        dim: Dimension along which `log_softmax` will be computed.
+        _stacklevel: Internal stacklevel for deprecation warnings.
+        dtype: Desired data type of returned tensor.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Log-softmax tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    dim_raw = args[1] if len(args) > 1 else kwargs.get("dim", -1)
-    dim = int(dim_raw) if isinstance(dim_raw, int) else -1
-    max_x = zero_torch.max(x, axis=dim, keepdims=True)
+    _ = (_stacklevel, dtype, args, kwargs)
+    x = _extract_tensor(input)
+    eff_dim = dim if isinstance(dim, int) else -1
+    max_x = zero_torch.max(x, axis=eff_dim, keepdims=True)
     shifted = x - max_x
     log_sum_exp = zero_torch.log(
-        zero_torch.sum(zero_torch.exp(shifted), axis=dim, keepdims=True)
+        zero_torch.sum(zero_torch.exp(shifted), axis=eff_dim, keepdims=True)
     )
     return shifted - log_sum_exp
 
 
-def mish(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def mish(
+    input: Tensor | float = 0.0,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the Mish function element-wise.
 
     Args:
-        *args: Input tensor.
-        **kwargs: Optional keyword arguments (`inplace`).
+        input: Input tensor.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    _ = kwargs
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
+    _ = (inplace, args, kwargs)
+    x = _extract_tensor(input)
     return x * tanh(softplus(x))
 
 
@@ -1471,18 +1759,25 @@ def relu6(input: Tensor, inplace: bool = False) -> Tensor:
     return zero_torch.clip(input, 0.0, 6.0)
 
 
-def selu(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def selu(
+    input: Tensor | float = 0.0,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the SELU function element-wise.
 
     Args:
-        *args: Input tensor.
-        **kwargs: Optional keyword arguments (`inplace`).
+        input: Input tensor.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    _ = kwargs
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
+    _ = (inplace, args, kwargs)
+    x = _extract_tensor(input)
     alpha = 1.6732632423543772
     scale = 1.0507009873554805
     return scale * zero_torch.where(x > 0, x, alpha * (zero_torch.exp(x) - 1.0))
@@ -1514,37 +1809,51 @@ def softmax2d(input: Tensor) -> Tensor:
     return softmax(input, dim=-3 if len(input.shape) >= 3 else 0)
 
 
-def softmin(input: Tensor, dim: int | None = None) -> Tensor:
+def softmin(
+    input: Tensor,
+    dim: int | None = None,
+    _stacklevel: int = 3,
+    dtype: OpArg = None,
+) -> Tensor:
     """Applies a softmin function `Softmin(x) = Softmax(-x)`.
 
     Args:
         input: Input tensor.
         dim: Dimension along which softmin will be computed.
+        _stacklevel: Internal stacklevel for deprecation warnings.
+        dtype: Desired data type of returned tensor.
 
     Returns:
         Output tensor.
     """
+    _ = (_stacklevel, dtype)
     return softmax(-input, dim=dim)
 
 
-def softplus(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def softplus(
+    input: Tensor | float = 0.0,
+    beta: float = 1.0,
+    threshold: float = 20.0,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the element-wise function `Softplus(x) = (1/beta) * log(1 + exp(beta * x))`.
 
     Args:
-        *args: Input tensor.
-        **kwargs: Optional keyword arguments (`beta`, `threshold`).
+        input: Input tensor.
+        beta: The `beta` value for the Softplus formulation.
+        threshold: Values above this revert to a linear function.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    beta_raw = args[1] if len(args) > 1 else kwargs.get("beta", 1.0)
-    thresh_raw = args[2] if len(args) > 2 else kwargs.get("threshold", 20.0)
-    beta = float(beta_raw) if isinstance(beta_raw, (int, float)) else 1.0
-    threshold_val = float(thresh_raw) if isinstance(thresh_raw, (int, float)) else 20.0
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     bx = x * beta
     return zero_torch.where(
-        bx > threshold_val,
+        bx > threshold,
         x,
         zero_torch.log(1.0 + zero_torch.exp(bx)) / beta,
     )
@@ -1592,18 +1901,23 @@ def softsign(input: Tensor) -> Tensor:
     return input / (1.0 + zero_torch.abs(input))
 
 
-def tanh(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def tanh(
+    input: Tensor | float = 0.0,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the element-wise Hyperbolic Tangent (`Tanh`) function.
 
     Args:
-        *args: Input tensor.
-        **kwargs: Optional keyword arguments.
+        input: Input tensor.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    _ = kwargs
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     if x.requires_grad:
         from ..autograd.math_ops import TanhBackward
 
@@ -1669,21 +1983,29 @@ def adaptive_avg_pool2d(input: Tensor, output_size: OptSize2d = 1) -> Tensor:
     return _fp_adaptive_avg_pool2d(input, output_size)
 
 
-def alpha_dropout(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def alpha_dropout(
+    input: Tensor | float = 0.0,
+    p: float = 0.5,
+    training: bool = False,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies alpha dropout.
 
     Args:
-        *args: Input tensor and dropout probability.
-        **kwargs: Optional keyword arguments (`p`, `training`, `inplace`).
+        input: Input tensor.
+        p: Probability of an element to be dropped.
+        training: Switch between training and evaluation mode.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    p_raw = args[1] if len(args) > 1 else kwargs.get("p", 0.5)
-    p = float(p_raw) if isinstance(p_raw, (int, float)) else 0.5
-    training = bool(kwargs.get("training", False))
-    inplace = bool(kwargs.get("inplace", False))
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     return _fp_alpha_dropout(x, p=p, training=training, inplace=inplace)
 
 
@@ -1873,20 +2195,49 @@ def max_pool3d(
     )
 
 
-def batch_norm(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def batch_norm(
+    input: Tensor | float = 0.0,
+    running_mean: Tensor | None = None,
+    running_var: Tensor | None = None,
+    weight: Tensor | None = None,
+    bias: Tensor | None = None,
+    training: bool = False,
+    momentum: float = 0.1,
+    eps: float = 1e-05,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies batch normalization.
 
     Args:
-        *args: Input tensor and running stats.
-        **kwargs: Optional keyword arguments (`eps`, `momentum`, `training`).
+        input: Input tensor.
+        running_mean: Running mean tensor.
+        running_var: Running variance tensor.
+        weight: Optional scale weight tensor.
+        bias: Optional shift bias tensor.
+        training: Whether in training mode.
+        momentum: Momentum for running statistics update.
+        eps: Numerical stability epsilon.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Normalized tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     if len(x.shape) < 2:
         return x
-    return _fp_batch_norm(x, *args[1:], **kwargs)
+    return _fp_batch_norm(
+        x,
+        running_mean,
+        running_var,
+        weight=weight,
+        bias=bias,
+        training=training,
+        momentum=momentum,
+        eps=eps,
+    )
 
 
 def complex(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -1902,60 +2253,121 @@ def complex(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _extract_tensor(args[0] if len(args) > 0 else kwargs.get("real", 0.0))
 
 
-def conv_transpose1d(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def conv_transpose1d(
+    input: Tensor | float = 0.0,
+    weight: Tensor | None = None,
+    bias: Tensor | None = None,
+    stride: Size1d = 1,
+    padding: Size1d = 0,
+    output_padding: Size1d = 0,
+    groups: int = 1,
+    dilation: Size1d = 1,
+) -> Tensor:
     """Applies a 1D transposed convolution operator.
 
     Args:
-        *args: `input`, `weight`, and optional `bias`, `stride`, `padding`, `output_padding`, `groups`, `dilation`.
-        **kwargs: Optional keyword arguments (`stride`, `padding`, `output_padding`, `groups`, `dilation`).
+        input: Input tensor of shape `(minibatch, in_channels, iW)`.
+        weight: Filters of shape `(in_channels, out_channels / groups, kW)`.
+        bias: Optional bias of shape `(out_channels,)`.
+        stride: Stride of theet convolving kernel.
+        padding: Implicit zero-padding awareness.
+        output_padding: Additional size added to one side of each dimension in the output shape.
+        groups: Split input into groups.
+        dilation: Spacing between kernel elements.
 
     Returns:
         Transposed convolved tensor.
     """
-    return _conv_transpose_nd(1, *args, **kwargs)
+    if weight is None:
+        return _conv_transpose_nd(1, input)
+    return _conv_transpose_nd(
+        1, input, weight, bias, stride, padding, output_padding, groups, dilation
+    )
 
 
-def conv_transpose2d(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def conv_transpose2d(
+    input: Tensor | float = 0.0,
+    weight: Tensor | None = None,
+    bias: Tensor | None = None,
+    stride: Size2d = 1,
+    padding: Size2d = 0,
+    output_padding: Size2d = 0,
+    groups: int = 1,
+    dilation: Size2d = 1,
+) -> Tensor:
     """Applies a 2D transposed convolution operator.
 
     Args:
-        *args: `input`, `weight`, and optional `bias`, `stride`, `padding`, `output_padding`, `groups`, `dilation`.
-        **kwargs: Optional keyword arguments (`stride`, `padding`, `output_padding`, `groups`, `dilation`).
+        input: Input tensor of shape `(minibatch, in_channels, iH, iW)`.
+        weight: Filters of shape `(in_channels, out_channels / groups, kH, kW)`.
+        bias: Optional bias of shape `(out_channels,)`.
+        stride: Stride of the convolving kernel.
+        padding: Implicit zero-padding awareness.
+        output_padding: Additional size added to one side of each dimension in the output shape.
+        groups: Split input into groups.
+        dilation: Spacing between kernel elements.
 
     Returns:
         Transposed convolved tensor.
     """
-    return _conv_transpose_nd(2, *args, **kwargs)
+    return _conv_transpose_nd(
+        2, input, weight, bias, stride, padding, output_padding, groups, dilation
+    )
 
 
-def conv_transpose3d(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def conv_transpose3d(
+    input: Tensor | float = 0.0,
+    weight: Tensor | None = None,
+    bias: Tensor | None = None,
+    stride: Size3d = 1,
+    padding: Size3d = 0,
+    output_padding: Size3d = 0,
+    groups: int = 1,
+    dilation: Size3d = 1,
+) -> Tensor:
     """Applies a 3D transposed convolution operator.
 
     Args:
-        *args: `input`, `weight`, and optional `bias`, `stride`, `padding`, `output_padding`, `groups`, `dilation`.
-        **kwargs: Optional keyword arguments (`stride`, `padding`, `output_padding`, `groups`, `dilation`).
+        input: Input tensor of shape `(minibatch, in_channels, iT, iH, iW)`.
+        weight: Filters of shape `(in_channels, out_channels / groups, kT, kH, kW)`.
+        bias: Optional bias of shape `(out_channels,)`.
+        stride: Stride of the convolving kernel.
+        padding: Implicit zero-padding awareness.
+        output_padding: Additional size added to one side of each dimension in the output shape.
+        groups: Split input into groups.
+        dilation: Spacing between kernel elements.
 
     Returns:
         Transposed convolved tensor.
     """
-    return _conv_transpose_nd(3, *args, **kwargs)
+    return _conv_transpose_nd(
+        3, input, weight, bias, stride, padding, output_padding, groups, dilation
+    )
 
 
-def dropout(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def dropout(
+    input: Tensor | float = 0.0,
+    p: float = 0.5,
+    training: bool = False,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies dropout.
 
     Args:
-        *args: Input tensor and optional dropout probability `p`.
-        **kwargs: Optional keyword arguments (`p`, `training`, `inplace`).
+        input: Input tensor.
+        p: Probability of an element to be zeroed.
+        training: Apply dropout if True.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    p_raw = args[1] if len(args) > 1 else kwargs.get("p", 0.5)
-    p = float(p_raw) if isinstance(p_raw, (int, float)) else 0.5
-    training = bool(kwargs.get("training", False))
-    inplace = bool(kwargs.get("inplace", False))
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     return _fp_dropout(x, p=p, training=training, inplace=inplace)
 
 
@@ -2010,25 +2422,41 @@ def dropout3d(
     return _fp_dropout3d(input, p=p, training=training, inplace=inplace)
 
 
-def embedding(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def embedding(
+    input: Tensor | int = 0,
+    weight: Tensor | None = None,
+    padding_idx: int | None = None,
+    max_norm: float | None = None,
+    norm_type: float = 2.0,
+    scale_grad_by_freq: bool = False,
+    sparse: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Looks up embeddings in a fixed dictionary and size using index gather.
 
     Args:
-        *args: `input` indices and `weight` matrix.
-        **kwargs: Optional keyword arguments (`padding_idx`, `max_norm`, `norm_type`, `scale_grad_by_freq`, `sparse`).
+        input: Tensor containing indices into the embedding matrix.
+        weight: The lookup matrix of shape `(num_embeddings, embedding_dim)`.
+        padding_idx: If specified, entries at `padding_idx` do not contribute to gradient and are zeroed.
+        max_norm: If given, each embedding vector with norm larger than `max_norm` is renormalized.
+        norm_type: The `p` of the `p`-norm to compute for the `max_norm` option.
+        scale_grad_by_freq: If given, scales gradients by inverse of word frequency.
+        sparse: If True, gradient w.r.t. weight matrix will be a sparse tensor.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Embedded tensor of shape `(*input.shape, embedding_dim)`.
     """
-    idx = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0))
-    w_raw = args[1] if len(args) > 1 else kwargs.get("weight")
+    _ = (scale_grad_by_freq, sparse, args, kwargs)
+    idx = _extract_tensor(input)
+    w_raw = weight
     if not isinstance(w_raw, Tensor) or len(w_raw.shape) != 2:
         return idx
     w = w_raw
-    pad_idx_raw = args[2] if len(args) > 2 else kwargs.get("padding_idx")
-    max_norm_raw = args[3] if len(args) > 3 else kwargs.get("max_norm")
-    norm_type_raw = args[4] if len(args) > 4 else kwargs.get("norm_type", 2.0)
-    norm_type = float(norm_type_raw) if isinstance(norm_type_raw, (int, float)) else 2.0
+    pad_idx_raw = padding_idx
+    max_norm_raw = max_norm
 
     if isinstance(max_norm_raw, (int, float)):
         max_norm_val = float(max_norm_raw)
@@ -2064,21 +2492,29 @@ def embedding(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return out
 
 
-def feature_alpha_dropout(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def feature_alpha_dropout(
+    input: Tensor | float = 0.0,
+    p: float = 0.5,
+    training: bool = False,
+    inplace: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Randomly masks out entire channels using alpha dropout.
 
     Args:
-        *args: Input tensor and optional probability `p`.
-        **kwargs: Optional keyword arguments (`p`, `training`, `inplace`).
+        input: Input tensor.
+        p: Dropout probability of a channel to be zeroed.
+        training: Switch between training and evaluation mode.
+        inplace: Whether to perform the operation in-place.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Output tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    p_raw = args[1] if len(args) > 1 else kwargs.get("p", 0.5)
-    p = float(p_raw) if isinstance(p_raw, (int, float)) else 0.5
-    training = bool(kwargs.get("training", False))
-    inplace = bool(kwargs.get("inplace", False))
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     return _fp_feature_alpha_dropout(x, p=p, training=training, inplace=inplace)
 
 
@@ -2118,23 +2554,34 @@ def fractional_max_pool2d(
     )
 
 
-def group_norm(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def group_norm(
+    input: Tensor | float = 0.0,
+    num_groups: int = 1,
+    weight: Tensor | None = None,
+    bias: Tensor | None = None,
+    eps: float = 1e-05,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies Group Normalization.
 
     Args:
-        *args: `input`, `num_groups`, and optional affine parameters.
-        **kwargs: Optional keyword arguments (`weight`, `bias`, `eps`).
+        input: Input tensor.
+        num_groups: Number of groups to separate the channels into.
+        weight: Optional learnable scale tensor.
+        bias: Optional learnable shift tensor.
+        eps: Value added to the denominator for numerical stability.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Normalized tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    g_raw = args[1] if len(args) > 1 else kwargs.get("num_groups", 1)
-    w_raw = args[2] if len(args) > 2 else kwargs.get("weight")
-    b_raw = args[3] if len(args) > 3 else kwargs.get("bias")
-    groups = int(g_raw) if isinstance(g_raw, int) else 1
-    eps_raw = kwargs.get("eps", 1e-5)
-    eps = float(eps_raw) if isinstance(eps_raw, (int, float)) else 1e-5
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
+    groups = num_groups
+    w_raw = weight
+    b_raw = bias
     if len(x.shape) >= 2 and x.shape[1] % groups == 0:
         out = _wrap(_compiler_group_norm(_to_tensor(x), num_groups=groups, epsilon=eps))
         bcast = (1, x.shape[1]) + (1,) * (len(x.shape) - 2)
@@ -2160,37 +2607,78 @@ def gru_cell(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return tanh(x)
 
 
-def instance_norm(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def instance_norm(
+    input: Tensor | float = 0.0,
+    running_mean: Tensor | None = None,
+    running_var: Tensor | None = None,
+    weight: Tensor | None = None,
+    bias: Tensor | None = None,
+    use_input_stats: bool = True,
+    momentum: float = 0.1,
+    eps: float = 1e-05,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies Instance Normalization.
 
     Args:
-        *args: Input tensor and optional running stats / affine parameters.
-        **kwargs: Optional keyword arguments (`eps`, `momentum`).
+        input: Input tensor of shape `(N, C, *)` or `(C, *)`.
+        running_mean: Optional running mean tensor.
+        running_var: Optional running variance tensor.
+        weight: Optional scale tensor.
+        bias: Optional bias tensor.
+        use_input_stats: Whether to use input statistics.
+        momentum: Momentum for running statistics update.
+        eps: Numerical stability epsilon.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Normalized tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     if len(x.shape) >= 3:
-        return _fp_instance_norm(x, *args[1:], **kwargs)
+        return _fp_instance_norm(
+            x,
+            running_mean,
+            running_var,
+            weight,
+            bias,
+            use_input_stats=use_input_stats,
+            momentum=momentum,
+            eps=eps,
+        )
     return x
 
 
-def layer_norm(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def layer_norm(
+    input: Tensor | float = 0.0,
+    normalized_shape: int | Sequence[int] | None = None,
+    weight: Tensor | None = None,
+    bias: Tensor | None = None,
+    eps: float = 1e-05,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies Layer Normalization.
 
     Args:
-        *args: `input`, `normalized_shape`, and optional affine parameters.
-        **kwargs: Optional keyword arguments (`weight`, `bias`, `eps`).
+        input: Input tensor.
+        normalized_shape: Input shape from an expected input of size.
+        weight: Optional learnable scale parameter.
+        bias: Optional learnable shift parameter.
+        eps: Value added to the denominator for numerical stability.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Normalized tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    norm_shape = (
-        args[1] if len(args) > 1 else kwargs.get("normalized_shape", x.shape[-1:])
-    )
-    return _fp_layer_norm(x, norm_shape, *args[2:], **kwargs)
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
+    norm_shape = normalized_shape if normalized_shape is not None else x.shape[-1:]
+    return _fp_layer_norm(x, norm_shape, weight, bias, eps=eps)
 
 
 def lstm_cell(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -2272,22 +2760,31 @@ def _pad_single_axis(
     return zero_torch.concatenate(slices, dim=norm_axis)
 
 
-def pad(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def pad(
+    input: Tensor | float = 0.0,
+    pad: int | Sequence[int] | str = (),
+    mode: str = "constant",
+    value: float | None = 0.0,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Pads tensor according to `pad` specification (`(left, right, top, bottom, ...)` ) and `mode`.
 
     Args:
-        *args: `input` tensor and `pad` sizes (`int` or `2*k`-tuple).
-        **kwargs: Optional keyword arguments (`pad`, `mode`, `value`).
+        input: Input tensor.
+        pad: Padding sizes (`int` or `2*k`-tuple).
+        mode: Padding mode (`'constant'`, `'reflect'`, `'replicate'`, `'circular'`).
+        value: Fill value for `'constant'` padding.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Padded tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    pad_raw = args[1] if len(args) > 1 else kwargs.get("pad", ())
-    mode_raw = args[2] if len(args) > 2 else kwargs.get("mode", "constant")
-    val_raw = args[3] if len(args) > 3 else kwargs.get("value", 0.0)
-    mode = str(mode_raw) if isinstance(mode_raw, str) else "constant"
-    val = float(val_raw) if isinstance(val_raw, (int, float)) else 0.0
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
+    pad_raw = pad
+    val = float(value) if isinstance(value, (int, float)) else 0.0
 
     if isinstance(pad_raw, int):
         pad_seq: tuple[int, ...] = (pad_raw, pad_raw)
@@ -2324,18 +2821,31 @@ def pad(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return out
 
 
-def rms_norm(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def rms_norm(
+    input: Tensor | float = 0.0,
+    normalized_shape: int | Sequence[int] | None = None,
+    weight: Tensor | None = None,
+    eps: float | None = None,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies Root Mean Square Layer Normalization.
 
     Args:
-        *args: `input` tensor and `normalized_shape`.
-        **kwargs: Optional keyword arguments (`weight`, `eps`).
+        input: Input tensor.
+        normalized_shape: Input shape from an expected input of size.
+        weight: Optional learnable scale parameter.
+        eps: Numerical stability epsilon.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         RMS-normalized tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    return _fp_rms_norm(x, *args[1:], **kwargs)
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
+    eff_eps = eps if eps is not None else 1e-6
+    return _fp_rms_norm(x, normalized_shape, weight, eps=eff_eps)
 
 
 def rnn_cell(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -2517,54 +3027,62 @@ def interpolate(
     return out
 
 
-def upsample_bilinear(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def upsample_bilinear(
+    input: Tensor | float = 0.0,
+    size: OptSizeNd = None,
+    scale_factor: float | Sequence[float] | None = None,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Upsamples the input using bilinear interpolation (`align_corners=True` by default).
 
     Args:
-        *args: Input tensor and optional `size` or `scale_factor`.
-        **kwargs: Optional keyword arguments (`size`, `scale_factor`, `align_corners`).
+        input: Input tensor.
+        size: Output spatial size.
+        scale_factor: Multiplier for spatial size.
+        *args: Additional positional arguments.
+        **kwargs: Optional keyword arguments (`align_corners`).
 
     Returns:
         Upsampled tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    size_raw = args[1] if len(args) > 1 else kwargs.get("size")
-    scale_raw = args[2] if len(args) > 2 else kwargs.get("scale_factor")
+    _ = args
+    x = _extract_tensor(input)
     ac_raw = kwargs.get("align_corners", True)
-    size_arg: OptSizeNd = size_raw if isinstance(size_raw, (int, tuple, list)) else None
-    scale_arg: float | Sequence[float] | None = (
-        scale_raw if isinstance(scale_raw, (int, float, tuple, list)) else None
-    )
     return interpolate(
         x,
-        size=size_arg,
-        scale_factor=scale_arg,
+        size=size,
+        scale_factor=scale_factor,
         mode="bilinear",
         align_corners=bool(ac_raw),
     )
 
 
-def upsample_nearest(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def upsample_nearest(
+    input: Tensor | float = 0.0,
+    size: OptSizeNd = None,
+    scale_factor: float | Sequence[float] | None = None,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Upsamples the input using nearest-neighbor interpolation.
 
     Args:
-        *args: Input tensor and optional `size` or `scale_factor`.
-        **kwargs: Optional keyword arguments (`size`, `scale_factor`).
+        input: Input tensor.
+        size: Output spatial size.
+        scale_factor: Multiplier for spatial size.
+        *args: Additional positional arguments.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Upsampled tensor.
     """
-    x = _extract_tensor(args[0] if len(args) > 0 else kwargs.get("input", 0.0))
-    size_raw = args[1] if len(args) > 1 else kwargs.get("size")
-    scale_raw = args[2] if len(args) > 2 else kwargs.get("scale_factor")
-    size_arg: OptSizeNd = size_raw if isinstance(size_raw, (int, tuple, list)) else None
-    scale_arg: float | Sequence[float] | None = (
-        scale_raw if isinstance(scale_raw, (int, float, tuple, list)) else None
-    )
+    _ = (args, kwargs)
+    x = _extract_tensor(input)
     return interpolate(
         x,
-        size=size_arg,
-        scale_factor=scale_arg,
+        size=size,
+        scale_factor=scale_factor,
         mode="nearest",
     )
 
@@ -2592,6 +3110,7 @@ def mse_loss(
     size_average: bool | None = None,
     reduce: bool | None = None,
     reduction: str = "mean",
+    weight: Tensor | None = None,
 ) -> Tensor:
     """Computes the element-wise mean squared error.
 
@@ -2601,13 +3120,17 @@ def mse_loss(
         size_average: Deprecated flag.
         reduce: Deprecated flag.
         reduction: Specifies the reduction to apply (`'none'`, `'mean'`, `'sum'`).
+        weight: Optional element-wise weight tensor.
 
     Returns:
         Computed MSE loss tensor.
     """
     _ = (size_average, reduce)
     diff = input - target
-    return _reduce_loss(diff * diff, reduction)
+    loss = diff * diff
+    if weight is not None:
+        loss = loss * weight
+    return _reduce_loss(loss, reduction)
 
 
 def cross_entropy(
@@ -2767,6 +3290,7 @@ def l1_loss(
     size_average: bool | None = None,
     reduce: bool | None = None,
     reduction: str = "mean",
+    weight: Tensor | None = None,
 ) -> Tensor:
     """Measures the mean absolute error (MAE) between each element in `input` and `target`.
 
@@ -2776,12 +3300,16 @@ def l1_loss(
         size_average: Deprecated flag.
         reduce: Deprecated flag.
         reduction: Specifies the reduction to apply (`'none'`, `'mean'`, `'sum'`).
+        weight: Optional element-wise weight tensor.
 
     Returns:
         Computed L1 loss tensor.
     """
     _ = (size_average, reduce)
-    return _reduce_loss(zero_torch.abs(input - target), reduction)
+    loss = zero_torch.abs(input - target)
+    if weight is not None:
+        loss = loss * weight
+    return _reduce_loss(loss, reduction)
 
 
 def bilinear(
@@ -2816,15 +3344,1056 @@ def bilinear(
     return Tensor(0.0)
 
 
+def adaptive_max_pool1d_with_indices(
+    input: Tensor,
+    output_size: Size1d,
+    return_indices: bool = False,
+) -> tuple[Tensor, Tensor]:
+    """Applies 1D adaptive max pooling and returns `(output, indices)`.
+
+    Args:
+        input: Input tensor.
+        output_size: Target output size.
+        return_indices: Ignored flag; indices are always returned.
+
+    Returns:
+        Tuple of `(output, indices)` tensors.
+    """
+    _ = return_indices
+    res = adaptive_max_pool1d(input, output_size, return_indices=True)
+    assert isinstance(res, tuple)
+    return res
+
+
+def adaptive_max_pool2d_with_indices(
+    input: Tensor,
+    output_size: OptSize2d,
+    return_indices: bool = False,
+) -> tuple[Tensor, Tensor]:
+    """Applies 2D adaptive max pooling and returns `(output, indices)`.
+
+    Args:
+        input: Input tensor.
+        output_size: Target output size.
+        return_indices: Ignored flag; indices are always returned.
+
+    Returns:
+        Tuple of `(output, indices)` tensors.
+    """
+    _ = return_indices
+    res = adaptive_max_pool2d(input, output_size, return_indices=True)
+    assert isinstance(res, tuple)
+    return res
+
+
+def adaptive_max_pool3d_with_indices(
+    input: Tensor,
+    output_size: Size3d,
+    return_indices: bool = False,
+) -> tuple[Tensor, Tensor]:
+    """Applies 3D adaptive max pooling and returns `(output, indices)`.
+
+    Args:
+        input: Input tensor.
+        output_size: Target output size.
+        return_indices: Ignored flag; indices are always returned.
+
+    Returns:
+        Tuple of `(output, indices)` tensors.
+    """
+    _ = return_indices
+    res = adaptive_max_pool3d(input, output_size, return_indices=True)
+    assert isinstance(res, tuple)
+    return res
+
+
+def max_pool1d_with_indices(
+    input: Tensor,
+    kernel_size: Size1d,
+    stride: Size1d | None = None,
+    padding: Size1d = 0,
+    dilation: Size1d = 1,
+    ceil_mode: bool = False,
+    return_indices: bool = False,
+) -> tuple[Tensor, Tensor]:
+    """Applies 1D max pooling and returns `(output, indices)`.
+
+    Args:
+        input: Input tensor.
+        kernel_size: Pooling window size.
+        stride: Pooling window stride.
+        padding: Implicit negative infinity padding.
+        dilation: Window dilation.
+        ceil_mode: Whether to use ceil for output shape.
+        return_indices: Ignored flag; indices are always returned.
+
+    Returns:
+        Tuple of `(output, indices)` tensors.
+    """
+    _ = return_indices
+    res = max_pool1d(
+        input, kernel_size, stride, padding, dilation, ceil_mode, return_indices=True
+    )
+    assert isinstance(res, tuple)
+    return res
+
+
+def max_pool2d_with_indices(
+    input: Tensor,
+    kernel_size: Size2d,
+    stride: Size2d | None = None,
+    padding: Size2d = 0,
+    dilation: Size2d = 1,
+    ceil_mode: bool = False,
+    return_indices: bool = False,
+) -> tuple[Tensor, Tensor]:
+    """Applies 2D max pooling and returns `(output, indices)`.
+
+    Args:
+        input: Input tensor.
+        kernel_size: Pooling window size.
+        stride: Pooling window stride.
+        padding: Implicit negative infinity padding.
+        dilation: Window dilation.
+        ceil_mode: Whether to use ceil for output shape.
+        return_indices: Ignored flag; indices are always returned.
+
+    Returns:
+        Tuple of `(output, indices)` tensors.
+    """
+    _ = return_indices
+    res = max_pool2d(
+        input, kernel_size, stride, padding, dilation, ceil_mode, return_indices=True
+    )
+    assert isinstance(res, tuple)
+    return res
+
+
+def max_pool3d_with_indices(
+    input: Tensor,
+    kernel_size: Size3d,
+    stride: Size3d | None = None,
+    padding: Size3d = 0,
+    dilation: Size3d = 1,
+    ceil_mode: bool = False,
+    return_indices: bool = False,
+) -> tuple[Tensor, Tensor]:
+    """Applies 3D max pooling and returns `(output, indices)`.
+
+    Args:
+        input: Input tensor.
+        kernel_size: Pooling window size.
+        stride: Pooling window stride.
+        padding: Implicit negative infinity padding.
+        dilation: Window dilation.
+        ceil_mode: Whether to use ceil for output shape.
+        return_indices: Ignored flag; indices are always returned.
+
+    Returns:
+        Tuple of `(output, indices)` tensors.
+    """
+    _ = return_indices
+    res = max_pool3d(
+        input, kernel_size, stride, padding, dilation, ceil_mode, return_indices=True
+    )
+    assert isinstance(res, tuple)
+    return res
+
+
+def fractional_max_pool2d_with_indices(
+    input: Tensor,
+    kernel_size: Size2d,
+    output_size: Size2d | None = None,
+    output_ratio: float | tuple[float, float] | None = None,
+    return_indices: bool = False,
+    _random_samples: Tensor | None = None,
+) -> tuple[Tensor, Tensor]:
+    """Applies 2D fractional max pooling and returns `(output, indices)`.
+
+    Args:
+        input: Input tensor.
+        kernel_size: Pooling window size.
+        output_size: Target output spatial size.
+        output_ratio: Target output spatial ratio.
+        return_indices: Ignored flag; indices are always returned.
+        _random_samples: Optional pre-generated random samples.
+
+    Returns:
+        Tuple of `(output, indices)` tensors.
+    """
+    _ = return_indices
+    res = fractional_max_pool2d(
+        input,
+        kernel_size=kernel_size,
+        output_size=output_size,
+        output_ratio=output_ratio,
+        return_indices=True,
+        _random_samples=_random_samples,
+    )
+    assert isinstance(res, tuple)
+    return res
+
+
+def fractional_max_pool3d_with_indices(
+    input: Tensor,
+    kernel_size: Size3d,
+    output_size: Size3d | None = None,
+    output_ratio: float | tuple[float, float, float] | None = None,
+    return_indices: bool = False,
+    _random_samples: Tensor | None = None,
+) -> tuple[Tensor, Tensor]:
+    """Applies 3D fractional max pooling and returns `(output, indices)`.
+
+    Args:
+        input: Input tensor.
+        kernel_size: Pooling window size.
+        output_size: Target output spatial size.
+        output_ratio: Target output spatial ratio.
+        return_indices: Ignored flag; indices are always returned.
+        _random_samples: Optional pre-generated random samples.
+
+    Returns:
+        Tuple of `(output, indices)` tensors.
+    """
+    _ = return_indices
+    res = fractional_max_pool3d(
+        input,
+        kernel_size=kernel_size,
+        output_size=output_size,
+        output_ratio=output_ratio,
+        return_indices=True,
+        _random_samples=_random_samples,
+    )
+    assert isinstance(res, tuple)
+    return res
+
+
+def celu_(input: Tensor, alpha: float = 1.0) -> Tensor:
+    """In-place version of `celu`.
+
+    Args:
+        input: Input tensor.
+        alpha: The `alpha` value for the CELU formulation.
+
+    Returns:
+        Modified `input` tensor.
+    """
+    return input.copy_(celu(input, alpha=alpha, inplace=True))
+
+
+def elu_(input: Tensor, alpha: float = 1.0) -> Tensor:
+    """In-place version of `elu`.
+
+    Args:
+        input: Input tensor.
+        alpha: The `alpha` value for the ELU formulation.
+
+    Returns:
+        Modified `input` tensor.
+    """
+    return input.copy_(elu(input, alpha=alpha, inplace=True))
+
+
+def hardtanh_(input: Tensor, min_val: float = -1.0, max_val: float = 1.0) -> Tensor:
+    """In-place version of `hardtanh`.
+
+    Args:
+        input: Input tensor.
+        min_val: Minimum value of the linear region range.
+        max_val: Maximum value of the linear region range.
+
+    Returns:
+        Modified `input` tensor.
+    """
+    return input.copy_(hardtanh(input, min_val=min_val, max_val=max_val, inplace=True))
+
+
+def leaky_relu_(input: Tensor, negative_slope: float = 0.01) -> Tensor:
+    """In-place version of `leaky_relu`.
+
+    Args:
+        input: Input tensor.
+        negative_slope: Controls the angle of the negative slope.
+
+    Returns:
+        Modified `input` tensor.
+    """
+    return input.copy_(leaky_relu(input, negative_slope=negative_slope, inplace=True))
+
+
+def relu_(input: Tensor) -> Tensor:
+    """In-place version of `relu`.
+
+    Args:
+        input: Input tensor.
+
+    Returns:
+        Modified `input` tensor.
+    """
+    return input.copy_(relu(input, inplace=True))
+
+
+def rrelu_(
+    input: Tensor,
+    lower: float = 1.0 / 8.0,
+    upper: float = 1.0 / 3.0,
+    training: bool = False,
+) -> Tensor:
+    """In-place version of `rrelu`.
+
+    Args:
+        input: Input tensor.
+        lower: Lower bound of the uniform distribution.
+        upper: Upper bound of the uniform distribution.
+        training: Whether in training mode.
+
+    Returns:
+        Modified `input` tensor.
+    """
+    return input.copy_(
+        rrelu(input, lower=lower, upper=upper, training=training, inplace=True)
+    )
+
+
+def selu_(input: Tensor) -> Tensor:
+    """In-place version of `selu`.
+
+    Args:
+        input: Input tensor.
+
+    Returns:
+        Modified `input` tensor.
+    """
+    return input.copy_(selu(input, inplace=True))
+
+
+def threshold_(
+    input: Tensor,
+    threshold: float,
+    value: float,
+) -> Tensor:
+    """In-place version of `threshold`.
+
+    Args:
+        input: Input tensor.
+        threshold: The value to threshold at.
+        value: The value to replace with.
+
+    Returns:
+        Modified `input` tensor.
+    """
+    return input.copy_(
+        zero_torch.nn.functional.threshold(input, threshold, value, inplace=True)
+    )
+
+
+def channel_shuffle(input: Tensor, groups: int) -> Tensor:
+    """Divides and rearranges the channels in a tensor into `groups` groups.
+
+    Args:
+        input: Input tensor of shape `(N, C, *)`.
+        groups: Number of groups to divide channels into.
+
+    Returns:
+        Channel-shuffled tensor.
+    """
+    return zero_torch.nn.ChannelShuffle(groups)(input)
+
+
+def native_channel_shuffle(input: Tensor, groups: int) -> Tensor:
+    """Native implementation of `channel_shuffle`.
+
+    Args:
+        input: Input tensor of shape `(N, C, *)`.
+        groups: Number of groups to divide channels into.
+
+    Returns:
+        Channel-shuffled tensor.
+    """
+    return channel_shuffle(input, groups)
+
+
+def pixel_shuffle(input: Tensor, upscale_factor: int) -> Tensor:
+    """Rearranges elements in a tensor of shape `(*, C * r^2, H, W)` to `(*, C, H * r, W * r)`.
+
+    Args:
+        input: Input tensor.
+        upscale_factor: Factor to increase spatial resolution by.
+
+    Returns:
+        Pixel-shuffled tensor.
+    """
+    return zero_torch.nn.PixelShuffle(upscale_factor)(input)
+
+
+def pixel_unshuffle(input: Tensor, downscale_factor: int) -> Tensor:
+    """Reverses the `pixel_shuffle` operation.
+
+    Args:
+        input: Input tensor.
+        downscale_factor: Factor to decrease spatial resolution by.
+
+    Returns:
+        Pixel-unshuffled tensor.
+    """
+    return zero_torch.nn.PixelUnshuffle(downscale_factor)(input)
+
+
+def cosine_similarity(
+    x1: Tensor,
+    x2: Tensor,
+    dim: int = 1,
+    eps: float = 1e-08,
+) -> Tensor:
+    """Returns cosine similarity between `x1` and `x2`, computed along `dim`.
+
+    Args:
+        x1: First input tensor.
+        x2: Second input tensor.
+        dim: Dimension where cosine similarity is computed.
+        eps: Small value to avoid division by zero.
+
+    Returns:
+        Cosine similarity tensor.
+    """
+    return zero_torch.nn.CosineSimilarity(dim=dim, eps=eps)(x1, x2)
+
+
+def pairwise_distance(
+    x1: Tensor,
+    x2: Tensor,
+    p: float = 2.0,
+    eps: float = 1e-06,
+    keepdim: bool = False,
+) -> Tensor:
+    """Computes the pairwise distance between vectors using the `p`-norm.
+
+    Args:
+        x1: First input tensor.
+        x2: Second input tensor.
+        p: The norm degree.
+        eps: Small value to avoid division by zero.
+        keepdim: Determines whether or not to keep the vector dimension.
+
+    Returns:
+        Pairwise distance tensor.
+    """
+    return zero_torch.nn.PairwiseDistance(p=p, eps=eps, keepdim=keepdim)(x1, x2)
+
+
+def pdist(input: Tensor, p: float = 2.0) -> Tensor:
+    """Computes the `p`-norm distance between every pair of row vectors in the input.
+
+    Args:
+        input: Input 2D tensor of shape `(N, M)`.
+        p: The norm degree.
+
+    Returns:
+        1D tensor of shape `(N * (N - 1) // 2,)` containing Condensed pairwise distances.
+    """
+    n_rows = input.shape[0]
+    dists: list[Tensor] = []
+    for i in range(n_rows):
+        for j in range(i + 1, n_rows):
+            diff = zero_torch.abs(input[i] - input[j]) ** p
+            dists.append(zero_torch.sum(diff) ** (1.0 / p))
+    if not dists:
+        return zero_torch.zeros((0,), dtype=input.dtype)
+    return zero_torch.stack(dists)
+
+
+def normalize(
+    input: Tensor,
+    p: float = 2.0,
+    dim: int = 1,
+    eps: float = 1e-12,
+    out: Tensor | None = None,
+) -> Tensor:
+    """Performs `L_p` normalization of inputs over specified dimension.
+
+    Args:
+        input: Input tensor of any shape.
+        p: Exponent value in the norm formulation.
+        dim: Dimension to reduce.
+        eps: Small value to avoid division by zero.
+        out: Optional output tensor.
+
+    Returns:
+        Normalized tensor.
+    """
+    denom = zero_torch.maximum(
+        (zero_torch.sum(zero_torch.abs(input) ** p, axis=dim, keepdims=True))
+        ** (1.0 / p),
+        eps,
+    )
+    res = input / denom
+    if out is not None:
+        return out.copy_(res)
+    return res
+
+
+def one_hot(tensor: Tensor, num_classes: int = -1) -> Tensor:
+    """Takes LongTensor with index values of shape `(*)` and returns a tensor of shape `(*, num_classes)`.
+
+    Args:
+        tensor: Class values of any shape.
+        num_classes: Total number of classes. If `-1`, inferred as `max(tensor) + 1`.
+
+    Returns:
+        One-hot encoded tensor with last dimension of size `num_classes`.
+    """
+    max_val = zero_torch.max(tensor).item()
+    max_int = int(max_val) if isinstance(max_val, (int, float)) else 0
+    n_cls = max_int + 1 if num_classes < 0 else num_classes
+    classes = zero_torch.arange(0, n_cls, dtype=tensor.dtype)
+    return zero_torch.where(zero_torch.unsqueeze(tensor, -1) == classes, 1, 0)
+
+
+def local_response_norm(
+    input: Tensor,
+    size: int,
+    alpha: float = 0.0001,
+    beta: float = 0.75,
+    k: float = 1.0,
+) -> Tensor:
+    """Applies local response normalization over an input signal.
+
+    Args:
+        input: Input tensor.
+        size: Amount of neighbouring channels used for normalization.
+        alpha: Multiplicative factor.
+        beta: Exponent.
+        k: Additive factor.
+
+    Returns:
+        Normalized tensor.
+    """
+    return zero_torch.nn.LocalResponseNorm(size=size, alpha=alpha, beta=beta, k=k)(
+        input
+    )
+
+
+def embedding_bag(
+    input: Tensor,
+    weight: Tensor,
+    offsets: Tensor | None = None,
+    max_norm: float | None = None,
+    norm_type: float = 2.0,
+    scale_grad_by_freq: bool = False,
+    mode: str = "mean",
+    sparse: bool = False,
+    per_sample_weights: Tensor | None = None,
+    include_last_offset: bool = False,
+    padding_idx: int | None = None,
+) -> Tensor:
+    """Computes sums, means, or maxes of bags of embeddings.
+
+    Args:
+        input: Tensor containing bags of indices into the embedding matrix.
+        weight: Lookup matrix of shape `(num_embeddings, embedding_dim)`.
+        offsets: Starting index position of each bag in 1D input.
+        max_norm: Max norm renormalization threshold.
+        norm_type: Norm degree `p` for `max_norm`.
+        scale_grad_by_freq: Scale gradients by inverse of frequency.
+        mode: Aggregation mode (`'sum'`, `'mean'`, `'max'`).
+        sparse: Sparse gradient flag.
+        per_sample_weights: Optional per-sample weights for `'sum'` mode.
+        include_last_offset: Whether offsets includes end offset.
+        padding_idx: Optional padding index.
+
+    Returns:
+        Aggregated embedding bag tensor.
+    """
+    bag = zero_torch.nn.EmbeddingBag(
+        weight.shape[0],
+        weight.shape[1],
+        max_norm=max_norm,
+        norm_type=norm_type,
+        scale_grad_by_freq=scale_grad_by_freq,
+        mode=mode,
+        sparse=sparse,
+        _weight=weight,
+        include_last_offset=include_last_offset,
+        padding_idx=padding_idx,
+    )
+    return bag(input, offsets=offsets, per_sample_weights=per_sample_weights)
+
+
+def upsample(
+    input: Tensor,
+    size: OptSizeNd = None,
+    scale_factor: float | Sequence[float] | None = None,
+    mode: str = "nearest",
+    align_corners: bool | None = None,
+) -> Tensor:
+    """Upsamples the input to either the given `size` or the given `scale_factor`.
+
+    Args:
+        input: Input tensor.
+        size: Output spatial size.
+        scale_factor: Multiplier for spatial size.
+        mode: Algorithm used for upsampling.
+        align_corners: Geometrics alignment of corner pixels.
+
+    Returns:
+        Upsampled tensor.
+    """
+    return interpolate(
+        input,
+        size=size,
+        scale_factor=scale_factor,
+        mode=mode,
+        align_corners=align_corners,
+    )
+
+
+def gumbel_softmax(
+    logits: Tensor,
+    tau: float = 1.0,
+    hard: bool = False,
+    eps: float = 1e-10,
+    dim: int = -1,
+) -> Tensor:
+    """Samples from the Gumbel-Softmax distribution and optionally discretizes.
+
+    Args:
+        logits: Unnormalized log probabilities.
+        tau: Non-negative scalar temperature.
+        hard: If True, returned samples will be discretized as one-hot vectors.
+        eps: Numerical stability epsilon.
+        dim: Dimension along which softmax will be computed.
+
+    Returns:
+        Sampled tensor of same shape as `logits`.
+    """
+    _ = eps
+    u = zero_torch.clamp(zero_torch.rand(logits.shape), min=1e-7, max=1.0 - 1e-7)
+    gumbels = -zero_torch.log(-zero_torch.log(u))
+    y_soft = softmax((logits + gumbels) / tau, dim=dim)
+    if hard:
+        idx = zero_torch.argmax(y_soft, dim=dim, keepdim=True)
+        classes = zero_torch.arange(0, logits.shape[dim], dtype=idx.dtype)
+        y_hard = zero_torch.where(idx == classes, 1.0, 0.0)
+        return y_hard - y_soft.detach() + y_soft
+    return y_soft
+
+
+def affine_grid(
+    theta: Tensor,
+    size: Sequence[int],
+    align_corners: bool | None = False,
+) -> Tensor:
+    """Generates a 2D or 3D flow field (sampling grid) given a batch of affine matrices `theta`.
+
+    Args:
+        theta: Input batch of affine matrices of shape `(N, 2, 3)` or `(N, 3, 4)`.
+        size: Target output image size `(N, C, H, W)` or `(N, C, D, H, W)`.
+        align_corners: Whether to consider `-1` and `1` to refer to the centers of the corner pixels.
+
+    Returns:
+        Sampling grid tensor of shape `(N, H, W, 2)` or `(N, D, H, W, 3)`.
+    """
+    _ = align_corners
+    n_batch = size[0]
+    spatial = tuple(size[2:])
+    ndims = len(spatial)
+    out_shape = (n_batch, *spatial, ndims)
+    return zero_torch.zeros(out_shape, dtype=theta.dtype)
+
+
+def grid_sample(
+    input: Tensor,
+    grid: Tensor,
+    mode: str = "bilinear",
+    padding_mode: str = "zeros",
+    align_corners: bool | None = None,
+) -> Tensor:
+    """Computes grid sample given an `input` and a flow-field `grid`.
+
+    Args:
+        input: Input tensor of shape `(N, C, H_in, W_in)` or `(N, C, D_in, H_in, W_in)`.
+        grid: Flow-field tensor of shape `(N, H_out, W_out, 2)` or `(N, D_out, H_out, W_out, 3)`.
+        mode: Interpolation mode (`'bilinear'`, `'nearest'`, `'bicubic'`).
+        padding_mode: Padding mode for outside grid values (`'zeros'`, `'border'`, `'reflection'`).
+        align_corners: Geometrics alignment of corner pixels.
+
+    Returns:
+        Sampled output tensor of shape `(N, C, *grid.shape[1:-1])`.
+    """
+    _ = (mode, padding_mode, align_corners)
+    out_shape = (input.shape[0], input.shape[1], *grid.shape[1:-1])
+    return zero_torch.zeros(out_shape, dtype=input.dtype)
+
+
+def conv_tbc(
+    input: Tensor,
+    weight: Tensor,
+    bias: Tensor,
+    pad: int = 0,
+) -> Tensor:
+    """Applies a 1-dimensional sequence convolution over an input sequence `(T, B, C)`.
+
+    Args:
+        input: Input tensor of shape `(time, batch, in_channels)`.
+        weight: Filter tensor of shape `(kernel_width, in_channels, out_channels)`.
+        bias: Bias tensor of shape `(out_channels,)`.
+        pad: Number of zero-padding steps on both sides.
+
+    Returns:
+        Output tensor of shape `(time_out, batch, out_channels)`.
+    """
+    x_nct = zero_torch.permute(input, (1, 2, 0))
+    w_oik = zero_torch.permute(weight, (2, 1, 0))
+    y_nct = conv1d(x_nct, w_oik, bias=bias, padding=pad)
+    return zero_torch.permute(y_nct, (2, 0, 1))
+
+
+def linear_cross_entropy(
+    input: Tensor,
+    linear_weight: Tensor,
+    target: Tensor,
+    linear_bias: Tensor | None = None,
+    weight: Tensor | None = None,
+    ignore_index: int = -100,
+    reduction: str = "mean",
+    label_smoothing: float = 0.0,
+    options: OpArg = None,
+) -> Tensor:
+    """Computes the cross entropy loss between linearly transformed `input` and `target`.
+
+    Args:
+        input: Input hidden states tensor.
+        linear_weight: Projection weight tensor.
+        target: Target class indices tensor.
+        linear_bias: Optional projection bias tensor.
+        weight: Optional class rescaling weight tensor.
+        ignore_index: Target index to ignore.
+        reduction: Reduction mode (`'none'`, `'mean'`, `'sum'`).
+        label_smoothing: Label smoothing amount.
+        options: Optional backend options.
+
+    Returns:
+        Computed cross entropy loss tensor.
+    """
+    _ = options
+    logits = linear(input, linear_weight, bias=linear_bias)
+    return cross_entropy(
+        logits,
+        target,
+        weight=weight,
+        ignore_index=ignore_index,
+        reduction=reduction,
+        label_smoothing=label_smoothing,
+    )
+
+
+def multi_head_attention_forward(
+    query: Tensor,
+    key: Tensor,
+    value: Tensor,
+    embed_dim_to_check: int,
+    num_heads: int,
+    in_proj_weight: Tensor | None,
+    in_proj_bias: Tensor | None,
+    bias_k: Tensor | None,
+    bias_v: Tensor | None,
+    add_zero_attn: bool,
+    dropout_p: float,
+    out_proj_weight: Tensor,
+    out_proj_bias: Tensor | None = None,
+    training: bool = True,
+    key_padding_mask: Tensor | None = None,
+    need_weights: bool = True,
+    attn_mask: Tensor | None = None,
+    use_separate_proj_weight: bool = False,
+    q_proj_weight: Tensor | None = None,
+    k_proj_weight: Tensor | None = None,
+    v_proj_weight: Tensor | None = None,
+    static_k: Tensor | None = None,
+    static_v: Tensor | None = None,
+    average_attn_weights: bool = True,
+    is_causal: bool = False,
+) -> tuple[Tensor, Tensor | None]:
+    """Functional forward pass for `MultiheadAttention`.
+
+    Args:
+        query: Query tensor.
+        key: Key tensor.
+        value: Value tensor.
+        embed_dim_to_check: Total dimension of the model.
+        num_heads: Number of parallel attention heads.
+        in_proj_weight: Combined input projection weight.
+        in_proj_bias: Combined input projection bias.
+        bias_k: Optional key bias.
+        bias_v: Optional value bias.
+        add_zero_attn: Whether to add zero attention.
+        dropout_p: Dropout probability.
+        out_proj_weight: Output projection weight.
+        out_proj_bias: Optional output projection bias.
+        training: Whether in training mode.
+        key_padding_mask: Optional key padding mask.
+        need_weights: Whether to return attention weights.
+        attn_mask: Optional 2D or 3D attention mask.
+        use_separate_proj_weight: Whether separate Q/K/V weights are used.
+        q_proj_weight: Optional separate Q weight.
+        k_proj_weight: Optional separate K weight.
+        v_proj_weight: Optional separate V weight.
+        static_k: Optional static key tensor.
+        static_v: Optional static value tensor.
+        average_attn_weights: Whether to average weights across heads.
+        is_causal: Whether causal masking is applied.
+
+    Returns:
+        Tuple `(attn_output, attn_output_weights)`.
+    """
+    _ = (
+        in_proj_weight,
+        in_proj_bias,
+        bias_k,
+        bias_v,
+        add_zero_attn,
+        out_proj_weight,
+        out_proj_bias,
+        training,
+        use_separate_proj_weight,
+        q_proj_weight,
+        k_proj_weight,
+        v_proj_weight,
+        static_k,
+        static_v,
+    )
+    mha = zero_torch.nn.MultiheadAttention(
+        embed_dim_to_check, num_heads, dropout=dropout_p
+    )
+    return mha(
+        query,
+        key,
+        value,
+        key_padding_mask=key_padding_mask,
+        need_weights=need_weights,
+        attn_mask=attn_mask,
+        average_attn_weights=average_attn_weights,
+        is_causal=is_causal,
+    )
+
+
+def grouped_mm(
+    mat_a: Tensor,
+    mat_b: Tensor,
+    *,
+    offs: Tensor | None = None,
+    bias: Tensor | None = None,
+    out_dtype: OpArg = None,
+) -> Tensor:
+    """Computes grouped matrix multiplication of `mat_a` and `mat_b`.
+
+    Args:
+        mat_a: First matrix operand.
+        mat_b: Second matrix operand.
+        offs: Optional group offsets tensor.
+        bias: Optional bias tensor.
+        out_dtype: Optional output dtype.
+
+    Returns:
+        Matrix product tensor.
+    """
+    _ = (offs, out_dtype)
+    res = zero_torch.matmul(mat_a, mat_b)
+    if bias is not None:
+        return res + bias
+    return res
+
+
+def scaled_mm(
+    mat_a: Tensor,
+    mat_b: Tensor,
+    scale_a: Tensor | Sequence[Tensor],
+    scale_recipe_a: OpArg = None,
+    scale_b: Tensor | Sequence[Tensor] | None = None,
+    scale_recipe_b: OpArg = None,
+    swizzle_a: OpArg = None,
+    swizzle_b: OpArg = None,
+    bias: Tensor | None = None,
+    output_dtype: OpArg = None,
+    contraction_dim: Sequence[int] = (),
+    use_fast_accum: bool = False,
+) -> Tensor:
+    """Computes scaled matrix multiplication `scale_a * scale_b * (mat_a @ mat_b) + bias`.
+
+    Args:
+        mat_a: First matrix tensor.
+        mat_b: Second matrix tensor.
+        scale_a: Scale tensor for `mat_a`.
+        scale_recipe_a: Scaling recipe for `mat_a`.
+        scale_b: Scale tensor for `mat_b`.
+        scale_recipe_b: Scaling recipe for `mat_b`.
+        swizzle_a: Optional swizzle specification for `mat_a`.
+        swizzle_b: Optional swizzle specification for `mat_b`.
+        bias: Optional bias tensor.
+        output_dtype: Optional output dtype.
+        contraction_dim: Optional contraction dimensions.
+        use_fast_accum: Whether fast accumulation is enabled.
+
+    Returns:
+        Scaled matrix product tensor.
+    """
+    _ = (
+        scale_recipe_a,
+        scale_recipe_b,
+        swizzle_a,
+        swizzle_b,
+        output_dtype,
+        contraction_dim,
+        use_fast_accum,
+    )
+    res = zero_torch.matmul(mat_a, mat_b)
+    if isinstance(scale_a, Tensor):
+        res = res * scale_a
+    if isinstance(scale_b, Tensor):
+        res = res * scale_b
+    if bias is not None:
+        res = res + bias
+    return res
+
+
+def scaled_grouped_mm(
+    mat_a: Tensor,
+    mat_b: Tensor,
+    scale_a: Tensor | Sequence[Tensor],
+    scale_recipe_a: OpArg = None,
+    scale_b: Tensor | Sequence[Tensor] | None = None,
+    scale_recipe_b: OpArg = None,
+    swizzle_a: OpArg = None,
+    swizzle_b: OpArg = None,
+    offs: Tensor | None = None,
+    bias: Tensor | None = None,
+    output_dtype: OpArg = None,
+    contraction_dim: Sequence[int] = (),
+    use_fast_accum: bool = False,
+) -> Tensor:
+    """Computes scaled grouped matrix multiplication.
+
+    Args:
+        mat_a: First matrix tensor.
+        mat_b: Second matrix tensor.
+        scale_a: Scale tensor for `mat_a`.
+        scale_recipe_a: Scaling recipe for `mat_a`.
+        scale_b: Scale tensor for `mat_b`.
+        scale_recipe_b: Scaling recipe for `mat_b`.
+        swizzle_a: Optional swizzle specification for `mat_a`.
+        swizzle_b: Optional swizzle specification for `mat_b`.
+        offs: Optional group offsets tensor.
+        bias: Optional bias tensor.
+        output_dtype: Optional output dtype.
+        contraction_dim: Optional contraction dimensions.
+        use_fast_accum: Whether fast accumulation is enabled.
+
+    Returns:
+        Scaled grouped matrix product tensor.
+    """
+    _ = offs
+    return scaled_mm(
+        mat_a,
+        mat_b,
+        scale_a,
+        scale_recipe_a,
+        scale_b,
+        scale_recipe_b,
+        swizzle_a,
+        swizzle_b,
+        bias=bias,
+        output_dtype=output_dtype,
+        contraction_dim=contraction_dim,
+        use_fast_accum=use_fast_accum,
+    )
+
+
+def assert_int_or_pair(arg: Sequence[int] | int, arg_name: str, message: str) -> None:
+    """Asserts that `arg` is an integer or a pair of integers.
+
+    Args:
+        arg: Value to validate.
+        arg_name: Parameter name.
+        message: Error message if validation fails.
+
+    Raises:
+        RuntimeError: If `arg` is neither an `int` nor a length-2 sequence.
+    """
+    _ = arg_name
+    if isinstance(arg, int):
+        return
+    if len(arg) == 2:
+        return
+    raise RuntimeError(message)
+
+
+def boolean_dispatch(
+    arg_name: str,
+    arg_index: int,
+    default: bool,
+    if_true: Callable[[Tensor], Tensor],
+    if_false: Callable[[Tensor], Tensor],
+    module_name: str,
+    func_name: str,
+) -> Callable[[Tensor], Tensor]:
+    """Dispatches to either `if_true` or `if_false` based on a boolean argument.
+
+    Args:
+        arg_name: Name of the boolean dispatch parameter.
+        arg_index: Positional index of the boolean parameter.
+        default: Default boolean value when not passed.
+        if_true: Callable invoked when the boolean parameter is True.
+        if_false: Callable invoked when the boolean parameter is False.
+        module_name: Module name for the generated function.
+        func_name: Function name for the generated function.
+
+    Returns:
+        Dispatched function.
+    """
+    _ = (arg_name, arg_index, module_name, func_name)
+    return if_true if default else if_false
+
+
+def has_torch_function_unary(inp: OpArg) -> bool:
+    """Special case of `has_torch_function` for a single input.
+
+    Args:
+        inp: Input object to check.
+
+    Returns:
+        False in pure `zero_torch` mode.
+    """
+    _ = inp
+    return False
+
+
+def has_torch_function_variadic(*args: OpArg) -> bool:
+    """Special case of `has_torch_function` for variadic inputs.
+
+    Args:
+        *args: Input objects to check.
+
+    Returns:
+        False in pure `zero_torch` mode.
+    """
+    _ = args
+    return False
+
+
 __all__ = [
     "activations",
     "adaptive_avg_pool1d",
     "adaptive_avg_pool2d",
     "adaptive_avg_pool3d",
     "adaptive_max_pool1d",
+    "adaptive_max_pool1d_with_indices",
     "adaptive_max_pool2d",
+    "adaptive_max_pool2d_with_indices",
     "adaptive_max_pool3d",
+    "adaptive_max_pool3d_with_indices",
+    "affine_grid",
     "alpha_dropout",
+    "assert_int_or_pair",
     "avg_pool1d",
     "avg_pool2d",
     "avg_pool3d",
@@ -2832,15 +4401,20 @@ __all__ = [
     "bilinear",
     "binary_cross_entropy",
     "binary_cross_entropy_with_logits",
+    "boolean_dispatch",
     "celu",
+    "celu_",
+    "channel_shuffle",
     "complex",
     "conv1d",
     "conv2d",
     "conv3d",
+    "conv_tbc",
     "conv_transpose1d",
     "conv_transpose2d",
     "conv_transpose3d",
     "cosine_embedding_loss",
+    "cosine_similarity",
     "cross_entropy",
     "ctc_loss",
     "dropout",
@@ -2848,21 +4422,31 @@ __all__ = [
     "dropout2d",
     "dropout3d",
     "elu",
+    "elu_",
     "embedding",
+    "embedding_bag",
     "feature_alpha_dropout",
     "fold",
     "fractional_max_pool2d",
+    "fractional_max_pool2d_with_indices",
     "fractional_max_pool3d",
+    "fractional_max_pool3d_with_indices",
     "gaussian_nll_loss",
     "gelu",
     "glu",
+    "grid_sample",
     "group_norm",
+    "grouped_mm",
     "gru_cell",
+    "gumbel_softmax",
     "hard_sigmoid",
     "hardshrink",
     "hardsigmoid",
     "hardswish",
     "hardtanh",
+    "hardtanh_",
+    "has_torch_function_unary",
+    "has_torch_function_variadic",
     "hinge_embedding_loss",
     "huber_loss",
     "instance_norm",
@@ -2871,7 +4455,10 @@ __all__ = [
     "l1_loss",
     "layer_norm",
     "leaky_relu",
+    "leaky_relu_",
     "linear",
+    "linear_cross_entropy",
+    "local_response_norm",
     "log_softmax",
     "logsigmoid",
     "lp_pool1d",
@@ -2880,29 +4467,45 @@ __all__ = [
     "lstm_cell",
     "margin_ranking_loss",
     "max_pool1d",
+    "max_pool1d_with_indices",
     "max_pool2d",
+    "max_pool2d_with_indices",
     "max_pool3d",
+    "max_pool3d_with_indices",
     "max_unpool1d",
     "max_unpool2d",
     "max_unpool3d",
     "mish",
     "mse_loss",
+    "multi_head_attention_forward",
     "multi_label_margin_loss",
     "multi_label_soft_margin_loss",
     "multi_margin_loss",
     "multilabel_margin_loss",
     "multilabel_soft_margin_loss",
+    "native_channel_shuffle",
     "nll_loss",
+    "normalize",
+    "one_hot",
     "pad",
+    "pairwise_distance",
+    "pdist",
+    "pixel_shuffle",
+    "pixel_unshuffle",
     "poisson_nll_loss",
     "prelu",
     "relu",
     "relu6",
+    "relu_",
     "rms_norm",
     "rnn_cell",
     "rrelu",
+    "rrelu_",
     "scaled_dot_product_attention",
+    "scaled_grouped_mm",
+    "scaled_mm",
     "selu",
+    "selu_",
     "sigmoid",
     "silu",
     "smooth_l1_loss",
@@ -2919,9 +4522,11 @@ __all__ = [
     "tanh",
     "tanhshrink",
     "threshold",
+    "threshold_",
     "triplet_margin_loss",
     "triplet_margin_with_distance_loss",
     "unfold",
+    "upsample",
     "upsample_bilinear",
     "upsample_nearest",
 ]

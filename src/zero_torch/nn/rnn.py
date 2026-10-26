@@ -15,6 +15,11 @@ from .module import Module, Parameter
 class RNNCellBase(Module):
     """Base class for recurrent neural network cells (`RNNCell`, `LSTMCell`, `GRUCell`)."""
 
+    __constants__: list[str] = ["input_size", "hidden_size", "bias"]
+    weight_ih: Parameter | None = None
+    weight_hh: Parameter | None = None
+    num_chunks: int = 1
+
     def __init__(
         self,
         input_size: int,
@@ -90,6 +95,8 @@ class RNNCellBase(Module):
 class RNNCell(RNNCellBase):
     """An Elman RNN cell with tanh or ReLU non-linearity."""
 
+    __constants__: list[str] = ["input_size", "hidden_size", "bias", "nonlinearity"]
+
     def __init__(
         self,
         input_size: int,
@@ -135,6 +142,7 @@ class RNNCell(RNNCellBase):
         else:
             h_prev = hx
 
+        assert self.weight_ih is not None and self.weight_hh is not None
         igates = zero_torch.matmul(input, self.weight_ih.transpose(-2, -1))
         hgates = zero_torch.matmul(h_prev, self.weight_hh.transpose(-2, -1))
         if self.bias_ih is not None and self.bias_hh is not None:
@@ -192,6 +200,7 @@ class LSTMCell(RNNCellBase):
         else:
             hx_0, cx_0 = hx
 
+        assert self.weight_ih is not None and self.weight_hh is not None
         gi = zero_torch.matmul(input, self.weight_ih.transpose(-2, -1))
         gh = zero_torch.matmul(hx_0, self.weight_hh.transpose(-2, -1))
         if self.bias_ih is not None and self.bias_hh is not None:
@@ -253,6 +262,7 @@ class GRUCell(RNNCellBase):
         else:
             h_prev = hx
 
+        assert self.weight_ih is not None and self.weight_hh is not None
         gi = zero_torch.matmul(input, self.weight_ih.transpose(-2, -1))
         gh = zero_torch.matmul(h_prev, self.weight_hh.transpose(-2, -1))
         if self.bias_ih is not None and self.bias_hh is not None:
@@ -268,6 +278,21 @@ class GRUCell(RNNCellBase):
 
 class RNNBase(Module):
     """Base class for multi-layer recurrent neural networks (`RNN`, `LSTM`, `GRU`)."""
+
+    __constants__: list[str] = [
+        "mode",
+        "input_size",
+        "hidden_size",
+        "num_layers",
+        "bias",
+        "batch_first",
+        "dropout",
+        "bidirectional",
+        "proj_size",
+    ]
+    __jit_unused_properties__: list[str] = ["all_weights"]
+    mode: str = "RNN_TANH"
+    proj_size: int = 0
 
     def __init__(
         self,

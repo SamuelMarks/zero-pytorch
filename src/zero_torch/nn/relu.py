@@ -14,6 +14,8 @@ from .module import Module
 class ReLU(Module):
     """Applies the rectified linear unit function element-wise: `ReLU(x) = max(0, x)`."""
 
+    __constants__: list[str] = ["inplace"]
+
     def __init__(
         self,
         inplace: bool = False,

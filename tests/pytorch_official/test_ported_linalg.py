@@ -31,6 +31,8 @@ def test_linalg_parity() -> None:
 
         chol = torch.linalg.cholesky(t)
         assert_allclose((chol @ chol.T).tolist(), t.tolist(), rtol=1e-4)
+        chol_u = torch.linalg.cholesky(t, upper=True)
+        assert_allclose((chol_u.T @ chol_u).tolist(), t.tolist(), rtol=1e-4)
         chol_ex, _ = torch.linalg.cholesky_ex(t)
         assert_allclose(chol_ex.tolist(), chol.tolist(), rtol=1e-4)
 
@@ -76,6 +78,52 @@ def test_linalg_parity() -> None:
         )
 
         assert torch.linalg.householder_product(t, Tensor([1.0, 1.0])).shape == (2, 2)
+        out_hp = Tensor([[0.0, 0.0], [0.0, 0.0]])
+        assert (
+            torch.linalg.householder_product(t, Tensor([1.0, 1.0]), out=out_hp)
+            is out_hp
+        )
+        out_mp = Tensor([[0.0, 0.0], [0.0, 0.0]])
+        assert torch.linalg.matrix_power(t, 2, out=out_mp) is out_mp
+        assert torch.linalg.det(input=t).item() != 0.0
+        assert torch.linalg.slogdet(input=t)[0].item() == 1.0
+        assert torch.linalg.slogdet(nan=t)[0].item() == 1.0
+        assert torch.linalg.norm(t).item() != 0.0
+        assert torch.linalg.norm(t, ord="fro").item() != 0.0
+        assert torch.linalg.norm(t, dim=(-2, -1)).item() != 0.0
+        lu_ex_m, lu_ex_p, lu_ex_info = torch.linalg.lu_factor_ex(t)
+        assert lu_ex_m.shape == (2, 2) and lu_ex_info.item() == 0
+        assert torch.linalg.lu_solve(lu_ex_m, lu_ex_p, t2).shape == (2, 2)
+        assert torch.linalg.lu_solve(
+            lu_ex_m, lu_ex_p, t2, left=False, adjoint=True
+        ).shape == (2, 2)
+        ldl_m, ldl_p = torch.linalg.ldl_factor(t)
+        assert ldl_m.shape == (2, 2)
+        ldl_ex_m, _ldl_ex_p, ldl_ex_info = torch.linalg.ldl_factor_ex(t)
+        assert ldl_ex_m.shape == (2, 2) and ldl_ex_info.item() == 0
+        assert torch.linalg.ldl_solve(ldl_m, ldl_p, t2).shape == (2, 2)
+        assert torch.linalg.solve_triangular(t, t2, upper=True).shape == (2, 2)
+        assert torch.linalg.solve_triangular(
+            t, t2, upper=False, left=False, unitriangular=True
+        ).shape == (2, 2)
+        assert torch.linalg.solve_triangular(
+            t, t2, upper=True, unitriangular=True
+        ).shape == (2, 2)
+        assert_allclose(torch.linalg.diagonal(t).tolist(), [4.0, 3.0], rtol=1e-4)
+        assert_allclose(
+            torch.linalg.matmul(t, t2).tolist(), (t @ t2).tolist(), rtol=1e-4
+        )
+        assert_allclose(
+            torch.linalg.vecdot(Tensor([1.0, 2.0]), Tensor([3.0, 4.0])).tolist(),
+            11.0,
+            rtol=1e-4,
+        )
+        assert torch.linalg.vander(Tensor([1.0, 2.0, 3.0])).shape == (3, 3)
+        assert torch.linalg.vander(Tensor([1.0, 2.0, 3.0]), N=2).shape == (3, 2)
+        u_pol, p_pol = torch.linalg.polar(t)
+        assert_allclose((u_pol @ p_pol).tolist(), t.tolist(), rtol=1e-4, atol=1e-4)
+        sqrth_t = torch.linalg.matrix_sqrth(t)
+        assert_allclose((sqrth_t @ sqrth_t).tolist(), t.tolist(), rtol=1e-4, atol=1e-4)
         m_exp = torch.linalg.matrix_exp(Tensor([[0.0, 1.0], [-1.0, 0.0]]))
         assert_allclose(
             m_exp.tolist(),

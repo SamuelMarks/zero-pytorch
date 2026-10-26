@@ -10,7 +10,17 @@ from .module import Module
 
 
 class Upsample(Module):
-    """Upsamples a given multi-channel 1D, 2D, or 3D data tensor."""
+    """Upsamples a given multi-channel 1D, 2D, or 3D data."""
+
+    __constants__: list[str] = [
+        "size",
+        "scale_factor",
+        "mode",
+        "align_corners",
+        "name",
+        "recompute_scale_factor",
+    ]
+    name: str = "Upsample"
 
     def __init__(
         self,

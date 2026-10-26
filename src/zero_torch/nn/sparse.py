@@ -11,6 +11,18 @@ from .module import Module, Parameter
 class Embedding(Module):
     """A simple lookup table that stores embeddings of a fixed dictionary and size."""
 
+    __constants__: list[str] = [
+        "num_embeddings",
+        "embedding_dim",
+        "padding_idx",
+        "max_norm",
+        "norm_type",
+        "scale_grad_by_freq",
+        "sparse",
+    ]
+    weight: Parameter | None = None
+    _freeze: bool = False
+
     def __init__(
         self,
         num_embeddings: int,
@@ -21,8 +33,11 @@ class Embedding(Module):
         scale_grad_by_freq: bool = False,
         sparse: bool = False,
         _weight: Tensor | None = None,
+        _freeze: bool = False,
         device: str | None = None,
         dtype: str | None = None,
+        weight: Tensor | None = None,
+        freeze: bool = False,
     ) -> None:
         """Initializes Embedding.
 
@@ -35,8 +50,11 @@ class Embedding(Module):
             scale_grad_by_freq: If given, this will scale gradients by the inverse of frequency of the words.
             sparse: If True, gradient w.r.t. weight matrix will be a sparse tensor.
             _weight: Optional pre-initialized weight tensor.
+            _freeze: If True, the tensor does not get updated in the learning process.
             device: Desired device of the weight parameter.
             dtype: Desired data type of the weight parameter.
+            weight: Optional alias for `_weight`.
+            freeze: Optional alias for `_freeze`.
         """
         super().__init__()
         self.num_embeddings: int = num_embeddings
@@ -48,12 +66,12 @@ class Embedding(Module):
         self.sparse: bool = sparse
         self.device: str | None = device
         self.dtype: str | None = dtype
-        if _weight is None:
-            self.weight: Parameter = Parameter(
-                zero_torch.randn(num_embeddings, embedding_dim)
-            )
+        self._freeze = _freeze or freeze
+        eff_weight = _weight if _weight is not None else weight
+        if eff_weight is None:
+            self.weight = Parameter(zero_torch.randn(num_embeddings, embedding_dim))
         else:
-            self.weight = Parameter(_weight)
+            self.weight = Parameter(eff_weight)
         self.register_parameter("weight", self.weight)
 
     def forward(self, input: Tensor) -> Tensor:
@@ -65,6 +83,7 @@ class Embedding(Module):
         Returns:
             Embedded tensor of shape (*input.shape, embedding_dim).
         """
+        assert self.weight is not None
         return zero_torch.nn.functional.embedding(
             input,
             self.weight,
@@ -78,6 +97,19 @@ class Embedding(Module):
 
 class EmbeddingBag(Module):
     """Computes sums, means, or maxes of bags of embeddings."""
+
+    __constants__: list[str] = [
+        "num_embeddings",
+        "embedding_dim",
+        "max_norm",
+        "norm_type",
+        "scale_grad_by_freq",
+        "mode",
+        "sparse",
+        "include_last_offset",
+        "padding_idx",
+    ]
+    weight: Parameter | None = None
 
     def __init__(
         self,
@@ -93,6 +125,7 @@ class EmbeddingBag(Module):
         padding_idx: int | None = None,
         device: str | None = None,
         dtype: str | None = None,
+        weight: Tensor | None = None,
     ) -> None:
         """Initializes EmbeddingBag.
 
@@ -109,6 +142,7 @@ class EmbeddingBag(Module):
             padding_idx: If specified, the entries at padding_idx do not contribute to the gradient.
             device: Desired device of the weight parameter.
             dtype: Desired data type of the weight parameter.
+            weight: Optional alias for `_weight`.
         """
         super().__init__()
         self.num_embeddings: int = num_embeddings
@@ -122,12 +156,11 @@ class EmbeddingBag(Module):
         self.padding_idx: int | None = padding_idx
         self.device: str | None = device
         self.dtype: str | None = dtype
-        if _weight is None:
-            self.weight: Parameter = Parameter(
-                zero_torch.randn(num_embeddings, embedding_dim)
-            )
+        eff_weight = _weight if _weight is not None else weight
+        if eff_weight is None:
+            self.weight = Parameter(zero_torch.randn(num_embeddings, embedding_dim))
         else:
-            self.weight = Parameter(_weight)
+            self.weight = Parameter(eff_weight)
         self.register_parameter("weight", self.weight)
 
     def forward(
@@ -147,6 +180,7 @@ class EmbeddingBag(Module):
             Aggregated embedding tensor of shape (num_bags, embedding_dim).
         """
         _ = offsets
+        assert self.weight is not None
         embedded = zero_torch.nn.functional.embedding(input, self.weight)
         if per_sample_weights is not None:
             embedded = embedded * zero_torch.unsqueeze(per_sample_weights, -1)

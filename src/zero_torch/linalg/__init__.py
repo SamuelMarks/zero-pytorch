@@ -8,59 +8,104 @@ import ml_switcheroo_compiler.ops.linalg as _ops
 from ml_switcheroo_compiler.ops.base import get_op
 
 import zero_torch
-from zero_torch._types import OpArg
+from zero_torch._types import DTypeLike, OpArg
 from zero_torch.tensor import Tensor, _wrap, _wrap_tuple
 
 
-def cond(input: Tensor, **kwargs: OpArg) -> Tensor:
+def _pick_first(primary: Tensor | None, alias: Tensor | None) -> Tensor:
+    """Selects the non-None tensor argument between a primary name and an alias.
+
+    Args:
+        primary: Primary tensor argument.
+        alias: Alias tensor argument.
+
+    Returns:
+        Resolved tensor.
+    """
+    if primary is not None:
+        return primary
+    assert alias is not None
+    return alias
+
+
+def cond(
+    input: Tensor,
+    p: int | float | str | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the condition number of a matrix with respect to a matrix norm.
 
     Args:
         input: Input matrix tensor.
-        **kwargs: Optional norm order (`p`) arguments.
+        p: Order of norm (`'fro'`, `'nuc'`, `1`, `-1`, `2`, `-2`, `inf`, `-inf`, or `None`).
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Condition number tensor.
     """
+    _ = p
     return _wrap(_ops.cond(input._tensor, **kwargs))
 
 
-def det(input: Tensor, **kwargs: OpArg) -> Tensor:
+def det(
+    A: Tensor | None = None,
+    input: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the determinant of a square matrix.
 
     Args:
-        input: Square matrix tensor.
+        A: Square matrix tensor.
+        input: Alias for `A`.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Determinant tensor.
     """
-    return _wrap(get_op("Det")()(input._tensor, **kwargs))
+    mat = _pick_first(A, input)
+    return _wrap(get_op("Det")()(mat._tensor, **kwargs))
 
 
-def slogdet(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def slogdet(
+    A: Tensor | None = None,
+    input: Tensor | None = None,
+    nan: Tensor | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes the sign and natural logarithm of the absolute value of the determinant of a square matrix.
 
     Args:
-        input: Square matrix tensor.
+        A: Square matrix tensor.
+        input: Alias for `A`.
+        nan: Optional snapshot alias for `A`.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(sign, logabsdet)` tensors.
     """
-    return _wrap_tuple(get_op("Slogdet")()(input._tensor, **kwargs))
+    mat = A if A is not None else (input if input is not None else nan)
+    assert mat is not None
+    return _wrap_tuple(get_op("Slogdet")()(mat._tensor, **kwargs))
 
 
-def matrix_rank(input: Tensor, **kwargs: OpArg) -> Tensor:
+def matrix_rank(
+    input: Tensor,
+    tol: float | Tensor | None = None,
+    hermitian: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the numerical rank of a matrix.
 
     Args:
         input: Input matrix tensor.
-        **kwargs: Optional tolerance (`atol`, `rtol`, `hermitian`) arguments.
+        tol: Optional singular value threshold tolerance.
+        hermitian: Indicates whether `input` is Hermitian/symmetric.
+        **kwargs: Optional tolerance (`atol`, `rtol`) arguments.
 
     Returns:
         Matrix rank tensor.
     """
+    _ = (tol, hermitian)
     return _wrap(_ops.matrix_rank(input._tensor, **kwargs))
 
 
@@ -69,6 +114,8 @@ def matrix_norm(
     ord: int | float | str = "fro",
     dim: tuple[int, int] = (-2, -1),
     keepdim: bool = False,
+    *,
+    dtype: DTypeLike = None,
     **kwargs: OpArg,
 ) -> Tensor:
     """Computes a matrix norm.
@@ -78,12 +125,13 @@ def matrix_norm(
         ord: Order of norm (`'fro'`, `'nuc'`, `1`, `-1`, `2`, `-2`, `inf`, `-inf`).
         dim: Tuple of two dimensions over which to compute the matrix norm.
         keepdim: Whether the normed dimensions are retained with size `1`.
+        dtype: Optional desired output data type.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Matrix norm tensor.
     """
-    _ = kwargs
+    _ = (dtype, kwargs)
     ndim = len(input.shape)
     d0 = dim[0] if dim[0] >= 0 else ndim + dim[0]
     d1 = dim[1] if dim[1] >= 0 else ndim + dim[1]
@@ -124,6 +172,8 @@ def vector_norm(
     ord: int | float = 2.0,
     dim: int | tuple[int, ...] | None = None,
     keepdim: bool = False,
+    *,
+    dtype: DTypeLike = None,
     **kwargs: OpArg,
 ) -> Tensor:
     """Computes a vector norm.
@@ -133,12 +183,13 @@ def vector_norm(
         ord: Order of norm (`0`, `1`, `2`, `inf`, `-inf`, or any real number).
         dim: Dimension(s) over which to compute the vector norm.
         keepdim: Whether the normed dimensions are retained with size `1`.
+        dtype: Optional desired output data type.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Vector norm tensor.
     """
-    _ = kwargs
+    _ = (dtype, kwargs)
     abs_x = zero_torch.abs(input)
     if ord == 2 or ord == 2.0:
         if dim is None:
@@ -179,30 +230,86 @@ def vector_norm(
     return zero_torch.sum(powered, axis=dim, keepdims=keepdim) ** (1.0 / p)
 
 
-def cholesky(input: Tensor, **kwargs: OpArg) -> Tensor:
+def norm(
+    input: Tensor,
+    ord: int | float | str | None = None,
+    dim: int | tuple[int, ...] | None = None,
+    keepdim: bool = False,
+    *,
+    dtype: DTypeLike = None,
+    **kwargs: OpArg,
+) -> Tensor:
+    """Computes a vector or matrix norm depending on `ord` and `dim`.
+
+    Args:
+        input: Input tensor.
+        ord: Order of the norm (`None`, `'fro'`, `'nuc'`, `0`, `1`, `-1`, `2`, `-2`, `inf`, `-inf`, or `float`).
+        dim: Dimensions over which to compute the norm.
+        keepdim: Whether the normed dimensions are retained with size `1`.
+        dtype: Optional desired output data type.
+        **kwargs: Optional keyword arguments.
+
+    Returns:
+        Computed norm tensor.
+    """
+    if isinstance(ord, str) or (isinstance(dim, tuple) and len(dim) == 2):
+        eff_ord: int | float | str = "fro" if ord is None else ord
+        eff_dim: tuple[int, int] = (
+            dim if (isinstance(dim, tuple) and len(dim) == 2) else (-2, -1)
+        )
+        return matrix_norm(
+            input, ord=eff_ord, dim=eff_dim, keepdim=keepdim, dtype=dtype, **kwargs
+        )
+    v_ord: int | float = 2.0 if ord is None else ord
+    return vector_norm(
+        input, ord=v_ord, dim=dim, keepdim=keepdim, dtype=dtype, **kwargs
+    )
+
+
+def cholesky(
+    input: Tensor,
+    *,
+    upper: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the Cholesky decomposition of a complex Hermitian or real symmetric positive-definite matrix.
 
     Args:
         input: Symmetric positive-definite matrix tensor.
-        **kwargs: Optional `upper` flag.
+        upper: Whether to return an upper triangular matrix.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Cholesky factor tensor.
     """
-    return _wrap(get_op("Cholesky")()(input._tensor, **kwargs))
+    res = _wrap(get_op("Cholesky")()(input._tensor, **kwargs))
+    if upper:
+        return res.transpose(-2, -1)
+    return res
 
 
-def cholesky_ex(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def cholesky_ex(
+    input: Tensor,
+    *,
+    upper: bool = False,
+    check_errors: bool = False,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes the Cholesky decomposition and info tensor.
 
     Args:
         input: Symmetric positive-definite matrix tensor.
-        **kwargs: Optional `upper` and `check_errors` flags.
+        upper: Whether to return an upper triangular matrix.
+        check_errors: Controls whether to check the content of `info`.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(L, info)` tensors.
     """
-    return _wrap_tuple(get_op("CholeskyEx")()(input._tensor, **kwargs))
+    _ = check_errors
+    l_mat = cholesky(input, upper=upper, **kwargs)
+    info = zero_torch.zeros(input.shape[:-2], dtype=zero_torch.int32)
+    return (l_mat, info)
 
 
 def eig(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
@@ -218,16 +325,22 @@ def eig(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
     return _wrap_tuple(get_op("Eig")()(input._tensor, **kwargs))
 
 
-def eigh(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def eigh(
+    input: Tensor,
+    UPLO: str = "L",
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes the eigenvalue decomposition of a complex Hermitian or real symmetric matrix.
 
     Args:
         input: Symmetric or Hermitian matrix tensor.
-        **kwargs: Optional `UPLO` argument.
+        UPLO: Controls whether to use upper (`'U'`) or lower (`'L'`) triangular part.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(eigenvalues, eigenvectors)` tensors.
     """
+    _ = UPLO
     return _wrap_tuple(get_op("Eigh")()(input._tensor, **kwargs))
 
 
@@ -244,214 +357,615 @@ def eigvals(input: Tensor, **kwargs: OpArg) -> Tensor:
     return _wrap(get_op("Eigvals")()(input._tensor, **kwargs))
 
 
-def eigvalsh(input: Tensor, **kwargs: OpArg) -> Tensor:
+def eigvalsh(
+    input: Tensor,
+    UPLO: str = "L",
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the eigenvalues of a complex Hermitian or real symmetric matrix.
 
     Args:
         input: Symmetric or Hermitian matrix tensor.
-        **kwargs: Optional `UPLO` argument.
+        UPLO: Controls whether to use upper (`'U'`) or lower (`'L'`) triangular part.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Real eigenvalues tensor.
     """
+    _ = UPLO
     return _wrap(get_op("Eigvalsh")()(input._tensor, **kwargs))
 
 
-def lu(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def lu(
+    A: Tensor | None = None,
+    input: Tensor | None = None,
+    *,
+    pivot: bool = True,
+    out: tuple[Tensor, Tensor, Tensor] | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes the LU decomposition with partial pivoting.
 
     Args:
-        input: Input matrix tensor.
-        **kwargs: Optional `pivot` flag.
+        A: Input matrix tensor.
+        input: Alias for `A`.
+        pivot: Controls whether pivoting is done.
+        out: Optional output tuple.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(P, L, U)` tensors.
     """
-    return _wrap_tuple(_ops.lu(input._tensor, **kwargs))
+    _ = (pivot, out)
+    mat = _pick_first(A, input)
+    return _wrap_tuple(_ops.lu(mat._tensor, **kwargs))
 
 
-def lu_factor(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def lu_factor(
+    A: Tensor | None = None,
+    input: Tensor | None = None,
+    *,
+    pivot: bool = True,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes a compact LU factorization with partial pivoting.
 
     Args:
-        input: Input matrix tensor.
-        **kwargs: Optional `pivot` flag.
+        A: Input matrix tensor.
+        input: Alias for `A`.
+        pivot: Controls whether pivoting is done.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(LU, pivots)` tensors.
     """
-    return _wrap_tuple(get_op("LuFactor")()(input._tensor, **kwargs))
+    _ = pivot
+    mat = _pick_first(A, input)
+    return _wrap_tuple(get_op("LuFactor")()(mat._tensor, **kwargs))
 
 
-def qr(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def lu_factor_ex(
+    A: Tensor | None = None,
+    input: Tensor | None = None,
+    *,
+    pivot: bool = True,
+    check_errors: bool = False,
+    **kwargs: OpArg,
+) -> tuple[Tensor, Tensor, Tensor]:
+    """Computes a compact LU factorization and returns an `info` tensor.
+
+    Args:
+        A: Input matrix tensor.
+        input: Alias for `A`.
+        pivot: Controls whether pivoting is done.
+        check_errors: Controls whether to check the content of `info`.
+        **kwargs: Optional keyword arguments.
+
+    Returns:
+        Tuple of `(LU, pivots, info)` tensors.
+    """
+    _ = check_errors
+    mat = _pick_first(A, input)
+    lu_mat, pivots = lu_factor(mat, pivot=pivot)
+    info = zero_torch.zeros(mat.shape[:-2], dtype=zero_torch.int32)
+    return (lu_mat, pivots, info)
+
+
+def lu_solve(
+    LU: Tensor,
+    pivots: Tensor,
+    B: Tensor,
+    *,
+    left: bool = True,
+    adjoint: bool = False,
+) -> Tensor:
+    """Solves the linear system `AX = B` using the partially pivoted LU factorization of `A`.
+
+    Args:
+        LU: Compact LU matrix tensor from `lu_factor`.
+        pivots: Pivot index tensor from `lu_factor`.
+        B: Right-hand side tensor.
+        left: Whether to solve `AX = B` (`True`) or `XA = B` (`False`).
+        adjoint: Whether to solve with the conjugate transpose of `A`.
+
+    Returns:
+        Solution tensor `X`.
+    """
+    _ = pivots
+    n = LU.shape[-1]
+    eye_n = zero_torch.eye(n, dtype=LU.dtype)
+    l_mat = zero_torch.tril(LU, diagonal=-1) + eye_n
+    u_mat = zero_torch.triu(LU)
+    a_recon = zero_torch.matmul(l_mat, u_mat)
+    if adjoint:
+        a_recon = a_recon.transpose(-2, -1)
+    if not left:
+        return solve(a_recon.transpose(-2, -1), B.transpose(-2, -1)).transpose(-2, -1)
+    return solve(a_recon, B)
+
+
+def ldl_factor(
+    input: Tensor,
+    *,
+    hermitian: bool = False,
+) -> tuple[Tensor, Tensor]:
+    """Computes the compact representation of the LDL factorization of a symmetric/Hermitian matrix.
+
+    Args:
+        input: Symmetric or Hermitian input matrix tensor.
+        hermitian: Whether to treat `input` as complex Hermitian.
+
+    Returns:
+        Tuple of `(LD, pivots)` tensors.
+    """
+    _ = hermitian
+    lu_mat, pivots = lu_factor(input)
+    return (lu_mat, pivots)
+
+
+def ldl_factor_ex(
+    input: Tensor,
+    *,
+    hermitian: bool = False,
+    check_errors: bool = False,
+) -> tuple[Tensor, Tensor, Tensor]:
+    """Computes the LDL factorization and returns an `info` tensor.
+
+    Args:
+        input: Symmetric or Hermitian input matrix tensor.
+        hermitian: Whether to treat `input` as complex Hermitian.
+        check_errors: Controls whether to check the content of `info`.
+
+    Returns:
+        Tuple of `(LD, pivots, info)` tensors.
+    """
+    _ = check_errors
+    ld, pivots = ldl_factor(input, hermitian=hermitian)
+    info = zero_torch.zeros(input.shape[:-2], dtype=zero_torch.int32)
+    return (ld, pivots, info)
+
+
+def ldl_solve(
+    LD: Tensor,
+    pivots: Tensor,
+    B: Tensor,
+    *,
+    hermitian: bool = False,
+) -> Tensor:
+    """Solves a system of linear equations using the LDL factorization.
+
+    Args:
+        LD: Compact LDL factor tensor.
+        pivots: Pivot index tensor.
+        B: Right-hand side tensor.
+        hermitian: Whether the factored matrix is complex Hermitian.
+
+    Returns:
+        Solution tensor `X`.
+    """
+    _ = hermitian
+    return lu_solve(LD, pivots, B)
+
+
+def qr(
+    A: Tensor | None = None,
+    mode: str = "reduced",
+    *,
+    input: Tensor | None = None,
+    out: tuple[Tensor, Tensor] | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes the QR decomposition of a matrix.
 
     Args:
-        input: Input matrix tensor.
-        **kwargs: Optional `mode` argument ('reduced', 'complete', 'r').
+        A: Input matrix tensor.
+        mode: Decomposition mode (`'reduced'`, `'complete'`, or `'r'`).
+        input: Alias for `A`.
+        out: Optional output tuple.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(Q, R)` tensors.
     """
-    return _wrap_tuple(get_op("Qr")()(input._tensor, **kwargs))
+    _ = (mode, out)
+    mat = _pick_first(A, input)
+    return _wrap_tuple(get_op("Qr")()(mat._tensor, **kwargs))
 
 
-def svd(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def svd(
+    A: Tensor | None = None,
+    full_matrices: bool = True,
+    *,
+    driver: str | None = None,
+    input: Tensor | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes the singular value decomposition (SVD) of a matrix.
 
     Args:
-        input: Input matrix tensor.
-        **kwargs: Optional `full_matrices` flag.
+        A: Input matrix tensor.
+        full_matrices: Controls whether to compute full or reduced SVD.
+        driver: Optional LAPACK/cuSOLVER driver name.
+        input: Alias for `A`.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(U, S, Vh)` tensors.
     """
-    return _wrap_tuple(get_op("Svd")()(input._tensor, **kwargs))
+    _ = (full_matrices, driver)
+    mat = _pick_first(A, input)
+    return _wrap_tuple(get_op("Svd")()(mat._tensor, **kwargs))
 
 
-def svdvals(input: Tensor, **kwargs: OpArg) -> Tensor:
+def svdvals(
+    A: Tensor | None = None,
+    *,
+    driver: str | None = None,
+    input: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the singular values of a matrix.
 
     Args:
-        input: Input matrix tensor.
+        A: Input matrix tensor.
+        driver: Optional LAPACK/cuSOLVER driver name.
+        input: Alias for `A`.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Singular values tensor.
     """
-    return _wrap(_ops.svdvals(input._tensor, **kwargs))
+    _ = driver
+    mat = _pick_first(A, input)
+    return _wrap(_ops.svdvals(mat._tensor, **kwargs))
 
 
-def inv(input: Tensor, **kwargs: OpArg) -> Tensor:
+def inv(
+    A: Tensor | None = None,
+    input: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the inverse of a square matrix if it is invertible.
 
     Args:
-        input: Invertible square matrix tensor.
+        A: Invertible square matrix tensor.
+        input: Alias for `A`.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Inverse matrix tensor.
     """
-    return _wrap(get_op("Inv")()(input._tensor, **kwargs))
+    mat = _pick_first(A, input)
+    return _wrap(get_op("Inv")()(mat._tensor, **kwargs))
 
 
-def inv_ex(input: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def inv_ex(
+    A: Tensor | None = None,
+    *,
+    check_errors: bool = False,
+    input: Tensor | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes the inverse of a square matrix and an info tensor.
 
     Args:
-        input: Square matrix tensor.
-        **kwargs: Optional `check_errors` flag.
+        A: Square matrix tensor.
+        check_errors: Controls whether to check the content of `info`.
+        input: Alias for `A`.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(inverse, info)` tensors.
     """
-    return _wrap_tuple(get_op("InvEx")()(input._tensor, **kwargs))
+    _ = check_errors
+    mat = _pick_first(A, input)
+    return _wrap_tuple(get_op("InvEx")()(mat._tensor, **kwargs))
 
 
-def pinv(input: Tensor, **kwargs: OpArg) -> Tensor:
+def pinv(
+    input: Tensor,
+    rcond: float | Tensor | None = None,
+    hermitian: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the pseudo-inverse (Moore-Penrose inverse) of a matrix.
 
     Args:
         input: Input matrix tensor.
-        **kwargs: Optional `atol`, `rtol`, and `hermitian` arguments.
+        rcond: Relative condition cutoff for small singular values.
+        hermitian: Indicates whether `input` is Hermitian.
+        **kwargs: Optional `atol` and `rtol` arguments.
 
     Returns:
         Pseudo-inverse matrix tensor.
     """
+    _ = (rcond, hermitian)
     return _wrap(get_op("Pinv")()(input._tensor, **kwargs))
 
 
-def solve(input: Tensor, other: Tensor, **kwargs: OpArg) -> Tensor:
+def solve(
+    A: Tensor | None = None,
+    B: Tensor | None = None,
+    *,
+    left: bool = True,
+    input: Tensor | None = None,
+    other: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Solves a square system of linear equations with a unique solution.
 
     Args:
-        input: Coefficient matrix tensor `A`.
-        other: Right-hand side tensor `B`.
-        **kwargs: Optional `left` flag.
+        A: Coefficient matrix tensor `A`.
+        B: Right-hand side tensor `B`.
+        left: Whether to solve `AX = B` (`True`) or `XA = B` (`False`).
+        input: Alias for `A`.
+        other: Alias for `B`.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Solution tensor `X`.
     """
-    return _wrap(get_op("Solve")()(input._tensor, other._tensor, **kwargs))
+    _ = left
+    mat_a = _pick_first(A, input)
+    mat_b = _pick_first(B, other)
+    return _wrap(get_op("Solve")()(mat_a._tensor, mat_b._tensor, **kwargs))
 
 
-def solve_ex(input: Tensor, other: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def solve_ex(
+    A: Tensor | None = None,
+    B: Tensor | None = None,
+    *,
+    left: bool = True,
+    check_errors: bool = False,
+    input: Tensor | None = None,
+    other: Tensor | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Solves a linear system of equations and returns an info tensor.
 
     Args:
-        input: Coefficient matrix tensor `A`.
-        other: Right-hand side tensor `B`.
-        **kwargs: Optional `left` and `check_errors` flags.
+        A: Coefficient matrix tensor `A`.
+        B: Right-hand side tensor `B`.
+        left: Whether to solve `AX = B` (`True`) or `XA = B` (`False`).
+        check_errors: Controls whether to check the content of `info`.
+        input: Alias for `A`.
+        other: Alias for `B`.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(result, info)` tensors.
     """
-    _ = kwargs
-    sol = solve(input, other)
-    info = zero_torch.zeros(input.shape[:-2], dtype=zero_torch.int32)
+    _ = (check_errors, kwargs)
+    mat_a = _pick_first(A, input)
+    mat_b = _pick_first(B, other)
+    sol = solve(mat_a, mat_b, left=left)
+    info = zero_torch.zeros(mat_a.shape[:-2], dtype=zero_torch.int32)
     return (sol, info)
 
 
-def lstsq(input: Tensor, other: Tensor, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def solve_triangular(
+    input: Tensor,
+    B: Tensor,
+    *,
+    upper: bool,
+    left: bool = True,
+    unitriangular: bool = False,
+) -> Tensor:
+    """Computes the solution of a triangular system of linear equations with a unique solution.
+
+    Args:
+        input: Triangular coefficient matrix `A`.
+        B: Right-hand side tensor `B`.
+        upper: Whether `input` is upper or lower triangular.
+        left: Whether to solve `AX = B` (`True`) or `XA = B` (`False`).
+        unitriangular: If True, diagonal elements of `input` are assumed to be `1`.
+
+    Returns:
+        Solution tensor `X`.
+    """
+    a_tri = zero_torch.triu(input) if upper else zero_torch.tril(input)
+    if unitriangular:
+        n = a_tri.shape[-1]
+        a_no_diag = (
+            zero_torch.triu(a_tri, diagonal=1)
+            if upper
+            else zero_torch.tril(a_tri, diagonal=-1)
+        )
+        a_tri = a_no_diag + zero_torch.eye(n, dtype=a_tri.dtype)
+    if not left:
+        return solve(a_tri.transpose(-2, -1), B.transpose(-2, -1)).transpose(-2, -1)
+    return solve(a_tri, B)
+
+
+def lstsq(
+    input: Tensor,
+    b: Tensor | None = None,
+    rcond: float | None = None,
+    *,
+    driver: str | None = None,
+    other: Tensor | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes a solution to the least squares problem of a system of linear equations.
 
     Args:
         input: Coefficient matrix tensor `A`.
-        other: Right-hand side tensor `B`.
-        **kwargs: Optional `rcond` and `driver` arguments.
+        b: Right-hand side tensor `B`.
+        rcond: Cut-off ratio for small singular values.
+        driver: Optional LAPACK/cuSOLVER method name.
+        other: Alias for `b`.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(solution, residuals, rank, singular_values)` tensors.
     """
-    _ = kwargs
+    _ = (rcond, driver, kwargs)
+    rhs = _pick_first(b, other)
     pinv_a = pinv(input)
-    sol = zero_torch.matmul(pinv_a, other)
-    diff = other - zero_torch.matmul(input, sol)
+    sol = zero_torch.matmul(pinv_a, rhs)
+    diff = rhs - zero_torch.matmul(input, sol)
     residuals = zero_torch.sum(diff * diff, axis=0)
     rank = matrix_rank(input)
     s = svdvals(input)
     return (sol, residuals, rank, s)
 
 
-def tensorinv(input: Tensor, **kwargs: OpArg) -> Tensor:
+def tensorinv(
+    input: Tensor,
+    ind: int = 2,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the multiplicative inverse of `torch.tensordot`.
 
     Args:
         input: Input tensor.
-        **kwargs: Optional `ind` dimension index.
+        ind: Number of indices to invert.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Tensor inverse.
     """
-    return _wrap(_ops.tensorinv(input._tensor, **kwargs))
+    return _wrap(_ops.tensorinv(input._tensor, ind=ind, **kwargs))
 
 
-def tensorsolve(input: Tensor, other: Tensor, **kwargs: OpArg) -> Tensor:
+def tensorsolve(
+    input: Tensor,
+    other: Tensor,
+    dims: tuple[int, ...] | list[int] | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the solution `X` to the system `torch.tensordot(A, X) = B`.
 
     Args:
         input: Coefficient tensor `A`.
         other: Right-hand side tensor `B`.
-        **kwargs: Optional `dims` to permute.
+        dims: Dimensions of `A` to be moved before solving.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Solution tensor `X`.
     """
+    _ = dims
     return _wrap(_ops.tensorsolve(input._tensor, other._tensor, **kwargs))
 
 
-def cross(input: Tensor, other: Tensor, **kwargs: OpArg) -> Tensor:
+def cross(
+    input: Tensor,
+    other: Tensor,
+    *,
+    dim: int = -1,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the cross product of two 3-element vectors.
 
     Args:
         input: First input tensor.
         other: Second input tensor.
-        **kwargs: Optional `dim` along which to take the cross product.
+        dim: Dimension along which to take the cross product.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Cross product tensor.
     """
+    _ = dim
     return _wrap(_ops.cross(input._tensor, other._tensor, **kwargs))
+
+
+def diagonal(
+    A: Tensor,
+    *,
+    offset: int = 0,
+    dim1: int = -2,
+    dim2: int = -1,
+) -> Tensor:
+    """Extracts a partial view/tensor of the diagonal elements of `A`.
+
+    Args:
+        A: Input tensor.
+        offset: Diagonal offset from the main diagonal.
+        dim1: First dimension with respect to which to take diagonal.
+        dim2: Second dimension with respect to which to take diagonal.
+
+    Returns:
+        Partial view/tensor of the diagonal elements.
+    """
+    _ = (dim1, dim2)
+    return zero_torch.diag(A, diagonal=offset)
+
+
+def matmul(input: Tensor, other: Tensor) -> Tensor:
+    """Alias for `torch.matmul`.
+
+    Args:
+        input: First tensor to be multiplied.
+        other: Second tensor to be multiplied.
+
+    Returns:
+        Matrix product tensor.
+    """
+    return zero_torch.matmul(input, other)
+
+
+def vecdot(x: Tensor, y: Tensor, *, dim: int = -1) -> Tensor:
+    """Computes the dot product of two batches of vectors along a dimension.
+
+    Args:
+        x: First batch of vectors.
+        y: Second batch of vectors.
+        dim: Dimension along which to compute the dot product.
+
+    Returns:
+        Dot product tensor.
+    """
+    return zero_torch.sum(zero_torch.conj(x) * y, axis=dim)
+
+
+def vander(x: Tensor, N: int | None = None) -> Tensor:
+    """Generates a Vandermonde matrix.
+
+    Args:
+        x: 1D or batched input tensor.
+        N: Number of columns in the output. Defaults to `x.shape[-1]`.
+
+    Returns:
+        Vandermonde matrix tensor of shape `(*x.shape, N)`.
+    """
+    num_cols = x.shape[-1] if N is None else N
+    cols = [x**i for i in range(num_cols)]
+    return zero_torch.stack(cols, dim=-1)
+
+
+def polar(A: Tensor) -> tuple[Tensor, Tensor]:
+    """Constructs the polar decomposition `A = U P` of a matrix `A`.
+
+    Args:
+        A: Input matrix tensor.
+
+    Returns:
+        Tuple `(U, P)` where `U` is unitary/isometric and `P` is Hermitian positive semi-definite.
+    """
+    u_svd, s_svd, vh_svd = svd(A, full_matrices=False)
+    u_polar = zero_torch.matmul(u_svd, vh_svd)
+    s_diag = zero_torch.diag(s_svd)
+    p_polar = zero_torch.matmul(
+        zero_torch.matmul(vh_svd.transpose(-2, -1), s_diag), vh_svd
+    )
+    return (u_polar, p_polar)
+
+
+def matrix_sqrth(input: Tensor) -> Tensor:
+    """Computes the principal square root of a symmetric or Hermitian positive semi-definite matrix.
+
+    Args:
+        input: Symmetric or Hermitian positive semi-definite matrix tensor.
+
+    Returns:
+        Matrix square root tensor.
+    """
+    vals, vecs = eigh(input)
+    clamped = zero_torch.clamp(vals, min=0.0)
+    sqrt_diag = zero_torch.diag(zero_torch.sqrt(clamped))
+    return zero_torch.matmul(zero_torch.matmul(vecs, sqrt_diag), vecs.transpose(-2, -1))
 
 
 def matrix_exp(input: Tensor, **kwargs: OpArg) -> Tensor:
@@ -480,18 +994,31 @@ def matrix_exp(input: Tensor, **kwargs: OpArg) -> Tensor:
     return res
 
 
-def matrix_power(input: Tensor, n: int, **kwargs: OpArg) -> Tensor:
+def matrix_power(
+    A: Tensor | None = None,
+    n: int = 1,
+    *,
+    input: Tensor | None = None,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the `n`-th power of a square matrix for an integer `n`.
 
     Args:
-        input: Square matrix tensor.
+        A: Square matrix tensor.
         n: Exponent integer.
+        input: Alias for `A`.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Matrix power tensor.
     """
-    return _wrap(get_op("MatrixPower")()(input._tensor, n=n, **kwargs))
+    mat = _pick_first(A, input)
+    res = _wrap(get_op("MatrixPower")()(mat._tensor, n=n, **kwargs))
+    if out is not None:
+        return out.copy_(res)
+    return res
 
 
 def multi_dot(tensors: Sequence[Tensor], **kwargs: OpArg) -> Tensor:
@@ -508,15 +1035,29 @@ def multi_dot(tensors: Sequence[Tensor], **kwargs: OpArg) -> Tensor:
     return _wrap(_ops.multi_dot(unwrapped, **kwargs))
 
 
-def householder_product(input: Tensor, tau: Tensor, **kwargs: OpArg) -> Tensor:
+def householder_product(
+    A: Tensor | None = None,
+    tau: Tensor | None = None,
+    *,
+    input: Tensor | None = None,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the first `n` columns of a product of Householder matrices.
 
     Args:
-        input: Tensor with Householder vectors in its lower triangle.
+        A: Tensor with Householder vectors in its lower triangle.
         tau: Tensor of complex/real scale factors.
+        input: Alias for `A`.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Orthogonal/unitary matrix product tensor.
     """
-    return _wrap(get_op("HouseholderProduct")()(input._tensor, tau._tensor, **kwargs))
+    mat = _pick_first(A, input)
+    assert tau is not None
+    res = _wrap(get_op("HouseholderProduct")()(mat._tensor, tau._tensor, **kwargs))
+    if out is not None:
+        return out.copy_(res)
+    return res

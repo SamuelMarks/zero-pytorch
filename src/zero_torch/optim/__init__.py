@@ -771,6 +771,8 @@ class LBFGS(Optimizer):
         tolerance_change: float | None = 1e-09,
         history_size: int | None = 100,
         line_search_fn: str | None = None,
+        *,
+        maximize: bool = False,
     ) -> None:
         """Initializes L-BFGS optimizer.
 
@@ -783,6 +785,7 @@ class LBFGS(Optimizer):
             tolerance_change: Termination tolerance on function value/parameter changes.
             history_size: Update history size.
             line_search_fn: Either `'strong_wolfe'` or None.
+            maximize: Maximize the params based on the objective.
         """
         super().__init__(
             params,
@@ -794,6 +797,7 @@ class LBFGS(Optimizer):
                 "tolerance_change": tolerance_change,
                 "history_size": history_size,
                 "line_search_fn": line_search_fn,
+                "maximize": maximize,
             },
         )
 

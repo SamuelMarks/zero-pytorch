@@ -23,6 +23,10 @@ from .relu import ReLU
 class MultiheadAttention(Module):
     """Allows the model to jointly attend to information from different representation subspaces."""
 
+    __constants__: list[str] = ["batch_first"]
+    bias_k: Parameter | None = None
+    bias_v: Parameter | None = None
+
     def __init__(
         self,
         embed_dim: int,
@@ -36,6 +40,8 @@ class MultiheadAttention(Module):
         batch_first: bool = False,
         device: DeviceLike = None,
         dtype: DTypeLike = None,
+        bias_k: Parameter | None = None,
+        bias_v: Parameter | None = None,
     ) -> None:
         """Initializes MultiheadAttention.
 
@@ -51,8 +57,10 @@ class MultiheadAttention(Module):
             batch_first: If True, input and output tensors are provided as `(batch, seq, feature)`.
             device: Desired device of parameters.
             dtype: Desired data type of parameters.
+            bias_k: Optional key bias parameter.
+            bias_v: Optional value bias parameter.
         """
-        _ = (add_bias_kv, add_zero_attn, device, dtype)
+        _ = (add_bias_kv, add_zero_attn, device, dtype, bias_k, bias_v)
         super().__init__()
         self.embed_dim: int = embed_dim
         self.kdim: int = kdim if kdim is not None else embed_dim
@@ -240,6 +248,8 @@ class MultiheadAttention(Module):
 class TransformerEncoderLayer(Module):
     """TransformerEncoderLayer is made up of self-attention and feedforward network."""
 
+    __constants__: list[str] = ["norm_first"]
+
     def __init__(
         self,
         d_model: int,
@@ -371,6 +381,8 @@ class TransformerEncoderLayer(Module):
 
 class TransformerDecoderLayer(Module):
     """TransformerDecoderLayer is made up of self-attn, multi-head-attn and feedforward network."""
+
+    __constants__: list[str] = ["norm_first"]
 
     def __init__(
         self,
@@ -576,6 +588,8 @@ class TransformerDecoderLayer(Module):
 class TransformerEncoder(Module):
     """TransformerEncoder is a stack of N encoder layers."""
 
+    __constants__: list[str] = ["norm"]
+
     def __init__(
         self,
         encoder_layer: TransformerEncoderLayer | None,
@@ -639,6 +653,8 @@ class TransformerEncoder(Module):
 
 class TransformerDecoder(Module):
     """TransformerDecoder is a stack of N decoder layers."""
+
+    __constants__: list[str] = ["norm"]
 
     def __init__(
         self,

@@ -128,9 +128,58 @@ def test_special_parity() -> None:
             atol=1e-4,
         )
         for z_poly in [
+            torch.special.chebyshev_polynomial_u,
+            torch.special.chebyshev_polynomial_v,
+            torch.special.chebyshev_polynomial_w,
+            torch.special.shifted_chebyshev_polynomial_t,
+            torch.special.shifted_chebyshev_polynomial_u,
+            torch.special.shifted_chebyshev_polynomial_v,
+            torch.special.shifted_chebyshev_polynomial_w,
+            torch.special.hermite_polynomial_he,
+        ]:
+            assert z_poly(t, n_degs).shape == (3,)
+            assert z_poly(t, n).shape == (3,)
+        for z_poly_kw in [
             torch.special.chebyshev_polynomial_t,
             torch.special.hermite_polynomial_h,
             torch.special.laguerre_polynomial_l,
             torch.special.legendre_polynomial_p,
         ]:
-            assert z_poly(t, n).shape == (3,)
+            assert z_poly_kw(t, n_degs).shape == (3,)
+            assert z_poly_kw(t, n).shape == (3,)
+
+        out_sp = Tensor([0.0, 0.0, 0.0])
+        assert torch.special.i0(t, out=out_sp) is out_sp
+        assert torch.special.i0e(t).shape == (3,)
+        assert torch.special.i1(t).shape == (3,)
+        assert torch.special.i1e(t).shape == (3,)
+        assert torch.special.scaled_modified_bessel_k0(t).shape == (3,)
+        assert torch.special.scaled_modified_bessel_k1(t).shape == (3,)
+        assert torch.special.spherical_bessel_j0(Tensor([0.0, 1.0, 2.0])).shape == (3,)
+        assert torch.special.sinc(Tensor([0.0, 0.5, 1.0])).shape == (3,)
+        assert torch.special.airy_ai(t).shape == (3,)
+        assert torch.special.erf(t).shape == (3,)
+        assert torch.special.erfc(t).shape == (3,)
+        assert torch.special.erfinv(Tensor([0.0, 0.5, -0.5])).shape == (3,)
+        assert torch.special.exp2(t).shape == (3,)
+        assert torch.special.expm1(t).shape == (3,)
+        assert torch.special.expit(t).shape == (3,)
+        assert torch.special.logit(Tensor([0.2, 0.5, 0.8])).shape == (3,)
+        assert torch.special.logit(Tensor([0.0, 0.5, 1.0]), eps=1e-4).shape == (3,)
+        assert torch.special.log1p(t).shape == (3,)
+        assert torch.special.entr(Tensor([-1.0, 0.0, 1.0])).shape == (3,)
+        assert torch.special.xlogy(Tensor([0.0, 2.0]), Tensor([0.0, 3.0])).shape == (2,)
+        assert torch.special.xlogy(2.0, 3.0).shape == ()
+        assert torch.special.xlog1py(Tensor([0.0, 2.0]), Tensor([0.0, 3.0])).shape == (
+            2,
+        )
+        assert torch.special.xlog1py(2.0, 3.0).shape == ()
+        assert torch.special.digamma(t).shape == (3,)
+        assert torch.special.psi(t).shape == (3,)
+        assert torch.special.gammainc(t, t2).shape == (3,)
+        assert torch.special.gammaincc(t, t2).shape == (3,)
+        assert torch.special.log_ndtr(t).shape == (3,)
+        assert torch.special.log_softmax(t, dim=0).shape == (3,)
+        assert torch.special.softmax(t, dim=0).shape == (3,)
+        assert torch.special.logsumexp(t, dim=0).shape == ()
+        assert torch.special.round(Tensor([1.2, 2.7, -0.5])).shape == (3,)

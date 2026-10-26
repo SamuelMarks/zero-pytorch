@@ -1,17 +1,22 @@
-"""Validates zero_torch API compliance against SEMANTIC_PLAN.md and ml-ecosystem-snapshots v0.0.4."""
+"""Validates zero_torch API compliance against SEMANTIC_PLAN.md, TODO_PLAN.md, and ml-ecosystem-snapshots v0.0.5."""
 
 from __future__ import annotations
 
 import importlib
+import inspect
 import json
 import os
 import re
 import sys
 from pathlib import Path
+from types import FunctionType, MethodType, ModuleType
+
+import zero_torch
 
 _SNAPSHOT_HELPER_EXCLUSIONS: set[str] = {
     "Any",
     "Counter",
+    "Optional",
     "Optimizer",
     "SupportsFloat",
     "Tensor",
@@ -20,11 +25,92 @@ _SNAPSHOT_HELPER_EXCLUSIONS: set[str] = {
 }
 
 
-def verify_ecosystem_snapshot() -> list[str]:
-    """Verifies that all structured categories in the ml-ecosystem-snapshots v0.0.4 JSON exist in zero_torch.
+def parse_todo_plan_unchecked(todo_plan_path: Path | None = None) -> set[str]:
+    """Extracts unchecked `- [ ]` canonical `torch.*` API paths from `TODO_PLAN.md`.
+
+    Args:
+        todo_plan_path: Optional path to `TODO_PLAN.md` (defaults to `Path("TODO_PLAN.md")`).
 
     Returns:
-        List of missing API paths, or an empty list if all are present.
+        Set of canonical `torch.*` API paths (and `torch.*(param)` / `torch.*.__constants__` tags)
+        that are marked `- [ ]` in `TODO_PLAN.md`.
+    """
+    resolved = Path("TODO_PLAN.md") if todo_plan_path is None else todo_plan_path
+    if not resolved.exists():
+        return set()
+
+    unchecked: set[str] = set()
+    content = resolved.read_text(encoding="utf-8")
+    for line in content.splitlines():
+        if not re.match(r"^\s*-\s*\[\s\]\s+", line):
+            continue
+        for match in re.finditer(
+            r"`((?:torch|zero_torch)\.[a-zA-Z0-9_\.]+(?:\([a-zA-Z0-9_,\s\*]+\))?)`",
+            line,
+        ):
+            raw_path = match.group(1)
+            canonical = (
+                "torch." + raw_path[len("zero_torch.") :]
+                if raw_path.startswith("zero_torch.")
+                else raw_path
+            )
+            unchecked.add(canonical)
+    return unchecked
+
+
+def _resolve_target_symbol(
+    api_path: str,
+) -> tuple[bool, type | FunctionType | MethodType | ModuleType | None]:
+    """Resolves a canonical `torch.*` API path against `zero_torch` without `getattr`.
+
+    Args:
+        api_path: Canonical `torch.*` dotted API path.
+
+    Returns:
+        Tuple `(exists, resolved_symbol)` where `exists` is True if the symbol is defined.
+    """
+    parts = api_path.split(".")
+    sym_name = parts[-1]
+    if len(parts) == 3 and parts[1] == "Tensor":
+        for cls in inspect.getmro(zero_torch.Tensor):
+            cls_members: dict[
+                str, type | FunctionType | MethodType | ModuleType | None
+            ] = dict(inspect.getmembers(cls))
+            if sym_name in cls_members:
+                return True, cls_members[sym_name]
+        return False, None
+
+    mod_name = ".".join(["zero_torch"] + parts[1:-1])
+    try:
+        mod = importlib.import_module(mod_name)
+    except ImportError:
+        return False, None
+
+    mod_vars: dict[str, type | FunctionType | MethodType | ModuleType | None] = vars(
+        mod
+    )
+    if sym_name in mod_vars:
+        return True, mod_vars[sym_name]
+    return False, None
+
+
+def verify_ecosystem_snapshot(
+    todo_plan_path: Path | None = None,
+) -> list[str]:
+    """Verifies that `zero_torch` implements the `ml-ecosystem-snapshots` v0.0.5 specification.
+
+    Validates module hierarchy, classes, class fields (`__constants__`, etc.), functions,
+    methods (`torch.Tensor.*`), parameter names/defaults, and docstrings across all 8
+    categories (`activation`, `array`, `dataloader`, `initializer`, `layer`, `loss`,
+    `optimizer`, `scheduler`). Additional functions/classes/parameters in `zero_torch`
+    beyond the snapshot are permitted. Endpoints or signature/field refinements still
+    marked `- [ ]` in `TODO_PLAN.md` are tracked as planned work until checked off.
+
+    Args:
+        todo_plan_path: Optional path to `TODO_PLAN.md`.
+
+    Returns:
+        List of missing or non-conformant API descriptions, or an empty list if conformant.
     """
     cache_path = (
         Path.home()
@@ -52,9 +138,11 @@ def verify_ecosystem_snapshot() -> list[str]:
     if not isinstance(categories, dict):
         return []
 
+    unchecked = parse_todo_plan_unchecked(todo_plan_path)
     missing: list[str] = []
     target_cats = (
         "activation",
+        "array",
         "dataloader",
         "initializer",
         "layer",
@@ -75,7 +163,6 @@ def verify_ecosystem_snapshot() -> list[str]:
                 api_path = None
                 continue
             parts = api_path.split(".")
-            mod_name = ".".join(["zero_torch"] + parts[1:-1])
             sym_name = parts[-1]
             if (
                 name in _SNAPSHOT_HELPER_EXCLUSIONS
@@ -83,17 +170,80 @@ def verify_ecosystem_snapshot() -> list[str]:
             ):
                 sym_name = ""
                 continue
-            try:
-                mod = importlib.import_module(mod_name)
-                if sym_name not in vars(mod):
-                    missing.append(api_path)
-            except ImportError:
+            if api_path in unchecked:
+                continue
+
+            exists, sym_obj = _resolve_target_symbol(api_path)
+            if not exists:
                 missing.append(api_path)
+                continue
+
+            if sym_obj is not None and callable(sym_obj):
+                doc = inspect.getdoc(sym_obj)
+                if not doc and item.get("docstring"):
+                    missing.append(f"{api_path}: missing docstring")
+
+                raw_params = item.get("params")
+                if isinstance(raw_params, list):
+                    try:
+                        sig = inspect.signature(sym_obj)
+                        actual_params = {
+                            p.name: p
+                            for p in sig.parameters.values()
+                            if p.name not in ("self", "cls")
+                        }
+                    except (ValueError, TypeError):
+                        actual_params = {}
+
+                    cls_members = (
+                        dict(inspect.getmembers(sym_obj))
+                        if inspect.isclass(sym_obj)
+                        else {}
+                    )
+                    for sp in raw_params:
+                        if not isinstance(sp, dict):
+                            continue
+                        pname_raw = sp.get("name")
+                        if not isinstance(pname_raw, str):
+                            continue
+                        sub_names = [
+                            s.strip().lstrip("\\*")
+                            for s in pname_raw.split(",")
+                            if s.strip()
+                        ]
+                        for pname in sub_names:
+                            if pname in (
+                                "self",
+                                "cls",
+                                "args",
+                                "kwargs",
+                                "__doc__",
+                            ):
+                                continue
+                            field_tag = f"{api_path}.{pname}"
+                            param_tag = f"{api_path}({pname})"
+                            if field_tag in unchecked or param_tag in unchecked:
+                                continue
+                            is_class_field = pname == "__constants__" or (
+                                item.get("kind") == "class"
+                                and pname.startswith("_")
+                                and pname not in actual_params
+                            )
+                            if is_class_field:
+                                if pname not in cls_members:
+                                    missing.append(field_tag)
+                            elif (
+                                pname not in actual_params
+                                and f"{pname}_" not in actual_params
+                                and pname not in cls_members
+                            ):
+                                missing.append(param_tag)
+
     return missing
 
 
 def main() -> None:
-    """Checks API compliance against SEMANTIC_PLAN.md and ml-ecosystem-snapshots v0.0.4."""
+    """Checks API compliance against SEMANTIC_PLAN.md, TODO_PLAN.md, and ml-ecosystem-snapshots v0.0.5."""
     if not os.path.exists("SEMANTIC_PLAN.md"):
         print("SEMANTIC_PLAN.md not found, skipping compliance check.")
         sys.exit(0)

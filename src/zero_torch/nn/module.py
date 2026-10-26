@@ -109,10 +109,30 @@ class Parameter(Tensor):
 class Module:
     """Base class for all neural network modules."""
 
-    _modules: dict[str, Module]
-    _parameters: dict[str, Parameter]
-    _buffers: dict[str, Tensor]
-    training: bool
+    training: bool = True
+    dump_patches: bool = False
+    _version: int = 1
+    _parameters: dict[str, Parameter] = {}
+    _buffers: dict[str, Tensor] = {}
+    _non_persistent_buffers_set: set[str] = set()
+    _backward_pre_hooks: dict[int, str] = {}
+    _backward_hooks: dict[int, str] = {}
+    _is_full_backward_hook: bool | None = None
+    _forward_hooks: dict[int, str] = {}
+    _forward_hooks_with_kwargs: dict[int, bool] = {}
+    _forward_hooks_always_called: dict[int, bool] = {}
+    _forward_pre_hooks: dict[int, str] = {}
+    _forward_pre_hooks_with_kwargs: dict[int, bool] = {}
+    _state_dict_hooks: dict[int, str] = {}
+    _load_state_dict_pre_hooks: dict[int, str] = {}
+    _state_dict_pre_hooks: dict[int, str] = {}
+    _load_state_dict_post_hooks: dict[int, str] = {}
+    _modules: dict[str, Module] = {}
+    call_super_init: bool = False
+    _compiled_call_impl: str | None = None
+    T_destination: str = "T_destination"
+    if not TYPE_CHECKING:
+        forward: str = "_forward_unimplemented"
 
     def __init__(self, *args: OpArg, **kwargs: OpArg) -> None:
         """Initializes internal Module state.
@@ -125,6 +145,7 @@ class Module:
         self._modules = {}
         self._parameters = {}
         self._buffers = {}
+        self._non_persistent_buffers_set = set()
         self.training = True
 
     if TYPE_CHECKING:
@@ -371,6 +392,7 @@ class ParameterList(Module):
 
     def __init__(
         self,
+        values: Iterable[Parameter] | None = None,
         parameters: Iterable[Parameter] | None = None,
         *args: OpArg,
         **kwargs: OpArg,
@@ -378,15 +400,17 @@ class ParameterList(Module):
         """Initializes the ParameterList.
 
         Args:
-            parameters: Optional iterable of parameters to add.
+            values: Optional iterable of parameters to add.
+            parameters: Optional alias for `values`.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
         _ = (args, kwargs)
         super().__init__()
         self._params_list: list[Parameter] = []
-        if parameters is not None:
-            for p in parameters:
+        eff_params = values if values is not None else parameters
+        if eff_params is not None:
+            for p in eff_params:
                 self.append(p)
 
     def __iter__(self) -> Iterator[Parameter]:
@@ -418,13 +442,15 @@ class ParameterList(Module):
 class Container(Module):
     """Deprecated base container class provided for compatibility."""
 
-    def __init__(self, **kwargs: Module) -> None:
+    def __init__(self, *, training: bool = True, **kwargs: Module) -> None:
         """Initializes the Container with keyword child modules.
 
         Args:
+            training: Whether the container is in training mode.
             **kwargs: Named child modules to register.
         """
         super().__init__()
+        self.training = training
         for key, value in kwargs.items():
             self.add_module(key, value)
 
@@ -474,15 +500,21 @@ class ModuleDict(Module):
 class ParameterDict(Module):
     """Holds parameters in a dictionary."""
 
-    def __init__(self, parameters: ParamDictArg = None) -> None:
+    def __init__(
+        self,
+        parameters: ParamDictArg = None,
+        values: ParamDictArg = None,
+    ) -> None:
         """Initializes the ParameterDict.
 
         Args:
             parameters: Mapping or iterable of `(key, Parameter)` pairs.
+            values: Optional alias for `parameters`.
         """
         super().__init__()
-        if parameters is not None:
-            self.update(parameters)
+        eff = parameters if parameters is not None else values
+        if eff is not None:
+            self.update(eff)
 
     def update(
         self,

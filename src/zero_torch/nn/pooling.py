@@ -286,6 +286,15 @@ class AvgPool1d(Module):
 class AvgPool2d(Module):
     """Applies a 2D average pooling over an input signal."""
 
+    __constants__: list[str] = [
+        "kernel_size",
+        "stride",
+        "padding",
+        "ceil_mode",
+        "count_include_pad",
+        "divisor_override",
+    ]
+
     def __init__(
         self,
         kernel_size: Size2d,
@@ -340,6 +349,15 @@ class AvgPool2d(Module):
 
 class AvgPool3d(Module):
     """Applies a 3D average pooling over an input signal."""
+
+    __constants__: list[str] = [
+        "kernel_size",
+        "stride",
+        "padding",
+        "ceil_mode",
+        "count_include_pad",
+        "divisor_override",
+    ]
 
     def __init__(
         self,
@@ -446,6 +464,13 @@ class MaxPool1d(Module):
 class FractionalMaxPool2d(Module):
     """Applies a 2D fractional max pooling over an input signal."""
 
+    __constants__: list[str] = [
+        "kernel_size",
+        "return_indices",
+        "output_size",
+        "output_ratio",
+    ]
+
     def __init__(
         self,
         kernel_size: Size2d,
@@ -541,6 +566,13 @@ class MaxPool2d(Module):
 
 class FractionalMaxPool3d(Module):
     """Applies a 3D fractional max pooling over an input signal."""
+
+    __constants__: list[str] = [
+        "kernel_size",
+        "return_indices",
+        "output_size",
+        "output_ratio",
+    ]
 
     def __init__(
         self,

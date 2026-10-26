@@ -171,9 +171,58 @@ def test_autograd_unary_reduction_shape_and_modules() -> None:
         loss = F.mse_loss(pred, target)
         loss.backward()
         assert inp.grad is not None and inp.grad.shape == (2, 3)
-        assert lin.weight.grad is not None and lin.weight.grad.shape == (2, 3)
+        assert (
+            lin.weight is not None
+            and lin.weight.grad is not None
+            and lin.weight.grad.shape == (2, 3)
+        )
         assert (
             lin.bias is not None
             and lin.bias.grad is not None
             and lin.bias.grad.shape == (2,)
         )
+
+        # Test grad, gradcheck, gradgradcheck, and helper utilities in zero_torch.autograd
+        gx = torch.tensor([2.0], requires_grad=True)
+        gy = torch.tensor([3.0], requires_grad=True)
+        gz = gx * gx
+        (dgx, dgy_none) = torch.autograd.grad(gz, [gx, gy])
+        assert dgx is not None and dgx.item() == 4.0 and dgy_none is None
+        gz2 = gx * 5.0
+        (dgx2, dgy_zero) = torch.autograd.grad(
+            [gz2],
+            [gx, gy],
+            grad_outputs=[torch.tensor([1.0])],
+            materialize_grads=True,
+        )
+        assert dgx2 is not None and dgx2.item() == 5.0
+        assert dgy_zero is not None and dgy_zero.item() == 0.0
+        gz3 = gx * 2.0
+        torch.autograd.backward(gz3, grad_tensors=torch.tensor([1.0]))
+
+        def sq_fn(v: torch.Tensor) -> torch.Tensor:
+            """Squares `v`.
+
+            Args:
+                v: Input tensor.
+
+            Returns:
+                Squared tensor.
+            """
+            return v * v
+
+        assert torch.autograd.gradcheck(sq_fn, gx)
+        assert torch.autograd.gradgradcheck(
+            sq_fn, [torch.tensor([2.0], requires_grad=False)]
+        )
+        assert torch.autograd.cast(torch.Tensor, gx) is gx
+        assert torch.autograd.handle_torch_function(sq_fn, [gx], gx).item() == 4.0
+        assert not torch.autograd.has_torch_function([gx])
+        assert torch.autograd.is_multithreading_enabled()
+        assert torch.autograd.is_view_replay_enabled()
+        assert torch.autograd.is_tensor_like(gx)
+        assert not torch.autograd.is_tensor_like(123)
+        assert not torch.autograd.kineto_available()
+        assert torch.autograd.overload(sq_fn) is sq_fn
+        assert torch.autograd.variable(gx) is gx
+        assert torch.autograd.variable().item() == 0.0

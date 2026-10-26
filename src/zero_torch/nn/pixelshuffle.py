@@ -9,7 +9,9 @@ from .module import Module
 
 
 class PixelShuffle(Module):
-    """Rearranges elements in a tensor of shape (*, C * r^2, H, W) to a tensor of shape (*, C, H * r, W * r)."""
+    """Rearranges elements in a tensor of shape `(*, C * r^2, H, W)` to `(*, C, H * r, W * r)`."""
+
+    __constants__: list[str] = ["upscale_factor"]
 
     def __init__(self, upscale_factor: int) -> None:
         """Initializes PixelShuffle.
@@ -50,7 +52,9 @@ class PixelShuffle(Module):
 
 
 class PixelUnshuffle(Module):
-    """Reverses the PixelShuffle operation by rearranging (*, C, H * r, W * r) to (*, C * r^2, H, W)."""
+    """Reverses the PixelShuffle operation by rearranging `(*, C, H * r, W * r)` to `(*, C * r^2, H, W)`."""
+
+    __constants__: list[str] = ["downscale_factor"]
 
     def __init__(self, downscale_factor: int) -> None:
         """Initializes PixelUnshuffle.

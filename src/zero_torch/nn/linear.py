@@ -13,6 +13,9 @@ from .module import Module, Parameter
 class Linear(Module):
     """Applies an affine linear transformation to the incoming data: `y = xA^T + b`."""
 
+    __constants__: list[str] = ["in_features", "out_features"]
+    weight: Parameter | None = None
+
     def __init__(
         self,
         in_features: int,
@@ -54,11 +57,15 @@ class Linear(Module):
         Returns:
             Output tensor of shape `(*, out_features)`.
         """
+        assert self.weight is not None
         return F.linear(input, self.weight, self.bias)
 
 
 class Bilinear(Module):
     """Applies a bilinear transformation to the incoming data: `y = x_1^T A x_2 + b`."""
+
+    __constants__: list[str] = ["in1_features", "in2_features", "out_features"]
+    weight: Parameter | None = None
 
     def __init__(
         self,
@@ -103,4 +110,5 @@ class Bilinear(Module):
         Returns:
             Output tensor of shape `(*, out_features)`.
         """
+        assert self.weight is not None
         return F.bilinear(input1, input2, self.weight, self.bias)

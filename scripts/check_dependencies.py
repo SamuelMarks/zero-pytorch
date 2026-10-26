@@ -16,6 +16,17 @@ ALLOWED_MODULES: set[str] = {
     "ml_switcheroo_compiler",
     "ml_ecosystem_snapshots",
     "zero_torch",
+    "zero_jax",
+    "zero_flax",
+    "zero_keras",
+    "zero_tensorflow",
+    "zero_mlx",
+    "zero_pax",
+    "zero_chex",
+    "zero_optax",
+    "zero_orbax",
+    "zero_grain",
+    "zero_zoo",
 }
 
 # Additional allowed root modules in `tests/`:

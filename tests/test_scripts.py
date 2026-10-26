@@ -122,7 +122,7 @@ def test_check_api_snapshots_generate(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_check_api_snapshots_load_version(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """Covers all branches of `load_ecosystem_snapshot_version`.
+    """Covers all branches of `load_ecosystem_snapshot` and `load_ecosystem_snapshot_version`.
 
     Args:
         monkeypatch: Pytest fixture for patching attributes and modules.
@@ -130,9 +130,25 @@ def test_check_api_snapshots_load_version(
     """
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-    # 1. Cache does not exist, resolver resolves to existing valid file
+    # 1. Cache does not exist, resolver resolves to existing valid file with categories
     resolved_file = tmp_path / "resolved_torch.json"
-    resolved_file.write_text(json.dumps({"version": "2.14.1"}), encoding="utf-8")
+    resolved_file.write_text(
+        json.dumps(
+            {
+                "version": "2.14.1",
+                "categories": {
+                    "array": [
+                        {"api_path": "torch.abs"},
+                        {"api_path": "torch.linalg.inv"},
+                        {"api_path": 123},
+                        "not_a_dict",
+                    ],
+                    "bad_cat": "not_a_list",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
 
     fake_resolver_mod = types.ModuleType("ml_ecosystem_snapshots.cli.resolver")
     vars(fake_resolver_mod)["resolve_snapshot_path"] = lambda _name: str(resolved_file)
@@ -140,6 +156,9 @@ def test_check_api_snapshots_load_version(
         sys.modules, "ml_ecosystem_snapshots.cli.resolver", fake_resolver_mod
     )
     assert check_api_snapshots.load_ecosystem_snapshot_version() == "2.14.1"
+    ver, top_level = check_api_snapshots.load_ecosystem_snapshot()
+    assert ver == "2.14.1"
+    assert top_level == {"abs"}
 
     # 2. Resolver resolves to non-existent file
     vars(fake_resolver_mod)["resolve_snapshot_path"] = lambda _name: str(
@@ -189,8 +208,10 @@ def test_check_api_snapshots_load_version(
     cache_file.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
     assert check_api_snapshots.load_ecosystem_snapshot_version() is None
 
-    # Dict with non-str version
-    cache_file.write_text(json.dumps({"version": 123}), encoding="utf-8")
+    # Dict with non-str version and non-dict categories
+    cache_file.write_text(
+        json.dumps({"version": 123, "categories": []}), encoding="utf-8"
+    )
     assert check_api_snapshots.load_ecosystem_snapshot_version() is None
 
 
@@ -204,49 +225,44 @@ def test_check_api_snapshots_main(
         tmp_path: Temporary directory path fixture.
     """
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(check_api_snapshots, "generate_snapshot", lambda: "fn()" + NL)
     monkeypatch.setattr(
-        check_api_snapshots, "load_ecosystem_snapshot_version", lambda: "2.14.1"
+        check_api_snapshots, "generate_snapshot", lambda: "fn()" + NL + "no_parens" + NL
+    )
+    monkeypatch.setattr(
+        check_api_snapshots,
+        "load_ecosystem_snapshot",
+        lambda: ("2.14.1", {"fn"}),
     )
 
-    # 1. Snapshot file does not exist -> generates and exits 0
+    # 1. Snapshot matches with eco_version present -> exits 0
     with pytest.raises(SystemExit) as exc:
         check_api_snapshots.main()
     assert exc.value.code == 0
-    assert (tmp_path / "ml_snapshots.txt").read_text(encoding="utf-8") == "fn()" + NL
 
-    # 2. Snapshot matches -> exits 0 (with eco_version None)
+    # 2. Snapshot matches with eco_version None -> exits 0
     monkeypatch.setattr(
-        check_api_snapshots, "load_ecosystem_snapshot_version", lambda: None
+        check_api_snapshots, "load_ecosystem_snapshot", lambda: (None, {"fn"})
     )
     with pytest.raises(SystemExit) as exc2:
         check_api_snapshots.main()
     assert exc2.value.code == 0
 
-    # 3. Mismatch without UPDATE_SNAPSHOTS -> exits 1
-    (tmp_path / "ml_snapshots.txt").write_text("other()" + NL, encoding="utf-8")
-    monkeypatch.delenv("UPDATE_SNAPSHOTS", raising=False)
+    # 3. Mismatch (missing symbol) -> exits 1
+    monkeypatch.setattr(
+        check_api_snapshots,
+        "load_ecosystem_snapshot",
+        lambda: ("2.14.1", {"fn", "missing_fn"}),
+    )
     with pytest.raises(SystemExit) as exc3:
         check_api_snapshots.main()
     assert exc3.value.code == 1
 
-    # 4. Mismatch with UPDATE_SNAPSHOTS=1 -> updates and exits 0
-    monkeypatch.setenv("UPDATE_SNAPSHOTS", "1")
+    # 4. Execute __main__ block via runpy against live zero_torch and ml-ecosystem-snapshots
     with pytest.raises(SystemExit) as exc4:
-        check_api_snapshots.main()
-    assert exc4.value.code == 0
-    assert (tmp_path / "ml_snapshots.txt").read_text(encoding="utf-8") == "fn()" + NL
-
-    # 5. Execute __main__ block via runpy when snapshot matches
-    real_snap = Path(__file__).resolve().parent.parent / "ml_snapshots.txt"
-    (tmp_path / "ml_snapshots.txt").write_text(
-        real_snap.read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    with pytest.raises(SystemExit) as exc5:
         runpy.run_path(
             str(Path(check_api_snapshots.__file__).resolve()), run_name="__main__"
         )
-    assert exc5.value.code == 0
+    assert exc4.value.code == 0
 
 
 def test_check_compliance_verify_ecosystem_snapshot(
@@ -316,7 +332,57 @@ def test_check_compliance_verify_ecosystem_snapshot(
     cache_file.write_text(json.dumps({"categories": "bad"}), encoding="utf-8")
     assert check_compliance.verify_ecosystem_snapshot() == []
 
-    # 5. Categories with all item variants
+    # 5. Categories with all item variants, TODO_PLAN.md unchecked items, Tensor methods, docstrings, fields, and params
+    todo_plan = tmp_path / "TODO_PLAN.md"
+    todo_plan.write_text(
+        NL.join(
+            [
+                "# Heading",
+                "- [x] `torch.nn.ReLU`",
+                "- [ ] `torch.nn.PlannedSym`",
+                "- [ ] `zero_torch.nn.CELU.__constants__`",
+                "- [ ] `torch.nn.CELU(planned_param)`",
+            ]
+        )
+        + NL,
+        encoding="utf-8",
+    )
+    assert check_compliance.parse_todo_plan_unchecked(todo_plan) == {
+        "torch.nn.PlannedSym",
+        "torch.nn.CELU.__constants__",
+        "torch.nn.CELU(planned_param)",
+    }
+    assert check_compliance.parse_todo_plan_unchecked(tmp_path / "no_todo.md") == set()
+
+    # Exercise undocumented callable, un-signaturable callable, and non-callable symbol in zero_torch.nn
+    import zero_torch.nn as zt_nn
+
+    def undoc_callable() -> None:
+        """Temporary docstring cleared at runtime to test missing docstring detection."""
+        return None
+
+    undoc_callable.__doc__ = None
+    monkeypatch.setitem(vars(zt_nn), "_test_undoc_fn", undoc_callable)
+    monkeypatch.setitem(vars(zt_nn), "_test_builtin_int", int)
+    monkeypatch.setitem(vars(zt_nn), "_test_non_callable", 42)
+
+    orig_sig = inspect.signature
+
+    def fake_sig(obj: type | types.FunctionType) -> inspect.Signature:
+        """Raises `ValueError` for `int` to cover the `except (ValueError, TypeError)` branch.
+
+        Args:
+            obj: Callable being inspected.
+
+        Returns:
+            Signature object.
+        """
+        if obj is int:
+            raise ValueError("no signature for builtin int")
+        return orig_sig(obj)
+
+    monkeypatch.setattr(inspect, "signature", fake_sig)
+
     payload = {
         "categories": {
             "activation": "not_a_list",
@@ -324,7 +390,54 @@ def test_check_compliance_verify_ecosystem_snapshot(
                 "not_a_dict",
                 {"api_path": 123, "name": "bad"},
                 {"api_path": "torch.nn.Tensor", "name": "Tensor"},
-                {"api_path": "torch.nn.ReLU", "name": "ReLU"},
+                {"api_path": "torch.nn.PlannedSym", "name": "PlannedSym"},
+                {"api_path": "torch.Tensor.reshape", "name": "reshape"},
+                {
+                    "api_path": "torch.Tensor.nonexistent_method",
+                    "name": "nonexistent_method",
+                },
+                {
+                    "api_path": "torch.nn._test_undoc_fn",
+                    "name": "_test_undoc_fn",
+                    "docstring": "Expected doc.",
+                    "params": "not_a_list",
+                },
+                {
+                    "api_path": "torch.nn._test_builtin_int",
+                    "name": "_test_builtin_int",
+                    "docstring": "",
+                    "params": [{"name": "x"}],
+                },
+                {
+                    "api_path": "torch.nn._test_non_callable",
+                    "name": "_test_non_callable",
+                },
+                {
+                    "api_path": "torch.nn.ReLU",
+                    "name": "ReLU",
+                    "kind": "class",
+                    "docstring": "ReLU doc.",
+                    "params": [
+                        "not_a_dict",
+                        {"name": 123},
+                        {"name": "self"},
+                        {"name": "inplace"},
+                        {"name": "__module__"},
+                        {"name": "_missing_const"},
+                    ],
+                },
+                {
+                    "api_path": "torch.nn.CELU",
+                    "name": "CELU",
+                    "kind": "class",
+                    "docstring": "CELU doc.",
+                    "params": [
+                        {"name": "__constants__"},
+                        {"name": "planned_param"},
+                        {"name": "missing_param"},
+                        {"name": "forward"},
+                    ],
+                },
                 {"api_path": "torch.nn.NonExistentSym", "name": "NonExistentSym"},
                 {
                     "api_path": "torch.nonexistent_submod.Sym",
@@ -334,8 +447,13 @@ def test_check_compliance_verify_ecosystem_snapshot(
         }
     }
     cache_file.write_text(json.dumps(payload), encoding="utf-8")
-    missing = check_compliance.verify_ecosystem_snapshot()
+    missing = check_compliance.verify_ecosystem_snapshot(todo_plan_path=todo_plan)
     assert missing == [
+        "torch.Tensor.nonexistent_method",
+        "torch.nn._test_undoc_fn: missing docstring",
+        "torch.nn._test_builtin_int(x)",
+        "torch.nn.ReLU._missing_const",
+        "torch.nn.CELU(missing_param)",
         "torch.nn.NonExistentSym",
         "torch.nonexistent_submod.Sym",
     ]
@@ -591,11 +709,15 @@ def test_check_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     # 1. None of `src`, `scripts`, `tests` exist -> returns 0
     assert check_dependencies.main() == 0
 
-    # 2. `src`, `scripts`, and `tests` exist with clean files (including parity test exception) -> exits 0
+    # 2. Only `src` exists first (so `tests` does not exist -> covers `if target_dir.exists():` False branch)
     src_dir = tmp_path / "src"
     src_dir.mkdir()
     (src_dir / "ok.py").write_text("import os" + NL, encoding="utf-8")
+    with pytest.raises(SystemExit) as exc0:
+        check_dependencies.main()
+    assert exc0.value.code == 0
 
+    # 2b. `src` and `tests` exist with clean files (including parity test exception) -> exits 0
     parity_dir = tmp_path / "tests" / "pytorch_official"
     parity_dir.mkdir(parents=True)
     parity_file = parity_dir / "test_parity.py"

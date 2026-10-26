@@ -7,6 +7,7 @@ from ml_switcheroo_compiler.ops.shape.indexing import where
 
 import zero_torch
 import zero_torch.nn.functional as F
+from zero_torch._types import DeviceLike, DTypeLike
 from zero_torch.tensor import Tensor, _wrap
 
 from .module import Module, Parameter
@@ -14,6 +15,8 @@ from .module import Module, Parameter
 
 class CELU(Module):
     """Applies the CELU function element-wise: `CELU(x) = max(0, x) + min(0, alpha * (exp(x/alpha) - 1))`."""
+
+    __constants__: list[str] = ["alpha", "inplace"]
 
     def __init__(
         self,
@@ -45,6 +48,8 @@ class CELU(Module):
 class ELU(Module):
     """Applies the Exponential Linear Unit (ELU) function element-wise."""
 
+    __constants__: list[str] = ["alpha", "inplace"]
+
     def __init__(self, alpha: float = 1.0, inplace: bool = False) -> None:
         """Initializes ELU.
 
@@ -71,6 +76,8 @@ class ELU(Module):
 class GELU(Module):
     """Applies the Gaussian Error Linear Units function."""
 
+    __constants__: list[str] = ["approximate"]
+
     def __init__(self, approximate: str = "none") -> None:
         """Initializes GELU.
 
@@ -94,6 +101,8 @@ class GELU(Module):
 
 class GLU(Module):
     """Applies the gated linear unit function."""
+
+    __constants__: list[str] = ["dim"]
 
     def __init__(self, dim: int = -1) -> None:
         """Initializes GLU.
@@ -119,6 +128,8 @@ class GLU(Module):
 class Hardshrink(Module):
     """Applies the Hardshrink function element-wise."""
 
+    __constants__: list[str] = ["lambd"]
+
     def __init__(self, lambd: float = 0.5) -> None:
         """Initializes Hardshrink.
 
@@ -142,6 +153,8 @@ class Hardshrink(Module):
 
 class Hardsigmoid(Module):
     """Applies the Hardsigmoid function element-wise."""
+
+    __constants__: list[str] = ["inplace"]
 
     def __init__(self, inplace: bool = False) -> None:
         """Initializes Hardsigmoid.
@@ -167,6 +180,8 @@ class Hardsigmoid(Module):
 class Hardswish(Module):
     """Applies the Hardswish function element-wise."""
 
+    __constants__: list[str] = ["inplace"]
+
     def __init__(self, inplace: bool = False) -> None:
         """Initializes Hardswish.
 
@@ -191,8 +206,15 @@ class Hardswish(Module):
 class Hardtanh(Module):
     """Applies the HardTanh function element-wise."""
 
+    __constants__: list[str] = ["min_val", "max_val", "inplace"]
+
     def __init__(
-        self, min_val: float = -1.0, max_val: float = 1.0, inplace: bool = False
+        self,
+        min_val: float = -1.0,
+        max_val: float = 1.0,
+        inplace: bool = False,
+        min_value: float | None = None,
+        max_value: float | None = None,
     ) -> None:
         """Initializes Hardtanh.
 
@@ -200,10 +222,12 @@ class Hardtanh(Module):
             min_val: Minimum value of the linear region range.
             max_val: Maximum value of the linear region range.
             inplace: Whether to perform the operation in-place.
+            min_value: Deprecated alias for `min_val`.
+            max_value: Deprecated alias for `max_val`.
         """
         super().__init__()
-        self.min_val: float = min_val
-        self.max_val: float = max_val
+        self.min_val: float = min_value if min_value is not None else min_val
+        self.max_val: float = max_value if max_value is not None else max_val
         self.inplace: bool = inplace
 
     def forward(self, input: Tensor) -> Tensor:
@@ -227,6 +251,8 @@ class Hardtanh(Module):
 
 class LeakyReLU(Module):
     """Applies the LeakyReLU function element-wise."""
+
+    __constants__: list[str] = ["inplace", "negative_slope"]
 
     def __init__(self, negative_slope: float = 0.01, inplace: bool = False) -> None:
         """Initializes LeakyReLU.
@@ -277,6 +303,8 @@ class LogSigmoid(Module):
 class Mish(Module):
     """Applies the Mish function element-wise."""
 
+    __constants__: list[str] = ["inplace"]
+
     def __init__(self, inplace: bool = False) -> None:
         """Initializes Mish.
 
@@ -301,13 +329,24 @@ class Mish(Module):
 class PReLU(Module):
     """Applies the element-wise PReLU function."""
 
-    def __init__(self, num_parameters: int = 1, init: float = 0.25) -> None:
+    __constants__: list[str] = ["num_parameters"]
+
+    def __init__(
+        self,
+        num_parameters: int = 1,
+        init: float = 0.25,
+        device: DeviceLike = None,
+        dtype: DTypeLike = None,
+    ) -> None:
         """Initializes PReLU.
 
         Args:
             num_parameters: Number of `a` parameters to learn.
             init: Initial value of `a`.
+            device: Desired device of parameters.
+            dtype: Desired data type of parameters.
         """
+        _ = (device, dtype)
         super().__init__()
         self.num_parameters: int = num_parameters
         self.init: float = init
@@ -328,6 +367,8 @@ class PReLU(Module):
 
 class RReLU(Module):
     """Applies the randomized leaky rectified linear unit function element-wise."""
+
+    __constants__: list[str] = ["lower", "upper", "inplace"]
 
     def __init__(
         self, lower: float = 1.0 / 8.0, upper: float = 1.0 / 3.0, inplace: bool = False
@@ -389,6 +430,8 @@ class ReLU6(Module):
 class SELU(Module):
     """Applies the SELU function element-wise."""
 
+    __constants__: list[str] = ["inplace"]
+
     def __init__(self, inplace: bool = False) -> None:
         """Initializes SELU.
 
@@ -412,6 +455,8 @@ class SELU(Module):
 
 class SiLU(Module):
     """Applies the Sigmoid Linear Unit (SiLU) function element-wise."""
+
+    __constants__: list[str] = ["inplace"]
 
     def __init__(self, inplace: bool = False) -> None:
         """Initializes SiLU.
@@ -456,6 +501,8 @@ class Sigmoid(Module):
 class Softplus(Module):
     """Applies the Softplus function element-wise."""
 
+    __constants__: list[str] = ["beta", "threshold"]
+
     def __init__(self, beta: float = 1.0, threshold: float = 20.0) -> None:
         """Initializes Softplus.
 
@@ -481,6 +528,8 @@ class Softplus(Module):
 
 class Softshrink(Module):
     """Applies the Softshrink function element-wise."""
+
+    __constants__: list[str] = ["lambd"]
 
     def __init__(self, lambd: float = 0.5) -> None:
         """Initializes Softshrink.
@@ -563,6 +612,8 @@ class Tanhshrink(Module):
 class Threshold(Module):
     """Thresholds each element of the input Tensor."""
 
+    __constants__: list[str] = ["threshold", "value", "inplace"]
+
     def __init__(self, threshold: float, value: float, inplace: bool = False) -> None:
         """Initializes Threshold.
 
@@ -591,6 +642,8 @@ class Threshold(Module):
 
 class Softmax(Module):
     """Applies the Softmax function to an n-dimensional input Tensor."""
+
+    __constants__: list[str] = ["dim"]
 
     def __init__(self, dim: int | None = None) -> None:
         """Initializes Softmax.
@@ -635,6 +688,8 @@ class Softmax2d(Module):
 class Softmin(Module):
     """Applies the Softmin function to an n-dimensional input Tensor."""
 
+    __constants__: list[str] = ["dim"]
+
     def __init__(self, dim: int | None = None) -> None:
         """Initializes Softmin.
 
@@ -658,6 +713,8 @@ class Softmin(Module):
 
 class LogSoftmax(Module):
     """Applies the `log(Softmax(x))` function to an n-dimensional input Tensor."""
+
+    __constants__: list[str] = ["dim"]
 
     def __init__(self, dim: int | None = None) -> None:
         """Initializes LogSoftmax.

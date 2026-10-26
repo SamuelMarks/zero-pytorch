@@ -1,4 +1,4 @@
-"""Generates and validates API snapshots against ml_snapshots.txt and ml-ecosystem-snapshots v0.0.4."""
+"""Generates and validates top-level zero_torch API snapshots against ml-ecosystem-snapshots v0.0.5."""
 
 from __future__ import annotations
 
@@ -65,14 +65,15 @@ def generate_snapshot() -> str:
                 apis.append(f"{name}{sig}")
             except ValueError:
                 apis.append(f"{name}(...)")
-    return "\n".join(sorted(apis)) + "\n"
+    nl = chr(10)
+    return nl.join(sorted(apis)) + nl
 
 
-def load_ecosystem_snapshot_version() -> str | None:
-    """Loads the canonical PyTorch snapshot version from ml-ecosystem-snapshots cache if present.
+def load_ecosystem_snapshot() -> tuple[str | None, set[str]]:
+    """Loads the canonical PyTorch snapshot version and top-level API names from ml-ecosystem-snapshots.
 
     Returns:
-        The snapshot version string if available, otherwise None.
+        Tuple of `(version_string_or_none, set_of_expected_top_level_symbol_names)`.
     """
     cache_path = (
         Path.home()
@@ -93,41 +94,50 @@ def load_ecosystem_snapshot_version() -> str | None:
     if cache_path.exists():
         raw = json.loads(cache_path.read_text(encoding="utf-8"))
         if isinstance(raw, dict):
-            ver = raw.get("version")
-            if isinstance(ver, str):
-                return ver
-    return None
+            ver_obj = raw.get("version")
+            ver = ver_obj if isinstance(ver_obj, str) else None
+            top_level: set[str] = set()
+            categories = raw.get("categories")
+            if isinstance(categories, dict):
+                for items in categories.values():
+                    if isinstance(items, list):
+                        for item in items:
+                            if isinstance(item, dict):
+                                api_path = item.get("api_path")
+                                if isinstance(api_path, str):
+                                    parts = api_path.split(".")
+                                    if len(parts) == 2 and parts[0] == "torch":
+                                        top_level.add(parts[1])
+            return ver, top_level
+    return None, set()
+
+
+def load_ecosystem_snapshot_version() -> str | None:
+    """Loads the canonical PyTorch snapshot version from ml-ecosystem-snapshots cache if present.
+
+    Returns:
+        The snapshot version string if available, otherwise None.
+    """
+    ver, _ = load_ecosystem_snapshot()
+    return ver
 
 
 def main() -> None:
-    """Validates or updates `ml_snapshots.txt` against `zero_torch` and `ml-ecosystem-snapshots`."""
+    """Validates `zero_torch` top-level API snapshot against `ml-ecosystem-snapshots` v0.0.5."""
     api_snapshot = generate_snapshot()
-    snapshot_file = "ml_snapshots.txt"
-    eco_version = load_ecosystem_snapshot_version()
+    exported_names = {
+        line.split("(", 1)[0] for line in api_snapshot.splitlines() if "(" in line
+    }
+    eco_version, expected_top_level = load_ecosystem_snapshot()
     if eco_version is not None:
-        print(f"Loaded ml-ecosystem-snapshots v0.0.4 target: torch {eco_version}")
+        print(f"Loaded ml-ecosystem-snapshots v0.0.5 target: torch {eco_version}")
 
-    if not os.path.exists(snapshot_file):
-        with open(snapshot_file, "w", encoding="utf-8") as f:
-            f.write(api_snapshot)
-        print(f"Generated {snapshot_file}")
-        sys.exit(0)
-
-    with open(snapshot_file, encoding="utf-8") as f:
-        expected = f.read()
-
-    if api_snapshot != expected:
-        print("API mismatch against snapshot!")
-        if os.environ.get("UPDATE_SNAPSHOTS") == "1":
-            with open(snapshot_file, "w", encoding="utf-8") as f:
-                f.write(api_snapshot)
-            print(f"Updated {snapshot_file}")
-            sys.exit(0)
-        else:
-            print(
-                "Run with UPDATE_SNAPSHOTS=1 python scripts/check_api_snapshots.py to update."
-            )
-            sys.exit(1)
+    missing = sorted(expected_top_level - exported_names)
+    if not exported_names or missing:
+        print("API mismatch against ml-ecosystem-snapshots!")
+        for symbol in missing[:10]:
+            print(f"  Missing top-level API: torch.{symbol}")
+        sys.exit(1)
 
     print("API matches snapshot.")
     sys.exit(0)

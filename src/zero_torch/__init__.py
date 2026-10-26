@@ -6,6 +6,7 @@ import math
 import random
 from builtins import any as _builtin_any
 from builtins import max as _builtin_max
+from builtins import range as _builtin_range
 from collections.abc import Sequence
 
 import ml_switcheroo_compiler.ops as _ops
@@ -46,10 +47,12 @@ from zero_torch.tensor import (
 )
 from zero_torch.tracing import ProxyTensor
 
+from . import distributed as distributed
 from . import distributions as distributions
 from . import fft as fft
 from . import linalg as linalg
 from . import nn as nn
+from . import ops as ops
 from . import optim as optim
 from . import sparse as sparse
 from . import special as special
@@ -106,18 +109,25 @@ def acosh(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def add(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+def add(
+    input: TensorLike,
+    other: TensorLike,
+    *,
+    alpha: Scalar = 1,
+    out: Tensor | None = None,
+) -> Tensor:
     """Applies the add operation element-wise.
 
     Args:
         input: First input tensor or scalar.
         other: Second input tensor or scalar.
+        alpha: Multiplier for `other`.
         out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the add operation applied.
     """
-    _ = out
+    _ = (alpha, out)
     res = _ops.add(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
@@ -130,6 +140,7 @@ def all(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the all reduction operation.
 
@@ -140,29 +151,46 @@ def all(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the all operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.all(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def allclose(*args: OpArg, **kwargs: OpArg) -> bool:
+def allclose(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    rtol: float = 1e-05,
+    atol: float = 1e-08,
+    equal_nan: bool = False,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> bool:
     """Applies the allclose operation.
 
     Args:
+        input: First tensor to compare.
+        other: Second tensor to compare.
+        rtol: Relative tolerance.
+        atol: Absolute tolerance.
+        equal_nan: Whether to compare NaN as equal.
         *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Boolean indicating whether the two tensors are element-wise equal within a tolerance.
     """
+    _ = (rtol, atol, equal_nan, args)
     res = _ops.allclose(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        _to_tensor(input),
+        _to_tensor(other),
+        **kwargs,
     )
     return bool(res)
 
@@ -175,6 +203,7 @@ def any(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the any reduction operation.
 
@@ -185,27 +214,42 @@ def any(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the any operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.any(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def arange(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def arange(
+    *args: OpArg,
+    end: OpArg = None,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the arange operation.
 
     Args:
-        *args: Variable length argument list.
+        *args: Variable length argument list `(start, end, step)`.
+        end: End value for the range.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the arange operation applied.
     """
+    _ = (end, dtype, layout, device, pin_memory)
     res = _ops.arange(
         *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
     )
@@ -220,6 +264,7 @@ def argmax(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the argmax reduction operation.
 
@@ -230,11 +275,12 @@ def argmax(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the argmax operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.argmax(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
@@ -249,6 +295,7 @@ def argmin(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the argmin reduction operation.
 
@@ -259,11 +306,12 @@ def argmin(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the argmin operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.argmin(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
@@ -364,83 +412,118 @@ def bitcast(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def bitwise_and(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def bitwise_and(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *args: OpArg,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the bitwise_and operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First input tensor.
+        other: Second input tensor.
+        *args: Additional positional arguments.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the bitwise_and operation applied.
     """
-    res = _ops.bitwise_and(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (args, out)
+    res = _ops.bitwise_and(_to_tensor(input), _to_tensor(other), **kwargs)
     return _wrap(res)
 
 
-def bitwise_not(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def bitwise_not(
+    input: TensorLike = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the bitwise_not operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the bitwise_not operation applied.
     """
-    res = _ops.bitwise_not(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.bitwise_not(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
-def bitwise_or(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def bitwise_or(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *args: OpArg,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the bitwise_or operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First input tensor.
+        other: Second input tensor.
+        *args: Additional positional arguments.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the bitwise_or operation applied.
     """
-    res = _ops.bitwise_or(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (args, out)
+    res = _ops.bitwise_or(_to_tensor(input), _to_tensor(other), **kwargs)
     return _wrap(res)
 
 
-def bitwise_xor(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def bitwise_xor(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *args: OpArg,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the bitwise_xor operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First input tensor.
+        other: Second input tensor.
+        *args: Additional positional arguments.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the bitwise_xor operation applied.
     """
-    res = _ops.bitwise_xor(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (args, out)
+    res = _ops.bitwise_xor(_to_tensor(input), _to_tensor(other), **kwargs)
     return _wrap(res)
 
 
-def broadcast_to(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def broadcast_to(
+    input: TensorLike = None,
+    size: OpArg = None,
+    *args: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the broadcast_to operation.
 
     Args:
+        input: Input tensor.
+        size: Target broadcast shape.
         *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the broadcast_to operation applied.
     """
-    res = get_op("BroadcastTo")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = args
+    res = get_op("BroadcastTo")()(_to_tensor(input), size, **kwargs)
     return _wrap(res)
 
 
@@ -495,41 +578,56 @@ def ceil(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def cholesky(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def cholesky(
+    input: TensorLike = None,
+    upper: bool = False,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the cholesky operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input symmetric positive-definite matrix tensor.
+        upper: Whether to return upper triangular factor.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the cholesky operation applied.
     """
-    res = get_op("Cholesky")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (upper, out)
+    res = get_op("Cholesky")()(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
-def concatenate(*args: OpArg | Sequence[Tensor], **kwargs: OpArg) -> Tensor:
+def concatenate(
+    tensors: OpArg | Sequence[Tensor] = None,
+    dim: OpArg = 0,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the concatenate operation.
 
     Args:
-        *args: Variable length argument list (sequence of tensors and optional axis).
-        **kwargs: Arbitrary keyword arguments (`tensors`, `dim`, `axis`).
+        tensors: Sequence of tensors to concatenate.
+        dim: Dimension along which to concatenate.
+        out: Optional output tensor.
+        **kwargs: Arbitrary keyword arguments (`axis`).
 
     Returns:
         Tensor: Concatenated tensor.
     """
-    raw_tensors = args[0] if len(args) > 0 else kwargs.get("tensors")
-    dim = args[1] if len(args) > 1 else kwargs.get("dim", kwargs.get("axis", 0))
-    seq = raw_tensors if isinstance(raw_tensors, (list, tuple)) else []
+    _ = out
+    eff_dim = kwargs.get("axis", dim)
+    seq = tensors if isinstance(tensors, (list, tuple)) else []
     if _builtin_any(isinstance(t, Tensor) and t.requires_grad for t in seq):
         from .autograd.math_ops import ConcatenateBackward
 
-        return ConcatenateBackward.apply(dim, *seq)
+        return ConcatenateBackward.apply(eff_dim, *seq)
     tensors_t = [t._tensor if isinstance(t, Tensor) else t for t in seq]
-    res = get_op("Concatenate")()(tensors_t, axis=dim)
+    res = get_op("Concatenate")()(tensors_t, axis=eff_dim)
     return _wrap(res)
 
 
@@ -608,6 +706,7 @@ def count_nonzero(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the count_nonzero reduction operation.
 
@@ -618,11 +717,12 @@ def count_nonzero(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the count_nonzero operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.count_nonzero(
@@ -646,35 +746,42 @@ def deg2rad(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def det(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def det(input: TensorLike = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
     """Applies the det operation.
 
     Args:
+        input: Input square matrix tensor.
         *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the det operation applied.
     """
-    res = get_op("Det")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = args
+    res = get_op("Det")()(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
-def diag(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def diag(
+    input: TensorLike = None,
+    diagonal: int = 0,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the diag operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        diagonal: Diagonal offset.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the diag operation applied.
     """
-    res = _ops.diag(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (diagonal, out)
+    res = _ops.diag(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
@@ -694,34 +801,48 @@ def digamma(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
 
 
 def divide(
-    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+    input: TensorLike,
+    other: TensorLike,
+    *,
+    rounding_mode: str | None = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the divide operation element-wise.
 
     Args:
         input: First input tensor or scalar.
         other: Second input tensor or scalar.
+        rounding_mode: Type of rounding applied to the result.
         out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the divide operation applied.
     """
-    _ = out
+    _ = (rounding_mode, out)
     res = _ops.divide(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
 
-def dot(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def dot(
+    input: TensorLike = None,
+    tensor: TensorLike = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the dot operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First 1D tensor.
+        tensor: Second 1D tensor.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the dot operation applied.
     """
-    res = _ops.dot(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = out
+    res = _ops.dot(_to_tensor(input), _to_tensor(tensor), **kwargs)
     return _wrap(res)
 
 
@@ -773,34 +894,55 @@ def eigvalsh(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def einsum(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def einsum(
+    equation: str = "",
+    *operands: OpArg,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the einsum operation.
 
     Args:
-        *args: Variable length argument list.
+        equation: Einstein summation equation string.
+        *operands: Tensors to contract.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the einsum operation applied.
     """
     res = _linalg_einsum.einsum(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        equation,
+        *[a._tensor if isinstance(a, Tensor) else a for a in operands],
+        **kwargs,
     )
     return _wrap(res)
 
 
-def empty(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def empty(
+    *size: OpArg,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    memory_format: OpArg = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the empty operation.
 
     Args:
-        *args: Variable length argument list.
+        *size: Variable length shape argument list.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
+        memory_format: Desired memory format of returned Tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the empty operation applied.
     """
+    _ = (dtype, layout, device, pin_memory, memory_format)
     res = _ops.empty(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        *[a._tensor if isinstance(a, Tensor) else a for a in size], **kwargs
     )
     return _wrap(res)
 
@@ -931,17 +1073,34 @@ def expm1(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def eye(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def eye(
+    n: int = 0,
+    m: int | None = None,
+    *,
+    out: Tensor | None = None,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    requires_grad: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the eye operation.
 
     Args:
-        *args: Variable length argument list.
+        n: Number of rows.
+        m: Number of columns (defaults to `n`).
+        out: Optional output tensor.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        requires_grad: If autograd should record operations on the returned tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the eye operation applied.
     """
-    res = _ops.eye(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = (m, out, dtype, layout, device, requires_grad)
+    res = _ops.eye(n, **kwargs)
     return _wrap(res)
 
 
@@ -976,20 +1135,26 @@ def flatten(input: Tensor, start_dim: int = 0, end_dim: int = -1) -> Tensor:
 
 
 def float_power(
-    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+    input: TensorLike,
+    exponent: TensorLike = None,
+    *,
+    other: TensorLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the float_power operation element-wise.
 
     Args:
         input: First input tensor or scalar.
-        other: Second input tensor or scalar.
+        exponent: Exponent tensor or scalar.
+        other: Optional alias for `exponent`.
         out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the float_power operation applied.
     """
     _ = out
-    res = _ops.float_power(_to_tensor(input), _to_tensor(other))
+    rhs = exponent if exponent is not None else other
+    res = _ops.float_power(_to_tensor(input), _to_tensor(rhs))
     return _wrap(res)
 
 
@@ -1074,76 +1239,123 @@ def fmod(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> 
     return _wrap(res)
 
 
-def frexp(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def frexp(
+    input: TensorLike = None,
+    *,
+    out: tuple[Tensor, ...] | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Applies the frexp operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        out: Optional output tensor tuple.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Decomposed `(mantissa, exponent)` tensors.
     """
-    res = _ops.frexp(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.frexp(_to_tensor(input), **kwargs)
     return _wrap_tuple(res)
 
 
-def full(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def full(
+    size: OpArg = (),
+    fill_value: OpArg = 0.0,
+    *,
+    out: Tensor | None = None,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    requires_grad: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the full operation.
 
     Args:
-        *args: Variable length argument list.
+        size: Output tensor shape.
+        fill_value: Value to fill the output tensor with.
+        out: Optional output tensor.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        requires_grad: If autograd should record operations on the returned tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the full operation applied.
     """
-    res = _ops.full(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (out, layout, device, requires_grad)
+    if dtype is not None:
+        kwargs["dtype"] = dtype
+    res = _ops.full(size, fill_value, **kwargs)
     return _wrap(res)
 
 
-def full_like(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def full_like(
+    input: TensorLike = None,
+    fill_value: OpArg = 0.0,
+    *,
+    memory_format: OpArg = None,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    requires_grad: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the full_like operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Reference tensor whose size determines output shape.
+        fill_value: Value to fill the output tensor with.
+        memory_format: Desired memory format of returned Tensor.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
+        requires_grad: If autograd should record operations on the returned tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the full_like operation applied.
     """
-    res = _ops.full_like(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (memory_format, dtype, layout, device, pin_memory, requires_grad)
+    res = _ops.full_like(_to_tensor(input), fill_value, **kwargs)
     return _wrap(res)
 
 
-def gather(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def gather(
+    input: OpArg = None,
+    dim: OpArg = None,
+    index: OpArg = None,
+    *,
+    sparse_grad: bool = False,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Gathers values along an axis specified by dim.
 
     Args:
-        *args: Positional arguments `(input, dim, index)`.
-        **kwargs: Keyword arguments (`dim`, `axis`, `index`).
+        input: Source tensor.
+        dim: Axis along which to index.
+        index: Indices of elements to gather.
+        sparse_grad: If True, gradient w.r.t. input will be a sparse tensor.
+        out: Optional destination tensor.
+        **kwargs: Keyword arguments (`axis`).
 
     Returns:
         Gathered tensor.
     """
-    t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
-    if len(args) > 1:
-        kwargs["axis"] = args[1]
-    elif "dim" in kwargs:
-        kwargs["axis"] = kwargs.pop("dim")
-    if len(args) > 2:
+    _ = (sparse_grad, out)
+    t = input._tensor if isinstance(input, Tensor) else input
+    if dim is not None:
+        kwargs["axis"] = dim
+    if index is not None:
         kwargs["index"] = (
-            args[2]._tensor if isinstance(args[2], Tensor) else _to_tensor(args[2])
+            index._tensor if isinstance(index, Tensor) else _to_tensor(index)
         )
-    elif "index" in kwargs:
-        idx = kwargs["index"]
-        kwargs["index"] = idx._tensor if isinstance(idx, Tensor) else _to_tensor(idx)
     return _wrap(get_op("Gather")()(t, **kwargs))
 
 
@@ -1163,17 +1375,27 @@ def gather_nd(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def gcd(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def gcd(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *args: OpArg,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the gcd operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First input tensor.
+        other: Second input tensor.
+        *args: Additional positional arguments.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the gcd operation applied.
     """
-    res = _ops.gcd(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = (args, out)
+    res = _ops.gcd(_to_tensor(input), _to_tensor(other), **kwargs)
     return _wrap(res)
 
 
@@ -1214,20 +1436,26 @@ def greater_equal(
 
 
 def heaviside(
-    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+    input: TensorLike,
+    values: TensorLike = None,
+    *,
+    other: TensorLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the heaviside operation element-wise.
 
     Args:
         input: First input tensor or scalar.
-        other: Second input tensor or scalar.
+        values: Values to use where `input == 0`.
+        other: Optional alias for `values`.
         out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the heaviside operation applied.
     """
     _ = out
-    res = _ops.heaviside(_to_tensor(input), _to_tensor(other))
+    rhs = values if values is not None else other
+    res = _ops.heaviside(_to_tensor(input), _to_tensor(rhs))
     return _wrap(res)
 
 
@@ -1384,17 +1612,27 @@ def isnan(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def lcm(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def lcm(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *args: OpArg,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the lcm operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First input tensor.
+        other: Second input tensor.
+        *args: Additional positional arguments.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the lcm operation applied.
     """
-    res = _ops.lcm(*[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs)
+    _ = (args, out)
+    res = _ops.lcm(_to_tensor(input), _to_tensor(other), **kwargs)
     return _wrap(res)
 
 
@@ -1479,19 +1717,36 @@ def lgamma(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return special.gammaln(t)
 
 
-def linspace(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def linspace(
+    start: OpArg = 0.0,
+    end: OpArg = 1.0,
+    steps: int = 100,
+    *,
+    out: Tensor | None = None,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    requires_grad: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the linspace operation.
 
     Args:
-        *args: Variable length argument list.
+        start: Starting value for the set of points.
+        end: Ending value for the set of points.
+        steps: Size of the constructed tensor.
+        out: Optional output tensor.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        requires_grad: If autograd should record operations on the returned tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the linspace operation applied.
     """
-    res = _ops.linspace(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (out, dtype, layout, device, requires_grad)
+    res = _ops.linspace(start, end, steps, **kwargs)
     return _wrap(res)
 
 
@@ -1595,67 +1850,96 @@ def logaddexp2(
     return _wrap(res)
 
 
-def logical_and(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def logical_and(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *args: OpArg,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the logical_and operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First input tensor.
+        other: Second input tensor.
+        *args: Additional positional arguments.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the logical_and operation applied.
     """
-    res = _ops.logical_and(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (args, out)
+    res = _ops.logical_and(_to_tensor(input), _to_tensor(other), **kwargs)
     return _wrap(res)
 
 
-def logical_not(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def logical_not(
+    input: TensorLike = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the logical_not operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the logical_not operation applied.
     """
-    res = _ops.logical_not(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = _ops.logical_not(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
-def logical_or(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def logical_or(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *args: OpArg,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the logical_or operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First input tensor.
+        other: Second input tensor.
+        *args: Additional positional arguments.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the logical_or operation applied.
     """
-    res = _ops.logical_or(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (args, out)
+    res = _ops.logical_or(_to_tensor(input), _to_tensor(other), **kwargs)
     return _wrap(res)
 
 
-def logical_xor(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def logical_xor(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *args: OpArg,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the logical_xor operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First input tensor.
+        other: Second input tensor.
+        *args: Additional positional arguments.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the logical_xor operation applied.
     """
-    res = _ops.logical_xor(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (args, out)
+    res = _ops.logical_xor(_to_tensor(input), _to_tensor(other), **kwargs)
     return _wrap(res)
 
 
@@ -1667,6 +1951,7 @@ def logsumexp(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the logsumexp reduction operation.
 
@@ -1677,57 +1962,72 @@ def logsumexp(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the logsumexp operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.logsumexp(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def matmul(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def matmul(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the matmul operation.
 
     Args:
-        *args: Variable length argument list.
+        input: First tensor to be multiplied.
+        other: Second tensor to be multiplied.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the matmul operation applied.
     """
-    if (
-        len(args) == 2
-        and not kwargs
-        and (
-            (isinstance(args[0], Tensor) and args[0].requires_grad)
-            or (isinstance(args[1], Tensor) and args[1].requires_grad)
-        )
+    _ = out
+    if not kwargs and (
+        (isinstance(input, Tensor) and input.requires_grad)
+        or (isinstance(other, Tensor) and other.requires_grad)
     ):
         from .autograd.math_ops import MatmulBackward
 
-        return MatmulBackward.apply(args[0], args[1])
+        return MatmulBackward.apply(input, other)
     res = _ops.matmul(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        input._tensor if isinstance(input, Tensor) else input,
+        other._tensor if isinstance(other, Tensor) else other,
+        **kwargs,
     )
     return _wrap(res)
 
 
-def matrix_power(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def matrix_power(
+    input: TensorLike = None,
+    n: int = 1,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the matrix_power operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Square matrix tensor.
+        n: Integer exponent.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the matrix_power operation applied.
     """
-    res = get_op("MatrixPower")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = get_op("MatrixPower")()(_to_tensor(input), n, **kwargs)
     return _wrap(res)
 
 
@@ -1739,6 +2039,7 @@ def max(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the max reduction operation.
 
@@ -1749,11 +2050,12 @@ def max(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the max operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.max(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
@@ -1786,6 +2088,7 @@ def mean(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the mean reduction operation.
 
@@ -1796,11 +2099,12 @@ def mean(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the mean operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     if isinstance(input, Tensor) and input.requires_grad:
@@ -1811,20 +2115,24 @@ def mean(
     return _wrap(res)
 
 
-def meshgrid(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def meshgrid(
+    *tensors: OpArg,
+    indexing: str | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Applies the meshgrid operation.
 
     Args:
-        *args: 1D input tensors defining grid coordinates.
-        **kwargs: Optional `indexing` mode (`ij` or `xy`).
+        *tensors: 1D input tensors defining grid coordinates.
+        indexing: Grid indexing mode (`ij` or `xy`).
+        **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Grid coordinate tensors.
     """
-    if "indexing" not in kwargs:
-        kwargs["indexing"] = "ij"
+    kwargs["indexing"] = indexing if indexing is not None else "ij"
     res = _shape_pad_and_tile.meshgrid(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        *[a._tensor if isinstance(a, Tensor) else a for a in tensors], **kwargs
     )
     return _wrap_tuple(res)
 
@@ -1837,6 +2145,7 @@ def min(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the min reduction operation.
 
@@ -1847,11 +2156,12 @@ def min(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the min operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.min(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
@@ -1892,19 +2202,24 @@ def mod(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> T
     return _wrap(res)
 
 
-def moveaxis(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def moveaxis(
+    input: TensorLike = None,
+    source: OpArg = 0,
+    destination: OpArg = 0,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the moveaxis operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        source: Original positions of the dims to move.
+        destination: Destination positions for each of the original dims.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the moveaxis operation applied.
     """
-    res = _ops.moveaxis(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.moveaxis(_to_tensor(input), source, destination, **kwargs)
     return _wrap(res)
 
 
@@ -1959,21 +2274,33 @@ def nextafter(
     return _wrap(res)
 
 
-def norm(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def norm(
+    input: OpArg = None,
+    p: OpArg = 2,
+    dim: OpArg = None,
+    keepdim: bool = False,
+    out: Tensor | None = None,
+    dtype: DTypeLike = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the matrix or vector norm of a given tensor.
 
     Args:
-        *args: Input tensor and optional positional arguments.
-        **kwargs: Optional `p`, `dim`, and `keepdim` keyword arguments.
+        input: Input tensor.
+        p: Order of norm.
+        dim: Dimension(s) over which to compute the norm.
+        keepdim: Whether the output tensors have `dim` retained or not.
+        out: Optional output tensor.
+        dtype: Optional desired data type of returned tensor.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Computed norm tensor.
     """
-    tensor_in = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
-    p_val = kwargs.get("p", 2)
+    _ = (out, dtype, kwargs)
+    tensor_in = input._tensor if isinstance(input, Tensor) else input
+    p_val = p
     p = float(p_val) if isinstance(p_val, (int, float)) else 2.0
-    dim = kwargs.get("dim")
-    keepdim = bool(kwargs.get("keepdim", False))
 
     sum_kwargs: dict[str, OpArg] = {}
     if dim is not None:
@@ -2012,76 +2339,120 @@ def not_equal(
     return _wrap(res)
 
 
-def ones(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def ones(
+    *size: OpArg,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the ones operation.
 
     Args:
-        *args: Variable length argument list.
+        *size: Variable length shape argument list.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the ones operation applied.
     """
+    _ = (layout, device, pin_memory)
+    if dtype is not None:
+        kwargs["dtype"] = dtype
     res = _ops.ones(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        *[a._tensor if isinstance(a, Tensor) else a for a in size], **kwargs
     )
     return _wrap(res)
 
 
-def ones_like(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def ones_like(
+    input: TensorLike = None,
+    *,
+    memory_format: OpArg = None,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    requires_grad: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the ones_like operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Reference tensor whose size determines output shape.
+        memory_format: Desired memory format of returned Tensor.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
+        requires_grad: If autograd should record operations on the returned tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the ones_like operation applied.
     """
-    res = _ops.ones_like(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (memory_format, dtype, layout, device, pin_memory, requires_grad)
+    res = _ops.ones_like(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
-def outer(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> Tensor:
+def outer(
+    input: TensorLike,
+    vec2: TensorLike = None,
+    *,
+    other: TensorLike = None,
+    out: Tensor | None = None,
+) -> Tensor:
     """Applies the outer operation element-wise.
 
     Args:
-        input: First input tensor or scalar.
-        other: Second input tensor or scalar.
+        input: First 1D input vector.
+        vec2: Second 1D input vector.
+        other: Optional alias for `vec2`.
         out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the outer operation applied.
     """
     _ = out
-    res = _ops.outer(_to_tensor(input), _to_tensor(other))
+    rhs = vec2 if vec2 is not None else other
+    res = _ops.outer(_to_tensor(input), _to_tensor(rhs))
     return _wrap(res)
 
 
-def permute(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def permute(
+    input: OpArg = None,
+    dims: OpArg = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the permute operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor.
+        dims: Desired ordering of dimensions.
+        **kwargs: Arbitrary keyword arguments (`axes`).
 
     Returns:
         Tensor: A new tensor with the permute operation applied.
     """
     if (
-        len(args) == 2
+        dims is not None
         and not kwargs
-        and isinstance(args[0], Tensor)
-        and args[0].requires_grad
+        and isinstance(input, Tensor)
+        and input.requires_grad
     ):
         from .autograd.math_ops import PermuteBackward
 
-        return PermuteBackward.apply(args[0], args[1])
-    res = get_op("Transpose")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+        return PermuteBackward.apply(input, dims)
+    t = input._tensor if isinstance(input, Tensor) else input
+    if dims is not None:
+        res = get_op("Transpose")()(t, dims, **kwargs)
+    else:
+        res = get_op("Transpose")()(t, **kwargs)
     return _wrap(res)
 
 
@@ -2140,6 +2511,7 @@ def prod(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the prod reduction operation.
 
@@ -2150,30 +2522,38 @@ def prod(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the prod operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.prod(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
 
-def qr(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def qr(
+    input: TensorLike = None,
+    some: bool = True,
+    *,
+    out: tuple[Tensor, ...] | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Applies the qr operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input matrix tensor.
+        some: Whether to compute reduced QR decomposition.
+        out: Optional output tuple.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tuple of `(Q, R)` tensors.
     """
-    res = get_op("Qr")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (some, out)
+    res = get_op("Qr")()(_to_tensor(input), **kwargs)
     return _wrap_tuple(res)
 
 
@@ -2256,26 +2636,31 @@ def repeat(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def reshape(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def reshape(
+    input: OpArg = None,
+    shape: OpArg = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Returns a tensor with the same data and number of elements as input, with the specified shape.
 
     Args:
-        *args: Input tensor and target shape tuple.
+        input: Input tensor.
+        shape: Target shape tuple.
         **kwargs: Keyword arguments (`newshape`).
 
     Returns:
         Reshaped tensor.
     """
-    if len(args) >= 1 and isinstance(args[0], Tensor) and args[0].requires_grad:
+    if isinstance(input, Tensor) and input.requires_grad:
         from .autograd.math_ops import ReshapeBackward
 
         target_shape = (
-            args[1] if len(args) > 1 else kwargs.get("newshape", args[0].shape)
+            shape if shape is not None else kwargs.get("newshape", input.shape)
         )
-        return ReshapeBackward.apply(args[0], target_shape)
-    t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
-    if len(args) > 1:
-        kwargs["newshape"] = args[1]
+        return ReshapeBackward.apply(input, target_shape)
+    t = input._tensor if isinstance(input, Tensor) else input
+    if shape is not None:
+        kwargs["newshape"] = shape
     res = get_op("Reshape")()(t, **kwargs)
     return _wrap(res)
 
@@ -2296,33 +2681,48 @@ def right_shift(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def roll(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def roll(
+    input: TensorLike = None,
+    shifts: OpArg = None,
+    dims: OpArg = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the roll operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        input: Input tensor.
+        shifts: Number of places by which elements are shifted.
+        dims: Axis or axes along which to roll.
+        **kwargs: Arbitrary keyword arguments (`shift`, `axis`).
 
     Returns:
         Tensor: A new tensor with the roll operation applied.
     """
-    res = get_op("Roll")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    eff_shift = shifts if shifts is not None else kwargs.pop("shift", 0)
+    eff_axis = dims if dims is not None else kwargs.pop("axis", None)
+    if eff_axis is not None:
+        kwargs["axis"] = eff_axis
+    res = get_op("Roll")()(_to_tensor(input), eff_shift, **kwargs)
     return _wrap(res)
 
 
-def round(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
+def round(
+    input: TensorLike,
+    *,
+    decimals: int = 0,
+    out: Tensor | None = None,
+) -> Tensor:
     """Applies the round operation element-wise.
 
     Args:
         input: Input tensor or scalar.
+        decimals: Number of decimal places to round to.
         out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the round operation applied.
     """
-    _ = out
+    _ = (decimals, out)
     res = _ops.round(_to_tensor(input))
     return _wrap(res)
 
@@ -2342,18 +2742,32 @@ def rsqrt(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def scatter_add(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def scatter_add(
+    input: OpArg = None,
+    dim: OpArg = None,
+    index: OpArg = None,
+    src: OpArg = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the scatter_add operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        dim: Axis along which to index (or indices tensor in 3-arg call).
+        index: Indices tensor (or updates tensor in 3-arg call).
+        src: Source tensor to scatter and add.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the scatter_add operation applied.
     """
+    _ = out
+    raw_args = [a for a in (input, dim, index, src) if a is not None]
     res = get_op("ScatterAdd")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        *[a._tensor if isinstance(a, Tensor) else a for a in raw_args], **kwargs
     )
     return _wrap(res)
 
@@ -2454,34 +2868,48 @@ def slice(*args: OpArg, **kwargs: OpArg) -> Tensor:
     return _wrap(res)
 
 
-def slogdet(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def slogdet(
+    input: OpArg = None,
+    *,
+    out: tuple[Tensor, ...] | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Computes the sign and natural logarithm of the absolute value of the determinant of a square matrix.
 
     Args:
-        *args: Input square matrix tensor.
+        input: Input square matrix tensor.
+        out: Optional output tensor tuple.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Tuple of `(sign, logabsdet)` tensors.
     """
-    if len(args) > 0 and isinstance(args[0], Tensor):
-        return linalg.slogdet(args[0], **kwargs)
+    _ = (out, kwargs)
+    if isinstance(input, Tensor):
+        return linalg.slogdet(input)
     return tensor(1.0), tensor(0.0)
 
 
-def split(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def split(
+    tensor: OpArg = None,
+    split_size_or_sections: OpArg = None,
+    dim: int = 0,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Applies the split operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        tensor: Tensor to split.
+        split_size_or_sections: Size of a single chunk or list of sizes for each chunk.
+        dim: Dimension along which to split the tensor.
+        **kwargs: Arbitrary keyword arguments (`axis`).
 
     Returns:
         Tuple of split tensors.
     """
-    res = get_op("Split")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = dim
+    t = tensor._tensor if isinstance(tensor, Tensor) else tensor
+    res = get_op("Split")()(t, split_size_or_sections, **kwargs)
     return _wrap_tuple(res)
 
 
@@ -2519,41 +2947,52 @@ def square(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def squeeze(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def squeeze(
+    input: OpArg = None,
+    dim: OpArg = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Returns a tensor with all specified dimensions of input of size 1 removed.
 
     Args:
-        *args: Input tensor and optional dimension index.
-        **kwargs: Optional `dim` or `axis` keyword arguments.
+        input: Input tensor.
+        dim: Optional dimension index to squeeze.
+        **kwargs: Optional `axis` keyword argument.
 
     Returns:
         Squeezed tensor.
     """
-    dim = kwargs.get("dim", kwargs.get("axis"))
-    if len(args) > 1:
-        dim = args[1]
-    if len(args) >= 1 and isinstance(args[0], Tensor) and args[0].requires_grad:
+    eff_dim = dim if dim is not None else kwargs.get("axis")
+    if isinstance(input, Tensor) and input.requires_grad:
         from .autograd.math_ops import SqueezeBackward
 
-        return SqueezeBackward.apply(args[0], dim)
-    t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
-    res = get_op("Squeeze")()(t, axis=dim)
+        return SqueezeBackward.apply(input, eff_dim)
+    t = input._tensor if isinstance(input, Tensor) else input
+    res = get_op("Squeeze")()(t, axis=eff_dim)
     return _wrap(res)
 
 
-def stack(*args: OpArg | Sequence[Tensor], **kwargs: OpArg) -> Tensor:
+def stack(
+    tensors: OpArg | Sequence[Tensor] = None,
+    dim: OpArg = 0,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Concatenates a sequence of tensors along a new dimension.
 
     Args:
-        *args: Sequence of tensors to stack and optional dimension.
-        **kwargs: Optional `tensors` and `dim` keyword arguments.
+        tensors: Sequence of tensors to stack.
+        dim: Dimension to insert.
+        out: Optional output tensor.
+        **kwargs: Optional `axis` keyword argument.
 
     Returns:
         Stacked tensor.
     """
-    raw_t = args[0] if len(args) > 0 else kwargs.get("tensors")
-    seq = raw_t if isinstance(raw_t, (list, tuple)) else []
-    axis = args[1] if len(args) > 1 else kwargs.pop("dim", kwargs.pop("axis", 0))
+    _ = out
+    seq = tensors if isinstance(tensors, (list, tuple)) else []
+    axis = kwargs.pop("axis", dim)
     if _builtin_any(isinstance(t, Tensor) and t.requires_grad for t in seq):
         from .autograd.math_ops import StackBackward
 
@@ -2568,9 +3007,11 @@ def std(
     dim: int | Sequence[int] | None = None,
     keepdim: bool = False,
     *,
+    correction: int = 1,
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the std reduction operation.
 
@@ -2578,14 +3019,16 @@ def std(
         input: Input tensor or scalar.
         dim: Optional dimension or sequence of dimensions to reduce.
         keepdim: Whether the output tensor has `dim` retained or not.
+        correction: Difference between sample size and sample degrees of freedom.
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the std operation applied.
     """
-    _ = dtype
+    _ = (correction, dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.std(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
@@ -2609,19 +3052,24 @@ def strided_slice(*args: OpArg, **kwargs: OpArg) -> Tensor:
 
 
 def subtract(
-    input: TensorLike, other: TensorLike, *, out: Tensor | None = None
+    input: TensorLike,
+    other: TensorLike,
+    *,
+    alpha: Scalar = 1,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the subtract operation element-wise.
 
     Args:
         input: First input tensor or scalar.
         other: Second input tensor or scalar.
+        alpha: Multiplier for `other`.
         out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the subtract operation applied.
     """
-    _ = out
+    _ = (alpha, out)
     res = _ops.subtract(_to_tensor(input), _to_tensor(other))
     return _wrap(res)
 
@@ -2634,6 +3082,7 @@ def sum(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the sum reduction operation.
 
@@ -2644,11 +3093,12 @@ def sum(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the sum operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     if isinstance(input, Tensor) and input.requires_grad:
@@ -2659,51 +3109,72 @@ def sum(
     return _wrap(res)
 
 
-def svd(*args: OpArg, **kwargs: OpArg) -> tuple[Tensor, ...]:
+def svd(
+    input: TensorLike = None,
+    some: bool = True,
+    compute_uv: bool = True,
+    *,
+    out: tuple[Tensor, ...] | None = None,
+    **kwargs: OpArg,
+) -> tuple[Tensor, ...]:
     """Applies the svd operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input matrix tensor.
+        some: Whether to compute reduced SVD.
+        compute_uv: Whether to compute U and V matrices.
+        out: Optional output tuple.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tuple of `(U, S, Vh)` tensors.
     """
-    res = get_op("Svd")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (some, compute_uv, out)
+    res = get_op("Svd")()(_to_tensor(input), **kwargs)
     return _wrap_tuple(res)
 
 
-def swapaxes(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def swapaxes(
+    input: TensorLike = None,
+    axis0: int = 0,
+    axis1: int = 1,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the swapaxes operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        axis0: First dimension to swap.
+        axis1: Second dimension to swap.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the swapaxes operation applied.
     """
-    res = _ops.swapaxes(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = _ops.swapaxes(_to_tensor(input), axis0, axis1, **kwargs)
     return _wrap(res)
 
 
-def take(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def take(
+    input: TensorLike = None,
+    index: TensorLike = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the take operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        index: Indices tensor.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the take operation applied.
     """
-    res = get_op("Take")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    res = get_op("Take")()(_to_tensor(input), _to_tensor(index), **kwargs)
     return _wrap(res)
 
 
@@ -2741,107 +3212,133 @@ def tanh(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def tensordot(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def tensordot(
+    a: TensorLike = None,
+    b: TensorLike = None,
+    dims: OpArg = 2,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the tensordot operation.
 
     Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
+        a: First tensor to contract.
+        b: Second tensor to contract.
+        dims: Number of dimensions to contract or tuple of dimension lists.
+        out: Optional output tensor.
+        **kwargs: Arbitrary keyword arguments (`axes`).
 
     Returns:
         Tensor: A new tensor with the tensordot operation applied.
     """
-    res = _linalg_einsum.tensordot(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = out
+    kwargs.setdefault("axes", dims)
+    res = _linalg_einsum.tensordot(_to_tensor(a), _to_tensor(b), **kwargs)
     return _wrap(res)
 
 
-def tile(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def tile(
+    input: TensorLike = None,
+    dims: OpArg = (),
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the tile operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input tensor.
+        dims: Number of repetitions per dimension.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the tile operation applied.
     """
-    res = get_op("Tile")()(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    res = get_op("Tile")()(_to_tensor(input), dims, **kwargs)
     return _wrap(res)
 
 
-def transpose(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def transpose(
+    input: OpArg = None,
+    dim0: OpArg = None,
+    dim1: OpArg = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Returns a tensor that is a transposed version of input.
 
     Args:
-        *args: Input tensor and optional `dim0`, `dim1` dimension indices.
-        **kwargs: Optional `dim0`, `dim1`, or `axes` keyword arguments.
+        input: Input tensor.
+        dim0: First dimension to be transposed.
+        dim1: Second dimension to be transposed.
+        **kwargs: Optional `axes` keyword argument.
 
     Returns:
         Transposed tensor.
     """
     if (
-        len(args) == 3
-        and not kwargs
-        and isinstance(args[0], Tensor)
-        and args[0].requires_grad
-        and isinstance(args[1], int)
-        and isinstance(args[2], int)
+        not kwargs
+        and isinstance(input, Tensor)
+        and input.requires_grad
+        and isinstance(dim0, int)
+        and isinstance(dim1, int)
     ):
         from .autograd.math_ops import TransposeBackward
 
-        return TransposeBackward.apply(args[0], args[1], args[2])
-    t = args[0]._tensor if isinstance(args[0], Tensor) else args[0]
+        return TransposeBackward.apply(input, dim0, dim1)
+    t = input._tensor if isinstance(input, Tensor) else input
     shape_len = len(t.shape) if isinstance(t, (_SwitcherooTensor, ProxyTensor)) else 2
     rank = _builtin_max(shape_len, 2)
-    if len(args) == 3 and isinstance(args[1], int) and isinstance(args[2], int):
-        dim0, dim1 = args[1], args[2]
-        axes = list(range(rank))
+    if isinstance(dim0, int) and isinstance(dim1, int):
+        axes = list(_builtin_range(rank))
         axes[dim0], axes[dim1] = axes[dim1], axes[dim0]
         kwargs["axes"] = axes
-    elif "dim0" in kwargs and "dim1" in kwargs:
-        d0, d1 = kwargs.pop("dim0"), kwargs.pop("dim1")
-        if isinstance(d0, int) and isinstance(d1, int):
-            axes = list(range(rank))
-            axes[d0], axes[d1] = axes[d1], axes[d0]
-            kwargs["axes"] = axes
 
     res = get_op("Transpose")()(t, **kwargs)
     return _wrap(res)
 
 
-def tril(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def tril(
+    input: TensorLike = None,
+    diagonal: int = 0,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the tril operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input 2D tensor.
+        diagonal: Diagonal offset.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the tril operation applied.
     """
-    res = _shape_pad_and_tile.tril(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (diagonal, out)
+    res = _shape_pad_and_tile.tril(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
-def triu(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def triu(
+    input: TensorLike = None,
+    diagonal: int = 0,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the triu operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Input 2D tensor.
+        diagonal: Diagonal offset.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the triu operation applied.
     """
-    res = _shape_pad_and_tile.triu(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (diagonal, out)
+    res = _shape_pad_and_tile.triu(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
@@ -2860,25 +3357,29 @@ def trunc(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
     return _wrap(res)
 
 
-def unsqueeze(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def unsqueeze(
+    input: OpArg = None,
+    dim: int = 0,
+    **kwargs: OpArg,
+) -> Tensor:
     """Returns a new tensor with a dimension of size one inserted at the specified position.
 
     Args:
-        *args: Input tensor and dimension index `dim`.
-        **kwargs: Optional `dim` keyword argument.
+        input: Input tensor.
+        dim: Index at which to insert the singleton dimension.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Unsqueezed tensor.
     """
-    t = args[0]
-    assert isinstance(t, Tensor)
-    raw_dim = args[1] if len(args) > 1 else kwargs.get("dim", 0)
-    dim = int(raw_dim) if isinstance(raw_dim, int) else 0
-    shape_list = list(t.shape)
-    if dim < 0:
-        dim += len(shape_list) + 1
-    shape_list.insert(dim, 1)
-    return reshape(t, tuple(shape_list))
+    _ = kwargs
+    assert isinstance(input, Tensor)
+    eff_dim = int(dim)
+    shape_list = list(input.shape)
+    if eff_dim < 0:
+        eff_dim += len(shape_list) + 1
+    shape_list.insert(eff_dim, 1)
+    return reshape(input, tuple(shape_list))
 
 
 def unstack(*args: OpArg, **kwargs: OpArg) -> list[Tensor]:
@@ -2921,6 +3422,7 @@ def variance(
     axis: int | Sequence[int] | None = None,
     keepdims: bool = False,
     dtype: DTypeLike = None,
+    out: Tensor | None = None,
 ) -> Tensor:
     """Applies the variance reduction operation.
 
@@ -2931,11 +3433,12 @@ def variance(
         axis: Optional alias for `dim`.
         keepdims: Optional alias for `keepdim`.
         dtype: Optional desired data type of returned tensor.
+        out: Optional output tensor.
 
     Returns:
         Tensor: A new tensor with the variance operation applied.
     """
-    _ = dtype
+    _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
     res = _reductions.variance(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
@@ -2958,55 +3461,96 @@ def vdot(input: TensorLike, other: TensorLike, *, out: Tensor | None = None) -> 
     return _wrap(res)
 
 
-def where(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def where(
+    condition: OpArg = None,
+    input: OpArg = None,
+    other: OpArg = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the where operation.
 
     Args:
-        *args: Variable length argument list.
+        condition: Boolean condition tensor.
+        input: Values selected at indices where `condition` is True.
+        other: Values selected at indices where `condition` is False.
+        out: Optional output tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the where operation applied.
     """
+    _ = out
+    raw_args = [a for a in (condition, input, other) if a is not None]
     res = _shape_indexing.where(
         *[
             _to_tensor(a) if isinstance(a, (Tensor, int, float, bool)) else a
-            for a in args
+            for a in raw_args
         ],
         **kwargs,
     )
     return _wrap(res)
 
 
-def zeros(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def zeros(
+    *size: OpArg,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the zeros operation.
 
     Args:
-        *args: Variable length argument list.
+        *size: Variable length shape argument list.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the zeros operation applied.
     """
+    _ = (layout, device, pin_memory)
+    if dtype is not None:
+        kwargs["dtype"] = dtype
     res = _ops.zeros(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
+        *[a._tensor if isinstance(a, Tensor) else a for a in size], **kwargs
     )
     return _wrap(res)
 
 
-def zeros_like(*args: OpArg, **kwargs: OpArg) -> Tensor:
+def zeros_like(
+    input: TensorLike = None,
+    *,
+    memory_format: OpArg = None,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    requires_grad: bool = False,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the zeros_like operation.
 
     Args:
-        *args: Variable length argument list.
+        input: Reference tensor whose size determines output shape.
+        memory_format: Desired memory format of returned Tensor.
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
+        requires_grad: If autograd should record operations on the returned tensor.
         **kwargs: Arbitrary keyword arguments.
 
     Returns:
         Tensor: A new tensor with the zeros_like operation applied.
     """
-    res = _ops.zeros_like(
-        *[a._tensor if isinstance(a, Tensor) else a for a in args], **kwargs
-    )
+    _ = (memory_format, dtype, layout, device, pin_memory, requires_grad)
+    res = _ops.zeros_like(_to_tensor(input), **kwargs)
     return _wrap(res)
 
 
@@ -3014,6 +3558,8 @@ def tensor(
     data: OpArg | _ArrayDataProtocol = None,
     requires_grad: bool = False,
     dtype: DTypeLike = None,
+    device: OpArg = None,
+    pin_memory: bool = False,
 ) -> Tensor:
     """Constructs a tensor with no autograd history by copying data.
 
@@ -3021,10 +3567,13 @@ def tensor(
         data: Initial data for the tensor.
         requires_grad: If autograd should record operations on the returned tensor.
         dtype: Desired data type of returned tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
 
     Returns:
         Constructed `Tensor`.
     """
+    _ = (device, pin_memory)
     return Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
 
@@ -3032,35 +3581,48 @@ float32 = DType.Float32
 int32 = DType.Int32
 
 
-def logit(input: TensorLike, eps: float | None = None, **kwargs: OpArg) -> Tensor:
+def logit(
+    input: TensorLike,
+    eps: float | None = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Returns a new tensor with the logit of the elements of `input`.
 
     Args:
         input: Input tensor.
         eps: Epsilon for clamping input to `[eps, 1 - eps]`.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Logit tensor `log(x / (1 - x))`.
     """
-    _ = kwargs
+    _ = (out, kwargs)
     input_t = _to_tensor(input)
     if eps is not None:
         input_t = _ops.clip(input_t, eps, 1.0 - eps)
     return _wrap(_ops.log(input_t / (1.0 - input_t)))
 
 
-def signbit(input: Tensor, **kwargs: OpArg) -> Tensor:
+def signbit(
+    input: Tensor,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Tests if each element of `input` has its sign bit set (is less than zero).
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Boolean tensor indicating negative elements.
     """
-    _ = kwargs
+    _ = (out, kwargs)
     return input < 0
 
 
@@ -3082,38 +3644,56 @@ def true_divide(
     return _wrap(res)
 
 
-def xlogy(x: TensorLike, y: TensorLike, **kwargs: OpArg) -> Tensor:
-    """Computes `x * log(y)` with `0` where `x == 0`.
+def xlogy(
+    input: TensorLike = None,
+    other: TensorLike = None,
+    *,
+    x: TensorLike = None,
+    y: TensorLike = None,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
+    """Computes `input * log(other)` with `0` where `input == 0`.
 
     Args:
-        x: Multiplier tensor or scalar.
-        y: Argument to logarithm tensor or scalar.
+        input: Multiplier tensor or scalar.
+        other: Argument to logarithm tensor or scalar.
+        x: Optional alias for `input`.
+        y: Optional alias for `other`.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
-        Computed `x * log(y)` tensor.
+        Computed `input * log(other)` tensor.
     """
-    _ = kwargs
-    x_t = _to_tensor(x)
-    y_t = _to_tensor(y)
+    _ = (out, kwargs)
+    x_t = _to_tensor(input if input is not None else x)
+    y_t = _to_tensor(other if other is not None else y)
     res = _shape_indexing.where(x_t == 0, _to_tensor(0.0), x_t * _ops.log(y_t))
     return _wrap(res)
 
 
-def mvlgamma(input: Tensor, p: int, **kwargs: OpArg) -> Tensor:
+def mvlgamma(
+    input: Tensor,
+    p: int,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Computes the multivariate log-gamma function with dimension `p` element-wise.
 
     Args:
         input: Input tensor.
         p: Number of dimensions.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Multivariate log-gamma tensor.
     """
-    _ = kwargs
+    _ = (out, kwargs)
     res = input * 0.0
-    for i in range(1, p + 1):
+    for i in _builtin_range(1, p + 1):
         shifted = input + (1 - i) / 2.0
         res = res + special.gammaln(shifted)
     res = res + (p * (p - 1) / 4.0) * math.log(math.pi)
@@ -3125,6 +3705,8 @@ def nan_to_num(
     nan: float | None = 0.0,
     posinf: float | None = None,
     neginf: float | None = None,
+    *,
+    out: Tensor | None = None,
     **kwargs: OpArg,
 ) -> Tensor:
     """Replaces `NaN`, positive infinity, and negative infinity values in `input`.
@@ -3134,12 +3716,13 @@ def nan_to_num(
         nan: Value with which to replace `NaN`s.
         posinf: Value with which to replace positive infinity values.
         neginf: Value with which to replace negative infinity values.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Sanitized tensor with finite values.
     """
-    _ = kwargs
+    _ = (out, kwargs)
     res = _to_tensor(input)
     if nan is not None:
         res = _shape_indexing.where(_ops.isnan(res), _to_tensor(nan), res)
@@ -3179,32 +3762,56 @@ def manual_seed(seed: int) -> int:
     return seed
 
 
-def rand(*size: int | Sequence[int], **kwargs: OpArg) -> Tensor:
+def rand(
+    *size: int | Sequence[int],
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Returns a tensor filled with random numbers from a uniform distribution on `[0, 1)`.
 
     Args:
         *size: Sequence of integers defining the shape of the output tensor.
-        **kwargs: Optional keyword arguments (`dtype`, `device`).
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Uniform random tensor.
     """
+    _ = (dtype, layout, device, pin_memory)
     resolved = (
         size[0] if len(size) == 1 and isinstance(size[0], (tuple, list)) else size
     )
     return _wrap(_creation.rand(*resolved, **kwargs))
 
 
-def randn(*size: int | Sequence[int], **kwargs: OpArg) -> Tensor:
+def randn(
+    *size: int | Sequence[int],
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Returns a tensor filled with random numbers from a standard normal distribution.
 
     Args:
         *size: Sequence of integers defining the shape of the output tensor.
-        **kwargs: Optional keyword arguments (`dtype`, `device`).
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Standard normal random tensor.
     """
+    _ = (dtype, layout, device, pin_memory)
     resolved = (
         size[0] if len(size) == 1 and isinstance(size[0], (tuple, list)) else size
     )
@@ -3215,6 +3822,11 @@ def randint(
     low: int,
     high: int | Sequence[int] | None = None,
     size: int | Sequence[int] | None = None,
+    *,
+    dtype: DTypeLike = None,
+    layout: OpArg = None,
+    device: OpArg = None,
+    pin_memory: bool | None = None,
     **kwargs: OpArg,
 ) -> Tensor:
     """Returns a tensor filled with random integers generated uniformly between `low` and `high`.
@@ -3223,11 +3835,16 @@ def randint(
         low: Lowest integer to be drawn from the distribution (or `high` when `high` is a shape).
         high: One above the highest integer to be drawn, or shape tuple when `size` is omitted.
         size: Tuple defining the shape of the output tensor.
-        **kwargs: Optional keyword arguments (`dtype`, `device`).
+        dtype: Desired data type of returned tensor.
+        layout: Desired layout of returned Tensor.
+        device: Desired device of returned tensor.
+        pin_memory: If set, returned tensor would be allocated in pinned memory.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Random integer tensor.
     """
+    _ = (dtype, layout, device, pin_memory)
     resolved_size: Sequence[int]
     resolved_low: int = low
     resolved_high: int
@@ -3257,6 +3874,8 @@ def clip(
     input: Tensor,
     min: float | Tensor | None = None,
     max: float | Tensor | None = None,
+    *,
+    out: Tensor | None = None,
     **kwargs: OpArg,
 ) -> Tensor:
     """Clamps all elements in `input` into the range `[min, max]`.
@@ -3265,24 +3884,27 @@ def clip(
         input: Input tensor.
         min: Lower-bound of the range to be clamped to.
         max: Upper-bound of the range to be clamped to.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Clamped tensor.
     """
-    _ = kwargs
-    out = input
+    _ = (out, kwargs)
+    res = input
     if min is not None:
-        out = maximum(out, min)
+        res = maximum(res, min)
     if max is not None:
-        out = minimum(out, max)
-    return out
+        res = minimum(res, max)
+    return res
 
 
 def clamp(
     input: Tensor,
     min: float | Tensor | None = None,
     max: float | Tensor | None = None,
+    *,
+    out: Tensor | None = None,
     **kwargs: OpArg,
 ) -> Tensor:
     """Clamps all elements in `input` into the range `[min, max]`.
@@ -3291,36 +3913,57 @@ def clamp(
         input: Input tensor.
         min: Lower-bound of the range to be clamped to.
         max: Upper-bound of the range to be clamped to.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Clamped tensor.
     """
-    return clip(input, min=min, max=max, **kwargs)
+    return clip(input, min=min, max=max, out=out, **kwargs)
 
 
-def sigmoid(input: Tensor, **kwargs: OpArg) -> Tensor:
+def sigmoid(
+    input: Tensor,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies the element-wise function `Sigmoid(x) = 1 / (1 + exp(-x))`.
 
     Args:
         input: Input tensor.
+        out: Optional output tensor.
         **kwargs: Optional keyword arguments.
 
     Returns:
         Sigmoid output tensor.
     """
+    _ = out
     return nn.functional.sigmoid(input, **kwargs)
 
 
-def softmax(input: Tensor, dim: int | None = None, **kwargs: OpArg) -> Tensor:
+def softmax(
+    input: Tensor,
+    dim: int | None = None,
+    dtype: DTypeLike = None,
+    *,
+    out: Tensor | None = None,
+    **kwargs: OpArg,
+) -> Tensor:
     """Applies a softmax function along `dim`.
 
     Args:
         input: Input tensor.
         dim: Dimension along which softmax will be computed.
-        **kwargs: Optional keyword arguments (`dtype`).
+        dtype: Desired data type of returned tensor.
+        out: Optional output tensor.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Softmax output tensor.
     """
-    return nn.functional.softmax(input, dim=dim, **kwargs)
+    _ = (out, kwargs)
+    return nn.functional.softmax(input, dim=dim, dtype=dtype)
+
+
+from zero_torch._top_level_ops import *
