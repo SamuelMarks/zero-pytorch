@@ -41,6 +41,7 @@ packages = ["src/zero_torch"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = ["ml-switcheroo-ir", "ml-switcheroo-compiler"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "B", "SIM", "RUF"]
@@ -64,7 +65,7 @@ ignore-nested-functions = false
 ignore-nested-classes = false
 ignore-setters = false
 fail-under = 100
-exclude = ["setup.py", "docs", "build", "stubs"]
+exclude = ["setup.py", "docs", "build", "stubs", "ml-switcheroo-ir", "ml-switcheroo-compiler"]
 verbose = 2
 quiet = false
 color = true
@@ -107,6 +108,16 @@ disable_error_code = ["override"]
 
 [tool.pytest.ini_options]
 addopts = "-p ml_switcheroo_compiler"
+testpaths = ["tests"]
+norecursedirs = [
+    "ml-switcheroo-ir",
+    "ml-switcheroo-compiler",
+    "dist",
+    "build",
+    ".git",
+    ".tox",
+    ".venv",
+]
 filterwarnings = [
     "ignore::FutureWarning",
     "ignore::DeprecationWarning",

@@ -1,7 +1,10 @@
-print_*.py
-update_*.py
-fix_*.py
-debug*.py
+/print_*.py
+/update_*.py
+!scripts/update_badges.py
+/fix_*.py
+/debug*.py
+ml-switcheroo-ir/
+ml-switcheroo-compiler/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
