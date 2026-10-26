@@ -17,8 +17,9 @@ sys.path.insert(
     ),
 )
 from ml_switcheroo_compiler.core.config import EagerMode
+from ml_switcheroo_compiler.core.dtype import DType
 
-from zero_torch._types import NestedList, NestedSequence, Scalar
+from zero_torch._types import NestedList, NestedSequence, OpArg, Scalar
 
 
 def flatten_scalars(data: NestedSequence | NestedList | Scalar) -> list[Scalar]:
@@ -152,6 +153,22 @@ def assert_allclose(
             )
         for a_item, e_item in zip(actual, expected):
             assert_allclose(a_item, e_item, rtol=rtol, atol=atol)
+
+
+def assert_op_output(res: OpArg) -> None:
+    """Asserts that an operation return value is a well-formed Tensor, container of Tensors, or valid primitive/None.
+
+    Args:
+        res: Operation return value to validate.
+    """
+    from zero_torch.tensor import Tensor
+
+    if isinstance(res, Tensor):
+        assert isinstance(res.shape, tuple) and res.dtype is not None
+    elif isinstance(res, (tuple, list)):
+        assert len(res) >= 0
+    else:
+        assert res is None or isinstance(res, (int, float, bool, str, DType))
 
 
 @pytest.fixture(autouse=True)

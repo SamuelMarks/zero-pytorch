@@ -96,8 +96,12 @@ def check_file(file_path: Path) -> list[str]:
             errors.append(f"{file_path}:{idx}: forbidden '# type: ignore' comment")
         if "pragma: no cover" in line and file_path.name != "check_typing_and_docs.py":
             errors.append(f"{file_path}:{idx}: forbidden '# pragma: no cover' comment")
+        if "# noqa" in line and file_path.name != "check_typing_and_docs.py":
+            errors.append(f"{file_path}:{idx}: forbidden '# noqa' comment")
 
     tree = ast.parse(source, filename=str(file_path))
+    is_stub = file_path.suffix == ".pyi"
+    is_test = file_path.name.startswith("test_")
 
     mod_doc = ast.get_docstring(tree)
     if not mod_doc or not mod_doc.strip():
@@ -110,6 +114,11 @@ def check_file(file_path: Path) -> list[str]:
                     errors.append(
                         f"{file_path}:{node.lineno}: forbidden import '{alias.name}'"
                     )
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if is_stub and ("```(" in node.value or ":attr:`" in node.value):
+                errors.append(
+                    f"{file_path}:{node.lineno}: malformed scraped docstring default '{node.value}'"
+                )
         elif isinstance(node, ast.Name):
             if node.id in FORBIDDEN_NAMES:
                 errors.append(
@@ -142,9 +151,21 @@ def check_file(file_path: Path) -> list[str]:
                     errors.append(
                         f"{file_path}:{node.lineno}: tautological '_pass = ...' exception swallowing is forbidden"
                     )
+                elif is_test and isinstance(target, ast.Name) and target.id == "_":
+                    errors.append(
+                        f"{file_path}:{node.lineno}: discarded '_ = ...' call in test is forbidden"
+                    )
+        elif (
+            isinstance(node, ast.Assert)
+            and isinstance(node.test, ast.Constant)
+            and node.test.value is True
+        ):
+            errors.append(
+                f"{file_path}:{node.lineno}: tautological 'assert True' is forbidden"
+            )
         elif isinstance(node, ast.ClassDef):
             cls_doc = ast.get_docstring(node)
-            if not cls_doc or not cls_doc.strip():
+            if not is_stub and (not cls_doc or not cls_doc.strip()):
                 errors.append(
                     f"{file_path}:{node.lineno}: class '{node.name}' missing docstring"
                 )
@@ -159,7 +180,7 @@ def check_file(file_path: Path) -> list[str]:
                 for d in node.decorator_list
             )
             fn_doc = ast.get_docstring(node)
-            if not is_overload and (not fn_doc or not fn_doc.strip()):
+            if not is_stub and not is_overload and (not fn_doc or not fn_doc.strip()):
                 errors.append(
                     f"{file_path}:{node.lineno}: function '{node.name}' missing docstring"
                 )
@@ -218,7 +239,7 @@ def check_file(file_path: Path) -> list[str]:
                         f"{file_path}:{node.lineno}: kwarg '**{node.args.kwarg.arg}' in '{node.name}' missing type annotation"
                     )
 
-            if fn_doc:
+            if fn_doc and not is_stub:
                 doc_args = _extract_documented_args(fn_doc)
                 for req_arg in required_doc_args:
                     if req_arg not in doc_args:
@@ -236,31 +257,43 @@ def check_file(file_path: Path) -> list[str]:
                 errors.append(
                     f"{file_path}:{node.lineno}: forbidden call '{node.func.id}()'"
                 )
-            elif (
-                isinstance(node.func, ast.Attribute)
-                and node.func.attr in FORBIDDEN_CALLS
-                and isinstance(node.func.value, ast.Name)
-                and node.func.value.id in ("typing", "builtins")
+            elif isinstance(node.func, ast.Attribute) and (
+                node.func.attr in ("getattr", "setattr", "hasattr", "delattr")
+                or (
+                    node.func.attr == "cast"
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id in ("typing", "builtins")
+                )
             ):
+                receiver = (
+                    node.func.value.id
+                    if isinstance(node.func.value, ast.Name)
+                    else "attr"
+                )
                 errors.append(
-                    f"{file_path}:{node.lineno}: forbidden call '{node.func.value.id}.{node.func.attr}()'"
+                    f"{file_path}:{node.lineno}: forbidden call '{receiver}.{node.func.attr}()'"
                 )
 
     return errors
 
 
 def main() -> int:
-    """Runs typing and docstring checks across `src/zero_torch`, `scripts`, and `tests`.
+    """Runs typing and docstring checks across `src/zero_torch`, `scripts`, `tests`, and `stubs`.
 
     Returns:
         Exit code (0 if all checks pass, 1 otherwise).
     """
-    target_dirs = [Path("src/zero_torch"), Path("scripts"), Path("tests")]
+    target_dirs = [
+        Path("src/zero_torch"),
+        Path("scripts"),
+        Path("tests"),
+        Path("stubs"),
+    ]
     all_errors: list[str] = []
     for d in target_dirs:
         if not d.exists():
             continue
-        for py_file in sorted(d.rglob("*.py")):
+        for py_file in sorted(list(d.rglob("*.py")) + list(d.rglob("*.pyi"))):
             all_errors.extend(check_file(py_file))
 
     if all_errors:

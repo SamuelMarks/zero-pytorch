@@ -344,18 +344,25 @@ class RNNBase(Module):
             num_chunks = 1
 
         self._all_weights: list[
-            tuple[Parameter, Parameter, Parameter | None, Parameter | None]
+            tuple[
+                Parameter,
+                Parameter,
+                Parameter | None,
+                Parameter | None,
+                Parameter | None,
+            ]
         ] = []
+        real_hidden_size = proj_size if proj_size > 0 else hidden_size
         for layer in range(num_layers):
             for direction in range(num_directions):
                 layer_input_size = (
-                    input_size if layer == 0 else hidden_size * num_directions
+                    input_size if layer == 0 else real_hidden_size * num_directions
                 )
                 w_ih = Parameter(
                     zero_torch.empty((num_chunks * hidden_size, layer_input_size))
                 )
                 w_hh = Parameter(
-                    zero_torch.empty((num_chunks * hidden_size, hidden_size))
+                    zero_torch.empty((num_chunks * hidden_size, real_hidden_size))
                 )
                 suffix = "_reverse" if direction == 1 else ""
                 self.register_parameter(f"weight_ih_l{layer}{suffix}", w_ih)
@@ -371,7 +378,12 @@ class RNNBase(Module):
                     b_hh = None
                 self.register_parameter(f"bias_ih_l{layer}{suffix}", b_ih)
                 self.register_parameter(f"bias_hh_l{layer}{suffix}", b_hh)
-                self._all_weights.append((w_ih, w_hh, b_ih, b_hh))
+
+                w_hr: Parameter | None = None
+                if proj_size > 0:
+                    w_hr = Parameter(zero_torch.empty((proj_size, hidden_size)))
+                    self.register_parameter(f"weight_hr_l{layer}{suffix}", w_hr)
+                self._all_weights.append((w_ih, w_hh, b_ih, b_hh, w_hr))
 
         self.reset_parameters()
 
@@ -386,20 +398,26 @@ class RNNBase(Module):
         x_t: Tensor,
         h_prev: Tensor,
         c_prev: Tensor,
-        weights: tuple[Parameter, Parameter, Parameter | None, Parameter | None],
+        weights: tuple[
+            Parameter,
+            Parameter,
+            Parameter | None,
+            Parameter | None,
+            Parameter | None,
+        ],
     ) -> tuple[Tensor, Tensor]:
         """Executes a single time-step update for one layer/direction.
 
         Args:
             x_t: Input slice at time `t` of shape `(batch, layer_input_size)`.
-            h_prev: Previous hidden state of shape `(batch, hidden_size)`.
+            h_prev: Previous hidden state of shape `(batch, real_hidden_size)`.
             c_prev: Previous cell state of shape `(batch, hidden_size)`.
-            weights: Tuple `(w_ih, w_hh, b_ih, b_hh)` for the current layer/direction.
+            weights: Tuple `(w_ih, w_hh, b_ih, b_hh, w_hr)` for the current layer/direction.
 
         Returns:
             Tuple `(h_next, c_next)` of updated hidden and cell state tensors.
         """
-        w_ih, w_hh, b_ih, b_hh = weights
+        w_ih, w_hh, b_ih, b_hh, w_hr = weights
         gi = zero_torch.matmul(x_t, w_ih.transpose(-2, -1))
         gh = zero_torch.matmul(h_prev, w_hh.transpose(-2, -1))
         if b_ih is not None and b_hh is not None:
@@ -424,6 +442,8 @@ class RNNBase(Module):
             o = zero_torch.sigmoid(chunks[3])
             cx = f * c_prev + i * g
             hy = o * zero_torch.tanh(cx)
+            if w_hr is not None:
+                hy = zero_torch.matmul(hy, w_hr.transpose(-2, -1))
             return hy, cx
         return zero_torch.tanh(gi + gh), c_prev
 
@@ -452,12 +472,13 @@ class RNNBase(Module):
         batch_size = seq_input.shape[1]
         num_directions = 2 if self.bidirectional else 1
         real_num_layers = self.num_layers * num_directions
+        real_hidden_size = self.proj_size if self.proj_size > 0 else self.hidden_size
 
         h_0: Tensor
         c_0: Tensor
         if hx is None:
             h_0 = zero_torch.zeros(
-                (real_num_layers, batch_size, self.hidden_size),
+                (real_num_layers, batch_size, real_hidden_size),
                 dtype=seq_input.dtype,
             )
             c_0 = zero_torch.zeros(
@@ -515,6 +536,10 @@ class RNNBase(Module):
                 layer_output = f_outs
 
             output = zero_torch.stack(layer_output, dim=0)
+            if self.dropout > 0.0 and self.training and layer < self.num_layers - 1:
+                output = zero_torch.nn.functional.dropout(
+                    output, p=self.dropout, training=self.training
+                )
 
         if is_batched and self.batch_first:
             output = output.transpose(0, 1)

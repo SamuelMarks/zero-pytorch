@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
+from typing import TypeVar
 
 import zero_torch
 import zero_torch.nn.functional as F
@@ -16,11 +18,118 @@ from zero_torch._types import (
     Size2d,
     Size3d,
 )
+from zero_torch.nn.init import _calculate_fan_in_and_fan_out, kaiming_uniform_, uniform_
 from zero_torch.tensor import Tensor
 
 from .functional_pooling import fold as _fp_fold
 from .functional_pooling import unfold as _fp_unfold
 from .module import Module, Parameter
+
+_PadT = TypeVar("_PadT", PaddingArg1d, PaddingArg2d, PaddingArg3d)
+
+
+def _reset_conv_params(weight: Parameter, bias: Parameter | None) -> None:
+    """Initializes convolution weight and bias using Kaiming uniform initialization.
+
+    Args:
+        weight: Convolution weight parameter.
+        bias: Optional convolution bias parameter.
+    """
+    kaiming_uniform_(weight, a=math.sqrt(5))
+    if bias is not None:
+        fan_in, _ = _calculate_fan_in_and_fan_out(weight)
+        bound = 1.0 / math.sqrt(fan_in) if fan_in > 0 else 0.0
+        uniform_(bias, -bound, bound)
+
+
+def _pad_for_conv(
+    input: Tensor,
+    padding: _PadT,
+    ndims: int,
+    padding_mode: str,
+) -> tuple[Tensor, _PadT]:
+    """Applies non-zero `padding_mode` (`'reflect'`, `'replicate'`, `'circular'`) prior to convolution.
+
+    Args:
+        input: Input tensor.
+        padding: Configured padding size or mode string.
+        ndims: Number of spatial dimensions (`1`, `2`, or `3`).
+        padding_mode: Padding mode string.
+
+    Returns:
+        Tuple `(padded_input, effective_conv_padding)`.
+    """
+    if padding_mode == "zeros" or isinstance(padding, str):
+        return input, padding
+    pads = (padding,) * ndims if isinstance(padding, int) else tuple(padding)
+    pad_pairs: list[int] = []
+    for p in reversed(pads):
+        pad_pairs.extend([int(p), int(p)])
+    return F.pad(input, tuple(pad_pairs), mode=padding_mode), 0
+
+
+def _resolve_output_padding(
+    input_shape: tuple[int, ...],
+    output_size: Sequence[int] | None,
+    stride: int | Sequence[int],
+    padding: int | Sequence[int],
+    kernel_size: int | Sequence[int],
+    dilation: int | Sequence[int],
+    default_output_padding: int | Sequence[int],
+    ndims: int,
+) -> tuple[int, ...]:
+    """Computes effective `output_padding` tuple when `output_size` is provided to `ConvTranspose*`.
+
+    Args:
+        input_shape: Shape of the input tensor.
+        output_size: Optional target spatial size or full shape.
+        stride: Convolution stride.
+        padding: Convolution padding.
+        kernel_size: Convolution kernel size.
+        dilation: Convolution dilation.
+        default_output_padding: Module's configured `output_padding`.
+        ndims: Number of spatial dimensions (`1`, `2`, or `3`).
+
+    Returns:
+        Tuple of `ndims` output padding integers.
+    """
+    def_op = (
+        (default_output_padding,) * ndims
+        if isinstance(default_output_padding, int)
+        else tuple(int(x) for x in default_output_padding)
+    )
+    if output_size is None:
+        return def_op
+    target_spatial = tuple(output_size[-ndims:])
+    s_t = (
+        (stride,) * ndims if isinstance(stride, int) else tuple(int(x) for x in stride)
+    )
+    p_t = (
+        (padding,) * ndims
+        if isinstance(padding, int)
+        else tuple(int(x) for x in padding)
+    )
+    k_t = (
+        (kernel_size,) * ndims
+        if isinstance(kernel_size, int)
+        else tuple(int(x) for x in kernel_size)
+    )
+    d_t = (
+        (dilation,) * ndims
+        if isinstance(dilation, int)
+        else tuple(int(x) for x in dilation)
+    )
+    in_spatial = input_shape[-ndims:]
+    computed: list[int] = []
+    for i in range(ndims):
+        min_sz = (in_spatial[i] - 1) * s_t[i] - 2 * p_t[i] + d_t[i] * (k_t[i] - 1) + 1
+        op_i = target_spatial[i] - min_sz
+        if op_i < 0 or op_i >= max(s_t[i], d_t[i]):
+            raise ValueError(
+                f"requested an output size of {target_spatial}, but valid range for dim {i} is [{min_sz}, {min_sz + max(s_t[i], d_t[i]) - 1}]"
+            )
+        computed.append(op_i)
+    return tuple(computed)
 
 
 class Conv1d(Module):
@@ -71,13 +180,18 @@ class Conv1d(Module):
 
         k = (kernel_size,) if isinstance(kernel_size, int) else kernel_size
         self.weight: Parameter = Parameter(
-            zero_torch.zeros((out_channels, in_channels // groups, k[0]))
+            zero_torch.empty((out_channels, in_channels // groups, k[0]))
         )
         self.bias: Parameter | None = (
-            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+            Parameter(zero_torch.empty((out_channels,))) if bias else None
         )
         self.register_parameter("weight", self.weight)
         self.register_parameter("bias", self.bias)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Resets weight and bias using Kaiming uniform initialization."""
+        _reset_conv_params(self.weight, self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 1D convolution to `input`.
@@ -88,12 +202,13 @@ class Conv1d(Module):
         Returns:
             Convolved tensor of shape `(N, C_out, L_out)`.
         """
+        x, eff_pad = _pad_for_conv(input, self.padding, 1, self.padding_mode)
         return F.conv1d(
-            input,
+            x,
             self.weight,
             self.bias,
             self.stride,
-            self.padding,
+            eff_pad,
             self.dilation,
             self.groups,
         )
@@ -147,13 +262,18 @@ class Conv2d(Module):
 
         k = (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
         self.weight: Parameter = Parameter(
-            zero_torch.zeros((out_channels, in_channels // groups, k[0], k[1]))
+            zero_torch.empty((out_channels, in_channels // groups, k[0], k[1]))
         )
         self.bias: Parameter | None = (
-            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+            Parameter(zero_torch.empty((out_channels,))) if bias else None
         )
         self.register_parameter("weight", self.weight)
         self.register_parameter("bias", self.bias)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Resets weight and bias using Kaiming uniform initialization."""
+        _reset_conv_params(self.weight, self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 2D convolution to `input`.
@@ -164,12 +284,13 @@ class Conv2d(Module):
         Returns:
             Convolved tensor of shape `(N, C_out, H_out, W_out)`.
         """
+        x, eff_pad = _pad_for_conv(input, self.padding, 2, self.padding_mode)
         return F.conv2d(
-            input,
+            x,
             self.weight,
             self.bias,
             self.stride,
-            self.padding,
+            eff_pad,
             self.dilation,
             self.groups,
         )
@@ -227,13 +348,18 @@ class Conv3d(Module):
             else kernel_size
         )
         self.weight: Parameter = Parameter(
-            zero_torch.zeros((out_channels, in_channels // groups, k[0], k[1], k[2]))
+            zero_torch.empty((out_channels, in_channels // groups, k[0], k[1], k[2]))
         )
         self.bias: Parameter | None = (
-            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+            Parameter(zero_torch.empty((out_channels,))) if bias else None
         )
         self.register_parameter("weight", self.weight)
         self.register_parameter("bias", self.bias)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Resets weight and bias using Kaiming uniform initialization."""
+        _reset_conv_params(self.weight, self.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies 3D convolution to `input`.
@@ -244,12 +370,13 @@ class Conv3d(Module):
         Returns:
             Convolved tensor of shape `(N, C_out, D_out, H_out, W_out)`.
         """
+        x, eff_pad = _pad_for_conv(input, self.padding, 3, self.padding_mode)
         return F.conv3d(
-            input,
+            x,
             self.weight,
             self.bias,
             self.stride,
-            self.padding,
+            eff_pad,
             self.dilation,
             self.groups,
         )
@@ -305,13 +432,18 @@ class ConvTranspose1d(Module):
 
         k = (kernel_size,) if isinstance(kernel_size, int) else kernel_size
         self.weight: Parameter = Parameter(
-            zero_torch.zeros((in_channels, out_channels // groups, k[0]))
+            zero_torch.empty((in_channels, out_channels // groups, k[0]))
         )
         self.bias: Parameter | None = (
-            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+            Parameter(zero_torch.empty((out_channels,))) if bias else None
         )
         self.register_parameter("weight", self.weight)
         self.register_parameter("bias", self.bias)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Resets weight and bias using Kaiming uniform initialization."""
+        _reset_conv_params(self.weight, self.bias)
 
     def forward(
         self, input: Tensor, output_size: Sequence[int] | None = None
@@ -325,14 +457,23 @@ class ConvTranspose1d(Module):
         Returns:
             Transposed convolved tensor.
         """
-        _ = output_size
+        eff_op = _resolve_output_padding(
+            input.shape,
+            output_size,
+            self.stride,
+            self.padding,
+            self.kernel_size,
+            self.dilation,
+            self.output_padding,
+            1,
+        )
         return F.conv_transpose1d(
             input,
             self.weight,
             self.bias,
             self.stride,
             self.padding,
-            self.output_padding,
+            eff_op[0],
             self.groups,
             self.dilation,
         )
@@ -388,13 +529,18 @@ class ConvTranspose2d(Module):
 
         k = (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
         self.weight: Parameter = Parameter(
-            zero_torch.zeros((in_channels, out_channels // groups, k[0], k[1]))
+            zero_torch.empty((in_channels, out_channels // groups, k[0], k[1]))
         )
         self.bias: Parameter | None = (
-            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+            Parameter(zero_torch.empty((out_channels,))) if bias else None
         )
         self.register_parameter("weight", self.weight)
         self.register_parameter("bias", self.bias)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Resets weight and bias using Kaiming uniform initialization."""
+        _reset_conv_params(self.weight, self.bias)
 
     def forward(
         self, input: Tensor, output_size: Sequence[int] | None = None
@@ -408,14 +554,23 @@ class ConvTranspose2d(Module):
         Returns:
             Transposed convolved tensor.
         """
-        _ = output_size
+        eff_op = _resolve_output_padding(
+            input.shape,
+            output_size,
+            self.stride,
+            self.padding,
+            self.kernel_size,
+            self.dilation,
+            self.output_padding,
+            2,
+        )
         return F.conv_transpose2d(
             input,
             self.weight,
             self.bias,
             self.stride,
             self.padding,
-            self.output_padding,
+            (eff_op[0], eff_op[1]),
             self.groups,
             self.dilation,
         )
@@ -475,13 +630,18 @@ class ConvTranspose3d(Module):
             else kernel_size
         )
         self.weight: Parameter = Parameter(
-            zero_torch.zeros((in_channels, out_channels // groups, k[0], k[1], k[2]))
+            zero_torch.empty((in_channels, out_channels // groups, k[0], k[1], k[2]))
         )
         self.bias: Parameter | None = (
-            Parameter(zero_torch.zeros((out_channels,))) if bias else None
+            Parameter(zero_torch.empty((out_channels,))) if bias else None
         )
         self.register_parameter("weight", self.weight)
         self.register_parameter("bias", self.bias)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Resets weight and bias using Kaiming uniform initialization."""
+        _reset_conv_params(self.weight, self.bias)
 
     def forward(
         self, input: Tensor, output_size: Sequence[int] | None = None
@@ -495,14 +655,23 @@ class ConvTranspose3d(Module):
         Returns:
             Transposed convolved tensor.
         """
-        _ = output_size
+        eff_op = _resolve_output_padding(
+            input.shape,
+            output_size,
+            self.stride,
+            self.padding,
+            self.kernel_size,
+            self.dilation,
+            self.output_padding,
+            3,
+        )
         return F.conv_transpose3d(
             input,
             self.weight,
             self.bias,
             self.stride,
             self.padding,
-            self.output_padding,
+            (eff_op[0], eff_op[1], eff_op[2]),
             self.groups,
             self.dilation,
         )

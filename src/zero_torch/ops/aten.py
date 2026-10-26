@@ -2,8 +2,70 @@
 
 from __future__ import annotations
 
+from typing import Protocol
+
+import zero_torch
 from zero_torch._types import OpArg
 from zero_torch.tensor import Tensor
+
+
+class _AtenFn(Protocol):
+    """Protocol for variadic ATen operator functions."""
+
+    def __call__(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+        """Invokes the ATen operator.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            Output `Tensor`.
+        """
+
+
+class OpOverloadPacket:
+    """Callable ATen operator packet supporting `.default` and `.out` overloads."""
+
+    def __init__(self, op_name: str, fn: _AtenFn) -> None:
+        """Initializes an `OpOverloadPacket`.
+
+        Args:
+            op_name: Name of the ATen operator.
+            fn: Underlying operator callable.
+        """
+        self._op_name: str = op_name
+        self._fn: _AtenFn = fn
+        self.default: _AtenFn = fn
+        self.out: _AtenFn = self._call_out
+
+    def _call_out(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+        """Executes the operator and copies into `out` when provided.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments (including optional `out` tensor).
+
+        Returns:
+            Result `Tensor` (or `out`).
+        """
+        out = kwargs.pop("out", None)
+        res = self._fn(*args, **kwargs)
+        if isinstance(out, Tensor):
+            return out.copy_(res)
+        return res
+
+    def __call__(self, *args: OpArg, **kwargs: OpArg) -> Tensor:
+        """Invokes the ATen operator.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            Output `Tensor`.
+        """
+        return self._fn(*args, **kwargs)
 
 
 def _dispatch_aten(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -16,7 +78,29 @@ def _dispatch_aten(*args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Output `Tensor`.
     """
-    _ = kwargs
+    op_name_obj = kwargs.pop("_op", None)
+    op_name = str(op_name_obj) if isinstance(op_name_obj, str) else ""
+    out_arg = kwargs.pop("out", None)
+    if op_name == "abs" and len(args) >= 1 and isinstance(args[0], Tensor):
+        res = zero_torch.abs(args[0])
+        if isinstance(out_arg, Tensor):
+            return out_arg.copy_(res)
+        return res
+    if (
+        op_name == "add"
+        and len(args) >= 2
+        and isinstance(args[0], Tensor)
+        and isinstance(args[1], (Tensor, int, float))
+    ):
+        rhs = (
+            args[1]
+            if isinstance(args[1], Tensor)
+            else Tensor(args[1], dtype=args[0].dtype)
+        )
+        res = zero_torch.add(args[0], rhs)
+        if isinstance(out_arg, Tensor):
+            return out_arg.copy_(res)
+        return res
     if args and isinstance(args[0], Tensor):
         return Tensor(args[0], requires_grad=args[0].requires_grad, dtype=args[0].dtype)
     return Tensor(args[0] if args else [0.0])
@@ -32,7 +116,7 @@ def abs(*args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Result of `torch.ops.aten.abs`.
     """
-    return _dispatch_aten(*args, **kwargs)
+    return _dispatch_aten(*args, _op="abs", **kwargs)
 
 
 def abs_(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -45,7 +129,7 @@ def abs_(*args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Result of `torch.ops.aten.abs_`.
     """
-    return _dispatch_aten(*args, **kwargs)
+    return _dispatch_aten(*args, _op="abs", **kwargs)
 
 
 def absolute(*args: OpArg, **kwargs: OpArg) -> Tensor:

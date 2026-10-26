@@ -45,14 +45,28 @@ def test_linalg_parity() -> None:
 
         p_lu, l_lu, u_lu = torch.linalg.lu(t)
         assert p_lu.shape == (2, 2) and l_lu.shape == (2, 2) and u_lu.shape == (2, 2)
+        p_nopiv, _, _ = torch.linalg.lu(t, pivot=False)
+        assert_allclose(p_nopiv.tolist(), eye_nested(2), rtol=1e-4)
+        lu_out = (torch.zeros((2, 2)), torch.zeros((2, 2)), torch.zeros((2, 2)))
+        assert torch.linalg.lu(t, out=lu_out) is lu_out
         lu_f, pivots = torch.linalg.lu_factor(t)
         assert lu_f.shape == (2, 2) and pivots.shape == (2,)
 
         q, r = torch.linalg.qr(t)
         assert_allclose((q @ r).tolist(), t.tolist(), rtol=1e-4, atol=1e-4)
+        q_r_mode, r_only = torch.linalg.qr(t, mode="r")
+        assert q_r_mode.shape == (0,) and r_only.shape == (2, 2)
+        qr_out = (torch.zeros((2, 2)), torch.zeros((2, 2)))
+        assert torch.linalg.qr(t, out=qr_out) is qr_out
 
         u, s, vh = torch.linalg.svd(t)
         assert u.shape == (2, 2) and s.shape == (2,) and vh.shape == (2, 2)
+        rect_tall = Tensor([[1.0, 0.0], [0.0, 2.0], [0.0, 0.0]])
+        u_red, s_red, vh_red = torch.linalg.svd(rect_tall, full_matrices=False)
+        assert u_red.shape == (3, 2) and s_red.shape == (2,) and vh_red.shape == (2, 2)
+        rect_wide = Tensor([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0]])
+        u_w, s_w, vh_w = torch.linalg.svd(rect_wide, full_matrices=False)
+        assert u_w.shape == (2, 2) and s_w.shape == (2,) and vh_w.shape == (2, 3)
         assert torch.linalg.svdvals(t).shape == (2,)
 
         inv_t = torch.linalg.inv(t)
@@ -62,15 +76,30 @@ def test_linalg_parity() -> None:
 
         pinv_t = torch.linalg.pinv(t)
         assert_allclose(pinv_t.tolist(), inv_t.tolist(), rtol=1e-4)
+        pinv_rcond = torch.linalg.pinv(t, rcond=1e-5, atol=1e-6)
+        assert_allclose(pinv_rcond.tolist(), inv_t.tolist(), rtol=1e-4)
+        pinv_ten = torch.linalg.pinv(t, rtol=Tensor(1e-5), atol=Tensor(1e-6))
+        assert_allclose(pinv_ten.tolist(), inv_t.tolist(), rtol=1e-4)
+        pinv_atol_only = torch.linalg.pinv(t, atol=1e-6)
+        assert_allclose(pinv_atol_only.tolist(), inv_t.tolist(), rtol=1e-4)
 
         sol = torch.linalg.solve(t, t2)
         assert_allclose((t @ sol).tolist(), t2.tolist(), rtol=1e-4)
+        sol_right = torch.linalg.solve(t, t2, left=False)
+        assert_allclose((sol_right @ t).tolist(), t2.tolist(), rtol=1e-4)
 
         eye_4d = torch.eye(4).reshape(2, 2, 2, 2)
         assert torch.linalg.tensorinv(eye_4d).shape == (2, 2, 2, 2)
         assert torch.linalg.tensorsolve(eye_4d, t2).shape == (2, 2)
         assert_allclose(
             torch.linalg.cross(v3_a, v3_b).tolist(), [0.0, 0.0, 1.0], rtol=1e-4
+        )
+        v3_col_a = Tensor([[1.0], [0.0], [0.0]])
+        v3_col_b = Tensor([[0.0], [1.0], [0.0]])
+        assert_allclose(
+            torch.linalg.cross(v3_col_a, v3_col_b, dim=0).tolist(),
+            [[0.0], [0.0], [1.0]],
+            rtol=1e-4,
         )
         assert torch.linalg.matrix_power(t, 2).shape == (2, 2)
         assert_allclose(
@@ -95,7 +124,7 @@ def test_linalg_parity() -> None:
         assert lu_ex_m.shape == (2, 2) and lu_ex_info.item() == 0
         assert torch.linalg.lu_solve(lu_ex_m, lu_ex_p, t2).shape == (2, 2)
         assert torch.linalg.lu_solve(
-            lu_ex_m, lu_ex_p, t2, left=False, adjoint=True
+            lu_ex_m, Tensor([0, 1, 0]), t2, left=False, adjoint=True
         ).shape == (2, 2)
         ldl_m, ldl_p = torch.linalg.ldl_factor(t)
         assert ldl_m.shape == (2, 2)
@@ -110,6 +139,9 @@ def test_linalg_parity() -> None:
             t, t2, upper=True, unitriangular=True
         ).shape == (2, 2)
         assert_allclose(torch.linalg.diagonal(t).tolist(), [4.0, 3.0], rtol=1e-4)
+        assert_allclose(
+            torch.linalg.diagonal(t, dim1=1, dim2=0).tolist(), [4.0, 3.0], rtol=1e-4
+        )
         assert_allclose(
             torch.linalg.matmul(t, t2).tolist(), (t @ t2).tolist(), rtol=1e-4
         )

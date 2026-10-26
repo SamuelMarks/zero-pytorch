@@ -3,9 +3,25 @@
 from __future__ import annotations
 
 import zero_torch
-from zero_torch.tensor import Tensor
+from zero_torch.nn.init import normal_
+from zero_torch.tensor import Tensor, _flatten_nested
 
 from .module import Module, Parameter
+
+
+def _zero_padding_row(weight: Parameter, padding_idx: int | None) -> None:
+    """Zeroes out row `padding_idx` of `weight` in-place when `padding_idx` is specified.
+
+    Args:
+        weight: 2D embedding weight parameter.
+        padding_idx: Optional padding index.
+    """
+    if padding_idx is not None:
+        rows = weight.tolist()
+        assert isinstance(rows, list)
+        norm_idx = padding_idx if padding_idx >= 0 else len(rows) + padding_idx
+        rows[norm_idx] = [0.0] * weight.shape[1]
+        weight.copy_(Tensor(rows, dtype=weight.dtype))
 
 
 class Embedding(Module):
@@ -69,10 +85,20 @@ class Embedding(Module):
         self._freeze = _freeze or freeze
         eff_weight = _weight if _weight is not None else weight
         if eff_weight is None:
-            self.weight = Parameter(zero_torch.randn(num_embeddings, embedding_dim))
+            self.weight = Parameter(
+                zero_torch.empty((num_embeddings, embedding_dim)),
+                requires_grad=not self._freeze,
+            )
+            self.reset_parameters()
         else:
-            self.weight = Parameter(eff_weight)
+            self.weight = Parameter(eff_weight, requires_grad=not self._freeze)
         self.register_parameter("weight", self.weight)
+
+    def reset_parameters(self) -> None:
+        """Initializes `self.weight` from $N(0, 1)$ and zeroes out `padding_idx` if set."""
+        assert self.weight is not None
+        normal_(self.weight)
+        _zero_padding_row(self.weight, self.padding_idx)
 
     def forward(self, input: Tensor) -> Tensor:
         """Looks up embedding vectors for the given input indices.
@@ -158,10 +184,33 @@ class EmbeddingBag(Module):
         self.dtype: str | None = dtype
         eff_weight = _weight if _weight is not None else weight
         if eff_weight is None:
-            self.weight = Parameter(zero_torch.randn(num_embeddings, embedding_dim))
+            self.weight = Parameter(zero_torch.empty((num_embeddings, embedding_dim)))
+            self.reset_parameters()
         else:
             self.weight = Parameter(eff_weight)
         self.register_parameter("weight", self.weight)
+
+    def reset_parameters(self) -> None:
+        """Initializes `self.weight` from $N(0, 1)$ and zeroes out `padding_idx` if set."""
+        assert self.weight is not None
+        normal_(self.weight)
+        _zero_padding_row(self.weight, self.padding_idx)
+
+    def _reduce_bag(self, bag_emb: Tensor, axis: int) -> Tensor:
+        """Reduces `bag_emb` along `axis` according to `self.mode`.
+
+        Args:
+            bag_emb: Looked-up embedding tensor.
+            axis: Reduction axis.
+
+        Returns:
+            Reduced bag tensor.
+        """
+        if self.mode == "sum":
+            return zero_torch.sum(bag_emb, axis=axis)
+        if self.mode == "max":
+            return zero_torch.max(bag_emb, axis=axis)
+        return zero_torch.mean(bag_emb, axis=axis)
 
     def forward(
         self,
@@ -179,19 +228,39 @@ class EmbeddingBag(Module):
         Returns:
             Aggregated embedding tensor of shape (num_bags, embedding_dim).
         """
-        _ = offsets
         assert self.weight is not None
-        embedded = zero_torch.nn.functional.embedding(input, self.weight)
+        embedded = zero_torch.nn.functional.embedding(
+            input,
+            self.weight,
+            padding_idx=self.padding_idx,
+            max_norm=self.max_norm,
+            norm_type=self.norm_type,
+            scale_grad_by_freq=self.scale_grad_by_freq,
+            sparse=self.sparse,
+        )
         if per_sample_weights is not None:
             embedded = embedded * zero_torch.unsqueeze(per_sample_weights, -1)
         if len(embedded.shape) >= 3:
-            if self.mode == "sum":
-                return zero_torch.sum(embedded, axis=1)
-            if self.mode == "max":
-                return zero_torch.max(embedded, axis=1)
-            return zero_torch.mean(embedded, axis=1)
-        if self.mode == "sum":
-            return zero_torch.unsqueeze(zero_torch.sum(embedded, axis=0), 0)
-        if self.mode == "max":
-            return zero_torch.unsqueeze(zero_torch.max(embedded, axis=0), 0)
-        return zero_torch.unsqueeze(zero_torch.mean(embedded, axis=0), 0)
+            return self._reduce_bag(embedded, axis=1)
+        if offsets is not None and len(input.shape) == 1:
+            off_vals = [
+                int(float(x))
+                for x in _flatten_nested(offsets.tolist())
+                if isinstance(x, (int, float))
+            ]
+            bounds = (
+                off_vals if self.include_last_offset else off_vals + [input.shape[0]]
+            )
+            bag_rows: list[Tensor] = []
+            for b_i in range(len(bounds) - 1):
+                start_i = bounds[b_i]
+                end_i = bounds[b_i + 1]
+                if end_i > start_i:
+                    bag_slice = embedded[start_i:end_i]
+                    bag_rows.append(self._reduce_bag(bag_slice, axis=0))
+                else:
+                    bag_rows.append(
+                        zero_torch.zeros((self.embedding_dim,), dtype=embedded.dtype)
+                    )
+            return zero_torch.stack(bag_rows, dim=0)
+        return zero_torch.unsqueeze(self._reduce_bag(embedded, axis=0), 0)

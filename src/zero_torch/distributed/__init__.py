@@ -5,9 +5,186 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from datetime import timedelta
+from pathlib import Path
 
+import zero_torch
 from zero_torch._types import DeviceLike, OpArg
 from zero_torch.tensor import Tensor
+
+
+class Store:
+    """Base key-value store for distributed rendezvous and synchronization."""
+
+    def __init__(self) -> None:
+        """Initializes an in-memory key-value `Store`."""
+        self._store: dict[str, bytes] = {}
+
+    def set(self, key: str, value: str | bytes) -> None:
+        """Inserts the `(key, value)` pair into the store.
+
+        Args:
+            key: Key string.
+            value: String or bytes value to store.
+        """
+        self._store[key] = (
+            value.encode("utf-8") if isinstance(value, str) else bytes(value)
+        )
+
+    def get(self, key: str) -> bytes:
+        """Retrieves the value associated with `key` as `bytes`.
+
+        Args:
+            key: Key string to look up.
+
+        Returns:
+            Stored value as `bytes`.
+        """
+        return self._store.get(key, b"")
+
+    def add(self, key: str, amount: int) -> int:
+        """Atomically adds `amount` to the integer value stored at `key`.
+
+        Args:
+            key: Key string.
+            amount: Integer delta to add.
+
+        Returns:
+            Updated integer value stored at `key`.
+        """
+        raw = self._store.get(key, b"0").decode("utf-8")
+        cur = int(raw) if raw.lstrip("-").isdigit() else 0
+        new_val = cur + amount
+        self._store[key] = str(new_val).encode("utf-8")
+        return new_val
+
+    def wait(
+        self,
+        keys: Sequence[str],
+        timeout: timedelta | None = None,
+    ) -> None:
+        """Waits until all `keys` are present in the store.
+
+        Args:
+            keys: Sequence of keys to wait for.
+            timeout: Optional timeout duration.
+        """
+        _ = timeout
+        for k in keys:
+            if k not in self._store:
+                raise KeyError(f"Key '{k}' not present in Store")
+
+    def num_keys(self) -> int:
+        """Returns the number of keys currently stored.
+
+        Returns:
+            Number of keys in the store.
+        """
+        return len(self._store)
+
+    def delete_key(self, key: str) -> bool:
+        """Deletes `key` from the store if present.
+
+        Args:
+            key: Key string to delete.
+
+        Returns:
+            True if the key was removed, False otherwise.
+        """
+        if key in self._store:
+            del self._store[key]
+            return True
+        return False
+
+
+class HashStore(Store):
+    """Thread-safe in-memory hash map store implementation."""
+
+    def __init__(self) -> None:
+        """Initializes a `HashStore`."""
+        super().__init__()
+
+
+class TCPStore(Store):
+    """TCP-based distributed key-value store."""
+
+    def __init__(
+        self,
+        host_name: str = "127.0.0.1",
+        port: int = 29500,
+        world_size: int | None = None,
+        is_master: bool = False,
+        timeout: timedelta | None = None,
+        wait_for_workers: bool = True,
+        multi_tenant: bool = False,
+        master_listen_fd: int | None = None,
+        use_libuv: bool | None = True,
+    ) -> None:
+        """Initializes a `TCPStore`.
+
+        Args:
+            host_name:Hostname or IP address of master store.
+            port: Port number of master store.
+            world_size: Total number of store users.
+            is_master: Whether this instance is the master server.
+            timeout: Timeout for store operations.
+            wait_for_workers: Whether to wait for all workers on initialization.
+            multi_tenant: Whether multiple stores can share the same host/port.
+            master_listen_fd: Optional listening file descriptor.
+            use_libuv: Whether to use libuv backend.
+        """
+        _ = (
+            world_size,
+            is_master,
+            timeout,
+            wait_for_workers,
+            multi_tenant,
+            master_listen_fd,
+            use_libuv,
+        )
+        super().__init__()
+        self.host: str = host_name
+        self.port: int = port
+
+
+class FileStore(Store):
+    """Filesystem-backed key-value store."""
+
+    def __init__(self, file_name: str, world_size: int = -1) -> None:
+        """Initializes a `FileStore`.
+
+        Args:
+            file_name: Path to the backing store file.
+            world_size: Number of participating ranks.
+        """
+        _ = world_size
+        super().__init__()
+        self.file_name: str = file_name
+        path = Path(file_name)
+        if path.exists() and path.is_file():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if "=" in line:
+                    k, v = line.split("=", 1)
+                    self._store[k] = v.encode("utf-8")
+
+    def _flush(self) -> None:
+        """Writes current key-value pairs to `self.file_name` if parent directory exists."""
+        path = Path(self.file_name)
+        if path.parent.exists():
+            lines = [
+                f"{k}={v.decode('utf-8', errors='replace')}"
+                for k, v in self._store.items()
+            ]
+            path.write_text("\n".join(lines), encoding="utf-8")
+
+    def set(self, key: str, value: str | bytes) -> None:
+        """Inserts `(key, value)` and flushes to disk.
+
+        Args:
+            key: Key string.
+            value: Value to store.
+        """
+        super().set(key, value)
+        self._flush()
 
 
 class ReduceOp:
@@ -55,6 +232,7 @@ class ProcessGroup:
         self.ranks: list[int] = (
             list(ranks) if ranks is not None else list(range(world_size))
         )
+        self.rank_buffers: dict[int, Tensor] = {}
 
 
 class Work:
@@ -688,6 +866,31 @@ def broadcast_object_list(
     _ = (object_list, src, group, device, group_src, weights_only)
 
 
+def _apply_reduce_op(tensors: Sequence[Tensor], op: str) -> Tensor:
+    """Reduces a sequence of tensors according to `op`.
+
+    Args:
+        tensors: Non-empty sequence of tensors to reduce.
+        op: `ReduceOp` operation name.
+
+    Returns:
+        Reduced `Tensor`.
+    """
+    acc = tensors[0].clone()
+    for t in tensors[1:]:
+        if op == ReduceOp.PRODUCT:
+            acc = acc * t
+        elif op == ReduceOp.MIN:
+            acc = zero_torch.minimum(acc, t)
+        elif op == ReduceOp.MAX:
+            acc = zero_torch.maximum(acc, t)
+        else:
+            acc = acc + t
+    if op == ReduceOp.AVG and len(tensors) > 1:
+        acc = acc / float(len(tensors))
+    return acc
+
+
 def all_reduce(
     tensor: Tensor,
     op: str = ReduceOp.SUM,
@@ -705,7 +908,10 @@ def all_reduce(
     Returns:
         `Work` handle if `async_op=True`, else `None`.
     """
-    _ = (tensor, op, group)
+    pg = group if group is not None else _DEFAULT_PG
+    if pg is not None and pg.rank_buffers:
+        peers = [tensor] + [b for r, b in pg.rank_buffers.items() if r != pg.rank]
+        tensor.copy_(_apply_reduce_op(peers, op))
     return Work() if async_op else None
 
 
@@ -726,7 +932,9 @@ def all_reduce_coalesced(
     Returns:
         `Work` handle if `async_op=True`, else `None`.
     """
-    _ = (tensors, op, group)
+    t_list = [tensors] if isinstance(tensors, Tensor) else list(tensors)
+    for t in t_list:
+        all_reduce(t, op=op, group=group, async_op=False)
     return Work() if async_op else None
 
 
@@ -751,8 +959,8 @@ def reduce(
     Returns:
         `Work` handle if `async_op=True`, else `None`.
     """
-    _ = (tensor, dst, op, group, group_dst)
-    return Work() if async_op else None
+    _ = (dst, group_dst)
+    return all_reduce(tensor, op=op, group=group, async_op=async_op)
 
 
 def all_gather(
@@ -1042,9 +1250,9 @@ def reduce_scatter(
     Returns:
         `Work` handle if `async_op=True`, else `None`.
     """
-    _ = (op, group)
+    _ = group
     if input_list:
-        output.copy_(input_list[0])
+        output.copy_(_apply_reduce_op(input_list, op))
     return Work() if async_op else None
 
 
@@ -1067,9 +1275,8 @@ def reduce_scatter_tensor(
     Returns:
         `Work` handle if `async_op=True`, else `None`.
     """
-    _ = (op, group)
     output.copy_(input)
-    return Work() if async_op else None
+    return all_reduce(output, op=op, group=group, async_op=async_op)
 
 
 def reduce_scatter_single(

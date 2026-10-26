@@ -106,6 +106,7 @@ module = "zero_torch.tensor"
 disable_error_code = ["override"]
 
 [tool.pytest.ini_options]
+addopts = "-p ml_switcheroo_compiler"
 filterwarnings = [
     "ignore::FutureWarning",
     "ignore::DeprecationWarning",

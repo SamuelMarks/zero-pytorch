@@ -35,9 +35,32 @@ __all__ = [
     "functional_datapipe",
     "guaranteed_datapipes_determinism",
     "non_deterministic",
+    "random_split",
     "runtime_validation_disabled",
 ]
 _T_co = TypeVar("_T_co", bound=CollateValue, covariant=True)
+
+
+def _make_rng(generator: Callable[[], float] | int | None) -> random.Random:
+    """Creates a `random.Random` instance seeded from `generator` when provided.
+
+    Args:
+        generator: Optional seed integer, callable returning float/int, or None.
+
+    Returns:
+        Configured `random.Random` instance.
+    """
+    if isinstance(generator, int):
+        return random.Random(generator)
+    if callable(generator):
+        val = generator()
+        seed = (
+            int(val * 1_000_000)
+            if isinstance(val, float) and abs(val) < 1.0
+            else int(val)
+        )
+        return random.Random(seed)
+    return random.Random()
 
 
 class IterableDataset(Dataset[_T_co]):
@@ -371,7 +394,7 @@ class RandomSampler(Sampler[int]):
         data_source: Sized,
         replacement: bool = False,
         num_samples: int | None = None,
-        generator: Callable[[], float] | None = None,
+        generator: Callable[[], float] | int | None = None,
     ) -> None:
         """Initializes the RandomSampler.
 
@@ -387,7 +410,7 @@ class RandomSampler(Sampler[int]):
         self.num_samples: int = (
             num_samples if num_samples is not None else len(data_source)
         )
-        self.generator: Callable[[], float] | None = generator
+        self.generator: Callable[[], float] | int | None = generator
 
     def __iter__(self) -> Iterator[int]:
         """Yields random sample indices.
@@ -396,12 +419,13 @@ class RandomSampler(Sampler[int]):
             Random integer indices in `[0, len(data_source))`.
         """
         n = len(self.data_source)
+        rng = _make_rng(self.generator)
         if self.replacement:
             for _ in range(self.num_samples):
-                yield random.randint(0, n - 1)
+                yield rng.randint(0, n - 1)
         else:
             indices = list(range(n))
-            random.shuffle(indices)
+            rng.shuffle(indices)
             yield from indices[: self.num_samples]
 
     def __len__(self) -> int:
@@ -537,7 +561,7 @@ class SubsetRandomSampler(Sampler[int]):
     def __init__(
         self,
         indices: Sequence[int],
-        generator: Callable[[], float] | None = None,
+        generator: Callable[[], float] | int | None = None,
     ) -> None:
         """Initializes the SubsetRandomSampler.
 
@@ -547,7 +571,7 @@ class SubsetRandomSampler(Sampler[int]):
         """
         super().__init__()
         self.indices: Sequence[int] = indices
-        self.generator: Callable[[], float] | None = generator
+        self.generator: Callable[[], float] | int | None = generator
 
     def __iter__(self) -> Iterator[int]:
         """Iterates over the subset of indices in random order.
@@ -556,7 +580,8 @@ class SubsetRandomSampler(Sampler[int]):
             Iterator over shuffled indices.
         """
         shuffled = list(self.indices)
-        random.shuffle(shuffled)
+        rng = _make_rng(self.generator)
+        rng.shuffle(shuffled)
         return iter(shuffled)
 
     def __len__(self) -> int:
@@ -615,7 +640,7 @@ class WeightedRandomSampler(Sampler[int]):
         weights: Sequence[float] | Tensor,
         num_samples: int,
         replacement: bool = True,
-        generator: Callable[[], float] | None = None,
+        generator: Callable[[], float] | int | None = None,
     ) -> None:
         """Initializes the WeightedRandomSampler.
 
@@ -629,7 +654,7 @@ class WeightedRandomSampler(Sampler[int]):
         self.weights: Sequence[float] | Tensor = weights
         self.num_samples: int = num_samples
         self.replacement: bool = replacement
-        self.generator: Callable[[], float] | None = generator
+        self.generator: Callable[[], float] | int | None = generator
 
     def __iter__(self) -> Iterator[int]:
         """Yields weighted random indices.
@@ -649,14 +674,15 @@ class WeightedRandomSampler(Sampler[int]):
         else:
             w_list = [float(w) for w in self.weights]
         population = list(range(len(w_list)))
+        rng = _make_rng(self.generator)
         if self.replacement:
-            chosen = random.choices(population, weights=w_list, k=self.num_samples)
+            chosen = rng.choices(population, weights=w_list, k=self.num_samples)
             return iter(chosen)
         selected: list[int] = []
         avail_pop = list(population)
         avail_w = list(w_list)
         for _ in range(min(self.num_samples, len(avail_pop))):
-            pick = random.choices(avail_pop, weights=avail_w, k=1)[0]
+            pick = rng.choices(avail_pop, weights=avail_w, k=1)[0]
             pos = avail_pop.index(pick)
             selected.append(pick)
             avail_pop.pop(pos)
@@ -670,6 +696,50 @@ class WeightedRandomSampler(Sampler[int]):
             Total sample count `self.num_samples`.
         """
         return self.num_samples
+
+
+def random_split(
+    dataset: Dataset[_T_co],
+    lengths: Sequence[int | float],
+    generator: Callable[[], float] | int | None = None,
+) -> list[Subset[_T_co]]:
+    """Randomly splits a dataset into non-overlapping new datasets of given lengths.
+
+    Supports both integer counts (summing to `len(dataset)`) and fractional proportions
+    (summing to `1.0`).
+
+    Args:
+        dataset: Dataset to be split.
+        lengths: Lengths or fractions of splits to be produced.
+        generator: Generator used for the random permutation.
+
+    Returns:
+        List of `Subset` datasets.
+    """
+    total = len(dataset)
+    if any(isinstance(x, float) for x in lengths) and math.isclose(
+        sum(float(x) for x in lengths), 1.0, rel_tol=1e-5
+    ):
+        int_lengths = [math.floor(float(x) * total) for x in lengths]
+        remainder = total - sum(int_lengths)
+        for i in range(remainder):
+            int_lengths[i % len(int_lengths)] += 1
+    else:
+        int_lengths = [int(x) for x in lengths]
+        if sum(int_lengths) != total:
+            raise ValueError(
+                "Sum of input lengths does not equal the length of the input dataset!"
+            )
+
+    indices = list(range(total))
+    rng = _make_rng(generator)
+    rng.shuffle(indices)
+    subsets: list[Subset[_T_co]] = []
+    offset = 0
+    for length in int_lengths:
+        subsets.append(Subset(dataset, indices[offset : offset + length]))
+        offset += length
+    return subsets
 
 
 def functional_datapipe(name: str, enable_df_api_tracing: bool = False) -> None:

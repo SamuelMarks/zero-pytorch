@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import math
+
 import zero_torch
 import zero_torch.nn.functional as F
 from zero_torch._types import DeviceLike, DTypeLike, OpArg
+from zero_torch.nn.init import _calculate_fan_in_and_fan_out, kaiming_uniform_, uniform_
 from zero_torch.tensor import Tensor
 
 from .module import Module, Parameter
@@ -41,12 +44,24 @@ class Linear(Module):
         super().__init__()
         self.in_features: int = in_features
         self.out_features: int = out_features
-        self.weight: Parameter = Parameter(zero_torch.ones((out_features, in_features)))
+        self.weight: Parameter = Parameter(
+            zero_torch.empty((out_features, in_features))
+        )
         self.bias: Parameter | None = (
-            Parameter(zero_torch.ones((out_features,))) if bias else None
+            Parameter(zero_torch.empty((out_features,))) if bias else None
         )
         self.register_parameter("weight", self.weight)
         self.register_parameter("bias", self.bias)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Resets weight and bias using Kaiming uniform initialization."""
+        assert self.weight is not None
+        kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = _calculate_fan_in_and_fan_out(self.weight)
+            bound = 1.0 / math.sqrt(fan_in) if fan_in > 0 else 0.0
+            uniform_(self.bias, -bound, bound)
 
     def forward(self, input: Tensor) -> Tensor:
         """Applies the linear transformation to `input`.
@@ -92,13 +107,22 @@ class Bilinear(Module):
         self.in2_features: int = in2_features
         self.out_features: int = out_features
         self.weight: Parameter = Parameter(
-            zero_torch.ones((out_features, in1_features, in2_features))
+            zero_torch.empty((out_features, in1_features, in2_features))
         )
         self.bias: Parameter | None = (
-            Parameter(zero_torch.ones((out_features,))) if bias else None
+            Parameter(zero_torch.empty((out_features,))) if bias else None
         )
         self.register_parameter("weight", self.weight)
         self.register_parameter("bias", self.bias)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Resets weight and bias using uniform bounds `[-1/sqrt(in1), 1/sqrt(in1)]`."""
+        assert self.weight is not None
+        bound = 1.0 / math.sqrt(self.in1_features) if self.in1_features > 0 else 0.0
+        uniform_(self.weight, -bound, bound)
+        if self.bias is not None:
+            uniform_(self.bias, -bound, bound)
 
     def forward(self, input1: Tensor, input2: Tensor) -> Tensor:
         """Applies the bilinear transformation to `input1` and `input2`.

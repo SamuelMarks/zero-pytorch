@@ -9,6 +9,58 @@ from builtins import int as _builtin_int
 from ml_switcheroo_compiler.core.dtype import DType
 
 import zero_torch
+from zero_torch._ops_blas import (
+    _addbmm_impl,
+    _addmv_impl,
+    _addr_impl,
+    _baddbmm_impl,
+)
+from zero_torch._ops_creation import (
+    _broadcast_shapes_impl,
+    _cartesian_prod_impl,
+    _combinations_impl,
+    _tril_indices_impl,
+    _triu_indices_impl,
+)
+from zero_torch._ops_manipulation import (
+    _atleast_nd_one,
+    _block_diag_impl,
+    _diag_embed_impl,
+    _flip_1d_or_nd,
+    _kron_impl,
+    _movedim_impl,
+    _rot90_impl,
+    _unflatten_impl,
+)
+from zero_torch._ops_math import (
+    _cdist_impl,
+    _frac_impl,
+    _nan_replace_flat,
+)
+from zero_torch._ops_reduction import (
+    _bincount_impl,
+    _bucketize_impl,
+    _cum_extrema_impl,
+    _histc_impl,
+    _nanmean_impl,
+    _nansum_impl,
+    _quantile_impl,
+)
+from zero_torch._ops_runtime import (
+    _are_deterministic_algorithms_enabled,
+    _get_default_device,
+    _get_default_dtype,
+    _get_deterministic_debug_mode,
+    _get_num_interop_threads,
+    _get_num_threads,
+    _is_anomaly_enabled,
+    _set_default_device,
+    _set_default_dtype,
+    _set_deterministic_debug_mode,
+    _set_num_interop_threads,
+    _set_num_threads,
+    _use_deterministic_algorithms,
+)
 from zero_torch._types import OpArg
 from zero_torch.tensor import Tensor
 
@@ -266,17 +318,24 @@ def addbmm(
     Returns:
         Result of `torch.addbmm`.
     """
-    _ = (
-        input,
-        batch1,
-        batch2,
-        beta,
-        alpha,
-        out,
-        args,
-        kwargs,
+    _ = (args, kwargs)
+    b_val = (
+        _builtin_float(beta)
+        if isinstance(beta, (_builtin_int, _builtin_float))
+        else 1.0
     )
-    return _as_tensor(input)
+    a_val = (
+        _builtin_float(alpha)
+        if isinstance(alpha, (_builtin_int, _builtin_float))
+        else 1.0
+    )
+    out_t = out if isinstance(out, Tensor) else None
+    t_in = _as_tensor(input)
+    t_b1 = _as_tensor(batch1)
+    t_b2 = _as_tensor(batch2)
+    if len(t_b1.shape) == 3 and len(t_b2.shape) == 3:
+        return _addbmm_impl(t_in, t_b1, t_b2, beta=b_val, alpha=a_val, out=out_t)
+    return t_in
 
 
 def addcdiv(
@@ -374,17 +433,26 @@ def addmm(
     Returns:
         Result of `torch.addmm`.
     """
-    _ = (
-        input,
-        mat1,
-        mat2,
-        beta,
-        alpha,
-        out,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    if (
+        isinstance(mat1, Tensor)
+        and isinstance(mat2, Tensor)
+        and len(mat1.shape) == 2
+        and len(mat2.shape) == 2
+    ):
+        b_val = (
+            _builtin_float(beta)
+            if isinstance(beta, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        a_val = (
+            _builtin_float(alpha)
+            if isinstance(alpha, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        t_in = t_in * b_val + zero_torch.matmul(mat1, mat2) * a_val
+    return out.copy_(t_in) if isinstance(out, Tensor) else t_in
 
 
 def addmv(
@@ -412,17 +480,33 @@ def addmv(
     Returns:
         Result of `torch.addmv`.
     """
-    _ = (
-        input,
-        mat,
-        vec,
-        beta,
-        alpha,
-        out,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    if (
+        isinstance(mat, Tensor)
+        and isinstance(vec, Tensor)
+        and len(mat.shape) == 2
+        and len(vec.shape) == 1
+    ):
+        b_val = (
+            _builtin_float(beta)
+            if isinstance(beta, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        a_val = (
+            _builtin_float(alpha)
+            if isinstance(alpha, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        return _addmv_impl(
+            t_in,
+            mat,
+            vec,
+            beta=b_val,
+            alpha=a_val,
+            out=out if isinstance(out, Tensor) else None,
+        )
+    return t_in
 
 
 def addmv_(
@@ -448,16 +532,9 @@ def addmv_(
     Returns:
         Result of `torch.addmv_`.
     """
-    _ = (
-        input,
-        mat,
-        vec,
-        beta,
-        alpha,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    return addmv(t_in, mat, vec, beta=beta, alpha=alpha, out=t_in)
 
 
 def addr(
@@ -485,17 +562,33 @@ def addr(
     Returns:
         Result of `torch.addr`.
     """
-    _ = (
-        input,
-        vec1,
-        vec2,
-        beta,
-        alpha,
-        out,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    if (
+        isinstance(vec1, Tensor)
+        and isinstance(vec2, Tensor)
+        and len(vec1.shape) == 1
+        and len(vec2.shape) == 1
+    ):
+        b_val = (
+            _builtin_float(beta)
+            if isinstance(beta, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        a_val = (
+            _builtin_float(alpha)
+            if isinstance(alpha, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        return _addr_impl(
+            t_in,
+            vec1,
+            vec2,
+            beta=b_val,
+            alpha=a_val,
+            out=out if isinstance(out, Tensor) else None,
+        )
+    return t_in
 
 
 def adjoint(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -1048,11 +1141,8 @@ def are_deterministic_algorithms_enabled(
     Returns:
         Result of `torch.are_deterministic_algorithms_enabled`.
     """
-    _ = (
-        args,
-        kwargs,
-    )
-    return False
+    _ = (args, kwargs)
+    return _are_deterministic_algorithms_enabled()
 
 
 def argsort(
@@ -1394,13 +1484,12 @@ def atleast_1d(
     Returns:
         Result of `torch.atleast_1d`.
     """
-    _ = (
-        input,
-        tensors,
-        args,
-        kwargs,
-    )
-    t = _as_tensor(input)
+    _ = kwargs
+    t = _atleast_nd_one(_as_tensor(input), 1)
+    if tensors is not None:
+        return (t, _atleast_nd_one(_as_tensor(tensors), 1)) + tuple(
+            _atleast_nd_one(_as_tensor(a), 1) for a in args
+        )
     return (t, zero_torch.zeros_like(t))
 
 
@@ -1418,13 +1507,12 @@ def atleast_2d(
     Returns:
         Result of `torch.atleast_2d`.
     """
-    _ = (
-        input,
-        tensors,
-        args,
-        kwargs,
-    )
-    t = _as_tensor(input)
+    _ = kwargs
+    t = _atleast_nd_one(_as_tensor(input), 2)
+    if tensors is not None:
+        return (t, _atleast_nd_one(_as_tensor(tensors), 2)) + tuple(
+            _atleast_nd_one(_as_tensor(a), 2) for a in args
+        )
     return (t, zero_torch.zeros_like(t))
 
 
@@ -1442,13 +1530,12 @@ def atleast_3d(
     Returns:
         Result of `torch.atleast_3d`.
     """
-    _ = (
-        input,
-        tensors,
-        args,
-        kwargs,
-    )
-    t = _as_tensor(input)
+    _ = kwargs
+    t = _atleast_nd_one(_as_tensor(input), 3)
+    if tensors is not None:
+        return (t, _atleast_nd_one(_as_tensor(tensors), 3)) + tuple(
+            _atleast_nd_one(_as_tensor(a), 3) for a in args
+        )
     return (t, zero_torch.zeros_like(t))
 
 
@@ -1549,17 +1636,33 @@ def baddbmm(
     Returns:
         Result of `torch.baddbmm`.
     """
-    _ = (
-        input,
-        batch1,
-        batch2,
-        beta,
-        alpha,
-        out,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    if (
+        isinstance(batch1, Tensor)
+        and isinstance(batch2, Tensor)
+        and len(batch1.shape) == 3
+        and len(batch2.shape) == 3
+    ):
+        b_val = (
+            _builtin_float(beta)
+            if isinstance(beta, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        a_val = (
+            _builtin_float(alpha)
+            if isinstance(alpha, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        return _baddbmm_impl(
+            t_in,
+            batch1,
+            batch2,
+            beta=b_val,
+            alpha=a_val,
+            out=out if isinstance(out, Tensor) else None,
+        )
+    return t_in
 
 
 def bartlett_window(
@@ -2039,14 +2142,11 @@ def bincount(
     Returns:
         Result of `torch.bincount`.
     """
-    _ = (
-        input,
-        weights,
-        minlength,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    w_t = weights if isinstance(weights, Tensor) else None
+    min_l = _builtin_int(minlength) if isinstance(minlength, _builtin_int) else 0
+    return _bincount_impl(t_in, weights=w_t, minlength=min_l)
 
 
 def binomial(
@@ -2185,12 +2285,13 @@ def block_diag(tensors: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Result of `torch.block_diag`.
     """
-    _ = (
-        tensors,
-        args,
-        kwargs,
+    _ = kwargs
+    seq = (
+        [_as_tensor(tensors)] + [_as_tensor(a) for a in args]
+        if tensors is not None
+        else []
     )
-    return _as_tensor(tensors)
+    return _block_diag_impl(seq)
 
 
 def bmm(
@@ -2235,17 +2336,9 @@ def broadcast_shapes(
     Returns:
         Result of `torch.broadcast_shapes`.
     """
-    _ = (
-        shapes,
-        args,
-        kwargs,
-    )
-    return (
-        tuple(shapes)
-        if isinstance(shapes, (tuple, list))
-        and all(isinstance(i, _builtin_int) for i in shapes)
-        else (1,)
-    )
+    _ = kwargs
+    all_shapes = (shapes,) + args if shapes is not None else args
+    return _broadcast_shapes_impl(*all_shapes)
 
 
 def broadcast_tensors(
@@ -2293,16 +2386,13 @@ def bucketize(
     Returns:
         Result of `torch.bucketize`.
     """
-    _ = (
-        input,
-        boundaries,
-        out_int32,
-        right,
-        out,
-        args,
-        kwargs,
+    _ = (out, args, kwargs)
+    return _bucketize_impl(
+        _as_tensor(input),
+        _as_tensor(boundaries),
+        out_int32=_builtin_bool(out_int32),
+        right=_builtin_bool(right),
     )
-    return _as_tensor(input)
 
 
 def can_cast(
@@ -2339,12 +2429,9 @@ def cartesian_prod(tensors: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tens
     Returns:
         Result of `torch.cartesian_prod`.
     """
-    _ = (
-        tensors,
-        args,
-        kwargs,
-    )
-    return _as_tensor(tensors)
+    _ = kwargs
+    seq = [_as_tensor(tensors)] + [_as_tensor(a) for a in args]
+    return _cartesian_prod_impl(seq)
 
 
 def cat(
@@ -2421,15 +2508,9 @@ def cdist(
     Returns:
         Result of `torch.cdist`.
     """
-    _ = (
-        x1,
-        x2,
-        p,
-        compute_mode,
-        args,
-        kwargs,
-    )
-    return _as_tensor(x1)
+    _ = (compute_mode, args, kwargs)
+    p_val = _builtin_float(p) if isinstance(p, (_builtin_int, _builtin_float)) else 2.0
+    return _cdist_impl(_as_tensor(x1), _as_tensor(x2), p=p_val)
 
 
 def ceil_(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -2971,14 +3052,11 @@ def combinations(
     Returns:
         Result of `torch.combinations`.
     """
-    _ = (
-        input,
-        r,
-        with_replacement,
-        args,
-        kwargs,
+    _ = (args, kwargs)
+    r_val = _builtin_int(r) if isinstance(r, _builtin_int) else 2
+    return _combinations_impl(
+        _as_tensor(input), r=r_val, with_replacement=_builtin_bool(with_replacement)
     )
-    return _as_tensor(input)
 
 
 def compile(
@@ -4136,15 +4214,9 @@ def cummax(
     Returns:
         Result of `torch.cummax`.
     """
-    _ = (
-        input,
-        dim,
-        out,
-        args,
-        kwargs,
-    )
-    t = _as_tensor(input)
-    return (t, zero_torch.zeros_like(t))
+    _ = (out, args, kwargs)
+    d_val = _builtin_int(dim) if isinstance(dim, _builtin_int) else 0
+    return _cum_extrema_impl(_as_tensor(input), dim=d_val, find_max=True)
 
 
 def cummin(
@@ -4166,15 +4238,9 @@ def cummin(
     Returns:
         Result of `torch.cummin`.
     """
-    _ = (
-        input,
-        dim,
-        out,
-        args,
-        kwargs,
-    )
-    t = _as_tensor(input)
-    return (t, zero_torch.zeros_like(t))
+    _ = (out, args, kwargs)
+    d_val = _builtin_int(dim) if isinstance(dim, _builtin_int) else 0
+    return _cum_extrema_impl(_as_tensor(input), dim=d_val, find_max=False)
 
 
 def cumprod(
@@ -4393,15 +4459,11 @@ def diag_embed(
     Returns:
         Result of `torch.diag_embed`.
     """
-    _ = (
-        input,
-        offset,
-        dim1,
-        dim2,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    off_val = _builtin_int(offset) if isinstance(offset, _builtin_int) else 0
+    d1_val = _builtin_int(dim1) if isinstance(dim1, _builtin_int) else -2
+    d2_val = _builtin_int(dim2) if isinstance(dim2, _builtin_int) else -1
+    return _diag_embed_impl(_as_tensor(input), offset=off_val, dim1=d1_val, dim2=d2_val)
 
 
 def diagflat(
@@ -5699,13 +5761,18 @@ def flip(
     Returns:
         Result of `torch.flip`.
     """
-    _ = (
-        input,
-        dims,
-        args,
-        kwargs,
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    d_seq = (
+        [_builtin_int(dims)]
+        if isinstance(dims, _builtin_int)
+        else (
+            [_builtin_int(x) for x in dims if isinstance(x, _builtin_int)]
+            if isinstance(dims, (list, tuple))
+            else [0]
+        )
     )
-    return _as_tensor(input)
+    return _flip_1d_or_nd(t_in, d_seq)
 
 
 def fliplr(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -5719,12 +5786,8 @@ def fliplr(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Result of `torch.fliplr`.
     """
-    _ = (
-        input,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    return _flip_1d_or_nd(_as_tensor(input), [1])
 
 
 def flipud(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -5738,12 +5801,8 @@ def flipud(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Result of `torch.flipud`.
     """
-    _ = (
-        input,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    return _flip_1d_or_nd(_as_tensor(input), [0])
 
 
 def floor_(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -5796,13 +5855,8 @@ def frac(
     Returns:
         Result of `torch.frac`.
     """
-    _ = (
-        input,
-        out,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    return _frac_impl(_as_tensor(input), out=out if isinstance(out, Tensor) else None)
 
 
 def frac_(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -6246,11 +6300,8 @@ def get_default_device(*args: OpArg, **kwargs: OpArg) -> str:
     Returns:
         Result of `torch.get_default_device`.
     """
-    _ = (
-        args,
-        kwargs,
-    )
-    return "cpu"
+    _ = (args, kwargs)
+    return _get_default_device()
 
 
 def get_default_dtype(*args: OpArg, **kwargs: OpArg) -> DType:
@@ -6263,11 +6314,8 @@ def get_default_dtype(*args: OpArg, **kwargs: OpArg) -> DType:
     Returns:
         Result of `torch.get_default_dtype`.
     """
-    _ = (
-        args,
-        kwargs,
-    )
-    return DType.Float32
+    _ = (args, kwargs)
+    return _get_default_dtype()
 
 
 def get_deterministic_debug_mode(*args: OpArg, **kwargs: OpArg) -> str:
@@ -6280,11 +6328,8 @@ def get_deterministic_debug_mode(*args: OpArg, **kwargs: OpArg) -> str:
     Returns:
         Result of `torch.get_deterministic_debug_mode`.
     """
-    _ = (
-        args,
-        kwargs,
-    )
-    return "get_deterministic_debug_mode"
+    _ = (args, kwargs)
+    return _get_deterministic_debug_mode()
 
 
 def get_device(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> _builtin_int:
@@ -6371,11 +6416,8 @@ def get_num_interop_threads(*args: OpArg, **kwargs: OpArg) -> _builtin_int:
     Returns:
         Result of `torch.get_num_interop_threads`.
     """
-    _ = (
-        args,
-        kwargs,
-    )
-    return 1
+    _ = (args, kwargs)
+    return _get_num_interop_threads()
 
 
 def get_num_threads(*args: OpArg, **kwargs: OpArg) -> _builtin_int:
@@ -6388,11 +6430,8 @@ def get_num_threads(*args: OpArg, **kwargs: OpArg) -> _builtin_int:
     Returns:
         Result of `torch.get_num_threads`.
     """
-    _ = (
-        args,
-        kwargs,
-    )
-    return 1
+    _ = (args, kwargs)
+    return _get_num_threads()
 
 
 def get_rng_state(*args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -6901,16 +6940,15 @@ def histc(
     Returns:
         Result of `torch.histc`.
     """
-    _ = (
-        input,
-        bins,
-        min,
-        max,
-        out,
-        args,
-        kwargs,
+    _ = (out, args, kwargs)
+    b_val = _builtin_int(bins) if isinstance(bins, _builtin_int) else 100
+    mn_val = (
+        _builtin_float(min) if isinstance(min, (_builtin_int, _builtin_float)) else 0.0
     )
-    return _as_tensor(input)
+    mx_val = (
+        _builtin_float(max) if isinstance(max, (_builtin_int, _builtin_float)) else 0.0
+    )
+    return _histc_impl(_as_tensor(input), bins=b_val, min_val=mn_val, max_val=mx_val)
 
 
 def histogram(
@@ -7664,11 +7702,8 @@ def is_anomaly_enabled(*args: OpArg, **kwargs: OpArg) -> _builtin_bool:
     Returns:
         Result of `torch.is_anomaly_enabled`.
     """
-    _ = (
-        args,
-        kwargs,
-    )
-    return False
+    _ = (args, kwargs)
+    return _is_anomaly_enabled()
 
 
 def is_autocast_cache_enabled(*args: OpArg, **kwargs: OpArg) -> _builtin_bool:
@@ -8300,14 +8335,8 @@ def kron(
     Returns:
         Result of `torch.kron`.
     """
-    _ = (
-        input,
-        other,
-        out,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (out, args, kwargs)
+    return _kron_impl(_as_tensor(input), _as_tensor(other))
 
 
 def kthvalue(
@@ -10146,18 +10175,26 @@ def movedim(
     Returns:
         Result of `torch.movedim`.
     """
-    _ = (
-        input,
-        source,
-        destination,
-        args,
-        kwargs,
+    _ = (args, kwargs)
+    src_val = (
+        source
+        if isinstance(source, _builtin_int)
+        else (
+            [_builtin_int(x) for x in source if isinstance(x, _builtin_int)]
+            if isinstance(source, (list, tuple))
+            else 0
+        )
     )
-    return zero_torch.moveaxis(
-        _as_tensor(input),
-        _builtin_int(source) if isinstance(source, _builtin_int) else 0,
-        _builtin_int(destination) if isinstance(destination, _builtin_int) else 1,
+    dst_val = (
+        destination
+        if isinstance(destination, _builtin_int)
+        else (
+            [_builtin_int(x) for x in destination if isinstance(x, _builtin_int)]
+            if isinstance(destination, (list, tuple))
+            else 0
+        )
     )
+    return _movedim_impl(_as_tensor(input), src_val, dst_val)
 
 
 def msort(
@@ -10297,15 +10334,24 @@ def nan_to_num_(
     Returns:
         Result of `torch.nan_to_num_`.
     """
-    _ = (
-        input,
-        nan,
-        posinf,
-        neginf,
-        args,
-        kwargs,
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    nan_v = (
+        _builtin_float(nan) if isinstance(nan, (_builtin_int, _builtin_float)) else 0.0
     )
-    return _as_tensor(input)
+    pos_v = (
+        _builtin_float(posinf)
+        if isinstance(posinf, (_builtin_int, _builtin_float))
+        else 1e38
+    )
+    neg_v = (
+        _builtin_float(neginf)
+        if isinstance(neginf, (_builtin_int, _builtin_float))
+        else -1e38
+    )
+    return t_in.copy_(
+        _nan_replace_flat(t_in, nan_val=nan_v, posinf_val=pos_v, neginf_val=neg_v)
+    )
 
 
 def nanmean(
@@ -10331,16 +10377,9 @@ def nanmean(
     Returns:
         Result of `torch.nanmean`.
     """
-    _ = (
-        input,
-        dim,
-        keepdim,
-        dtype,
-        out,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (dtype, out, args, kwargs)
+    d_arg = dim if isinstance(dim, _builtin_int) else None
+    return _nanmean_impl(_as_tensor(input), dim=d_arg, keepdim=_builtin_bool(keepdim))
 
 
 def nanmedian(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -10354,12 +10393,10 @@ def nanmedian(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
     Returns:
         Result of `torch.nanmedian`.
     """
-    _ = (
-        input,
-        args,
-        kwargs,
+    _ = (args, kwargs)
+    return _quantile_impl(
+        _as_tensor(input), q=0.5, interpolation="lower", ignore_nan=True
     )
-    return _as_tensor(input)
 
 
 def nanquantile(
@@ -10387,17 +10424,18 @@ def nanquantile(
     Returns:
         Result of `torch.nanquantile`.
     """
-    _ = (
-        input,
-        q,
-        dim,
-        keepdim,
-        interpolation,
-        out,
-        args,
-        kwargs,
+    _ = (dim, keepdim, out, args, kwargs)
+    q_arg = (
+        q
+        if isinstance(q, Tensor)
+        else (
+            _builtin_float(q) if isinstance(q, (_builtin_int, _builtin_float)) else 0.5
+        )
     )
-    return _as_tensor(input)
+    interp = str(interpolation) if isinstance(interpolation, str) else "linear"
+    return _quantile_impl(
+        _as_tensor(input), q=q_arg, interpolation=interp, ignore_nan=True
+    )
 
 
 def nansum(
@@ -10423,16 +10461,9 @@ def nansum(
     Returns:
         Result of `torch.nansum`.
     """
-    _ = (
-        input,
-        dim,
-        keepdim,
-        dtype,
-        out,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (dtype, out, args, kwargs)
+    d_arg = dim if isinstance(dim, _builtin_int) else None
+    return _nansum_impl(_as_tensor(input), dim=d_arg, keepdim=_builtin_bool(keepdim))
 
 
 def narrow(
@@ -11659,17 +11690,18 @@ def quantile(
     Returns:
         Result of `torch.quantile`.
     """
-    _ = (
-        input,
-        q,
-        dim,
-        keepdim,
-        interpolation,
-        out,
-        args,
-        kwargs,
+    _ = (dim, keepdim, out, args, kwargs)
+    q_arg = (
+        q
+        if isinstance(q, Tensor)
+        else (
+            _builtin_float(q) if isinstance(q, (_builtin_int, _builtin_float)) else 0.5
+        )
     )
-    return _as_tensor(input)
+    interp = str(interpolation) if isinstance(interpolation, str) else "linear"
+    return _quantile_impl(
+        _as_tensor(input), q=q_arg, interpolation=interp, ignore_nan=False
+    )
 
 
 def quantize_per_channel(
@@ -12915,14 +12947,14 @@ def rot90(
     Returns:
         Result of `torch.rot90`.
     """
-    _ = (
-        input,
-        k,
-        dims,
-        args,
-        kwargs,
+    _ = (args, kwargs)
+    k_val = _builtin_int(k) if isinstance(k, _builtin_int) else 1
+    d_seq = (
+        [_builtin_int(x) for x in dims if isinstance(x, _builtin_int)]
+        if isinstance(dims, (list, tuple))
+        else [0, 1]
     )
-    return _as_tensor(input)
+    return _rot90_impl(_as_tensor(input), k=k_val, dims=d_seq)
 
 
 def round_(
@@ -13716,12 +13748,8 @@ def set_default_device(device: OpArg = None, *args: OpArg, **kwargs: OpArg) -> N
         *args: Additional positional arguments.
         **kwargs: Additional keyword arguments.
     """
-    _ = (
-        device,
-        args,
-        kwargs,
-    )
-    return None
+    _ = (args, kwargs)
+    _set_default_device(device)
 
 
 def set_default_dtype(d: OpArg = None, *args: OpArg, **kwargs: OpArg) -> None:
@@ -13732,12 +13760,8 @@ def set_default_dtype(d: OpArg = None, *args: OpArg, **kwargs: OpArg) -> None:
         *args: Additional positional arguments.
         **kwargs: Additional keyword arguments.
     """
-    _ = (
-        d,
-        args,
-        kwargs,
-    )
-    return None
+    _ = (args, kwargs)
+    _set_default_dtype(d)
 
 
 def set_default_tensor_type(t: OpArg = None, *args: OpArg, **kwargs: OpArg) -> None:
@@ -13766,12 +13790,8 @@ def set_deterministic_debug_mode(
         *args: Additional positional arguments.
         **kwargs: Additional keyword arguments.
     """
-    _ = (
-        debug_mode,
-        args,
-        kwargs,
-    )
-    return None
+    _ = (args, kwargs)
+    _set_deterministic_debug_mode(debug_mode)
 
 
 def set_float32_matmul_precision(
@@ -13821,12 +13841,8 @@ def set_num_interop_threads(num: OpArg = None, *args: OpArg, **kwargs: OpArg) ->
         *args: Additional positional arguments.
         **kwargs: Additional keyword arguments.
     """
-    _ = (
-        num,
-        args,
-        kwargs,
-    )
-    return None
+    _ = (args, kwargs)
+    _set_num_interop_threads(num)
 
 
 def set_num_threads(num: OpArg = None, *args: OpArg, **kwargs: OpArg) -> None:
@@ -13837,12 +13853,8 @@ def set_num_threads(num: OpArg = None, *args: OpArg, **kwargs: OpArg) -> None:
         *args: Additional positional arguments.
         **kwargs: Additional keyword arguments.
     """
-    _ = (
-        num,
-        args,
-        kwargs,
-    )
-    return None
+    _ = (args, kwargs)
+    _set_num_threads(num)
 
 
 def set_printoptions(
@@ -14247,9 +14259,7 @@ def sparse_bsc_tensor(
         Result of `torch.sparse_bsc_tensor`.
     """
     _ = (
-        ccol_indices,
         row_indices,
-        values,
         size,
         dtype,
         device,
@@ -14258,7 +14268,12 @@ def sparse_bsc_tensor(
         args,
         kwargs,
     )
-    return _as_tensor(ccol_indices)
+    res = _as_tensor(values if values is not None else ccol_indices)
+    res._is_sparse = True
+    res._sparse_indices = _as_tensor(ccol_indices)
+    res._sparse_values = res
+    res.layout = "torch.sparse_bsc"
+    return res
 
 
 def sparse_bsr_tensor(
@@ -14291,9 +14306,7 @@ def sparse_bsr_tensor(
         Result of `torch.sparse_bsr_tensor`.
     """
     _ = (
-        crow_indices,
         col_indices,
-        values,
         size,
         dtype,
         device,
@@ -14302,7 +14315,12 @@ def sparse_bsr_tensor(
         args,
         kwargs,
     )
-    return _as_tensor(crow_indices)
+    res = _as_tensor(values if values is not None else crow_indices)
+    res._is_sparse = True
+    res._sparse_indices = _as_tensor(crow_indices)
+    res._sparse_values = res
+    res.layout = "torch.sparse_bsr"
+    return res
 
 
 def sparse_compressed_tensor(
@@ -14337,19 +14355,21 @@ def sparse_compressed_tensor(
         Result of `torch.sparse_compressed_tensor`.
     """
     _ = (
-        compressed_indices,
         plain_indices,
-        values,
         size,
         dtype,
-        layout,
         device,
         requires_grad,
         check_invariants,
         args,
         kwargs,
     )
-    return _as_tensor(compressed_indices)
+    res = _as_tensor(values if values is not None else compressed_indices)
+    res._is_sparse = True
+    res._sparse_indices = _as_tensor(compressed_indices)
+    res._sparse_values = res
+    res.layout = str(layout) if isinstance(layout, str) else "torch.sparse_csr"
+    return res
 
 
 def sparse_csc_tensor(
@@ -14382,9 +14402,7 @@ def sparse_csc_tensor(
         Result of `torch.sparse_csc_tensor`.
     """
     _ = (
-        ccol_indices,
         row_indices,
-        values,
         size,
         dtype,
         device,
@@ -14393,7 +14411,12 @@ def sparse_csc_tensor(
         args,
         kwargs,
     )
-    return _as_tensor(ccol_indices)
+    res = _as_tensor(values if values is not None else ccol_indices)
+    res._is_sparse = True
+    res._sparse_indices = _as_tensor(ccol_indices)
+    res._sparse_values = res
+    res.layout = "torch.sparse_csc"
+    return res
 
 
 def sparse_csr_tensor(
@@ -14426,9 +14449,7 @@ def sparse_csr_tensor(
         Result of `torch.sparse_csr_tensor`.
     """
     _ = (
-        crow_indices,
         col_indices,
-        values,
         size,
         dtype,
         device,
@@ -14437,7 +14458,12 @@ def sparse_csr_tensor(
         args,
         kwargs,
     )
-    return _as_tensor(crow_indices)
+    res = _as_tensor(values if values is not None else crow_indices)
+    res._is_sparse = True
+    res._sparse_indices = _as_tensor(crow_indices)
+    res._sparse_values = res
+    res.layout = "torch.sparse_csr"
+    return res
 
 
 def split_copy(
@@ -15488,19 +15514,11 @@ def tril_indices(
     Returns:
         Result of `torch.tril_indices`.
     """
-    _ = (
-        row,
-        col,
-        offset,
-        dtype,
-        layout,
-        device,
-        pin_memory,
-        requires_grad,
-        args,
-        kwargs,
-    )
-    return _as_tensor(row)
+    _ = (dtype, layout, device, pin_memory, requires_grad, args, kwargs)
+    r_val = _builtin_int(row) if isinstance(row, _builtin_int) else 1
+    c_val = _builtin_int(col) if isinstance(col, _builtin_int) else r_val
+    off_val = _builtin_int(offset) if isinstance(offset, _builtin_int) else 0
+    return _tril_indices_impl(r_val, c_val, offset=off_val)
 
 
 def triplet_margin_loss(
@@ -15576,19 +15594,11 @@ def triu_indices(
     Returns:
         Result of `torch.triu_indices`.
     """
-    _ = (
-        row,
-        col,
-        offset,
-        dtype,
-        layout,
-        device,
-        pin_memory,
-        requires_grad,
-        args,
-        kwargs,
-    )
-    return _as_tensor(row)
+    _ = (dtype, layout, device, pin_memory, requires_grad, args, kwargs)
+    r_val = _builtin_int(row) if isinstance(row, _builtin_int) else 1
+    c_val = _builtin_int(col) if isinstance(col, _builtin_int) else r_val
+    off_val = _builtin_int(offset) if isinstance(offset, _builtin_int) else 0
+    return _triu_indices_impl(r_val, c_val, offset=off_val)
 
 
 def trunc_(input: OpArg = None, *args: OpArg, **kwargs: OpArg) -> Tensor:
@@ -15702,14 +15712,13 @@ def unflatten(
     Returns:
         Result of `torch.unflatten`.
     """
-    _ = (
-        input,
-        dim,
-        sizes,
-        args,
-        kwargs,
-    )
-    return _as_tensor(input)
+    _ = (args, kwargs)
+    t_in = _as_tensor(input)
+    if isinstance(dim, _builtin_int) and isinstance(sizes, (list, tuple)):
+        sz_seq = [_builtin_int(x) for x in sizes if isinstance(x, _builtin_int)]
+        if sz_seq:
+            return _unflatten_impl(t_in, dim, sz_seq)
+    return t_in
 
 
 def unfold_copy(
@@ -15994,13 +16003,8 @@ def use_deterministic_algorithms(
         *args: Additional positional arguments.
         **kwargs: Additional keyword arguments.
     """
-    _ = (
-        mode,
-        warn_only,
-        args,
-        kwargs,
-    )
-    return None
+    _ = (warn_only, args, kwargs)
+    _use_deterministic_algorithms(mode)
 
 
 def values_copy(

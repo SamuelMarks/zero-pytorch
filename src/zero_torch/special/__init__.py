@@ -583,13 +583,36 @@ def gammainc(
     """
     a = input
     x = zero_torch.maximum(other, 1e-12)
+    log_prefactor = a * zero_torch.log(x) - x - gammaln(a)
+    prefactor = zero_torch.exp(log_prefactor)
+
+    # Power series for x < a + 1
     term = 1.0 / a
     total = term
-    for k in range(1, 20):
+    for k in range(1, 30):
         term = term * x / (a + float(k))
         total = total + term
-    log_prefactor = a * zero_torch.log(x) - x - gammaln(a)
-    res = zero_torch.clamp(zero_torch.exp(log_prefactor) * total, min=0.0, max=1.0)
+    p_series = zero_torch.clamp(prefactor * total, min=0.0, max=1.0)
+
+    # Lentz continued fraction for Q(a, x) when x >= a + 1
+    tiny = 1e-30
+    b = x + 1.0 - a
+    c = zero_torch.full(x.shape, 1.0 / tiny, dtype=x.dtype)
+    d = 1.0 / zero_torch.where(zero_torch.abs(b) < tiny, tiny, b)
+    h = d
+    for i in range(1, 30):
+        an = -float(i) * (float(i) - a)
+        b = b + 2.0
+        d = an * d + b
+        d = 1.0 / zero_torch.where(zero_torch.abs(d) < tiny, tiny, d)
+        c = b + an / zero_torch.where(zero_torch.abs(c) < tiny, tiny, c)
+        h = h * d * c
+    q_cf = zero_torch.clamp(prefactor * h, min=0.0, max=1.0)
+    res = zero_torch.where(
+        other <= 0.0,
+        zero_torch.zeros_like(other),
+        zero_torch.where(x < a + 1.0, p_series, 1.0 - q_cf),
+    )
     return _copy_if_out(res, out)
 
 

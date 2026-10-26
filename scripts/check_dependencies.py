@@ -41,11 +41,15 @@ ALLOWED_TEST_MODULES: set[str] = {
 PARITY_TEST_SUFFIX: tuple[str, ...] = ("tests", "pytorch_official", "test_parity.py")
 
 
-def is_std_lib(module_name: str) -> bool:
+def is_std_lib(
+    module_name: str,
+    stdlib_names: frozenset[str] | None = None,
+) -> bool:
     """Checks whether a module name belongs to the Python standard library.
 
     Args:
         module_name: The root module name to check.
+        stdlib_names: Optional override of `sys.stdlib_module_names` for testing.
 
     Returns:
         True if the module is part of the Python standard library, False otherwise.
@@ -56,7 +60,7 @@ def is_std_lib(module_name: str) -> bool:
     if module_name == "importlib":
         return True
 
-    if sys.version_info >= (3, 10) and module_name in sys.stdlib_module_names:
+    if stdlib_names is not None and module_name in stdlib_names:
         return True
 
     common_stdlib = {

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
+import ml_switcheroo_compiler.ops.reductions as reductions
 from ml_switcheroo_compiler import ops
 from ml_switcheroo_compiler.ops.base import get_op
 
 import zero_torch
-from zero_torch._types import OpArg, TensorLike
-from zero_torch.tensor import Tensor, _to_tensor, _wrap
+from zero_torch._types import OpArg, SliceIndexType, TensorLike
+from zero_torch.tensor import Tensor, _to_tensor, _wrap, _wrap_tuple
 
 from .function import Context, Function
 
@@ -1147,3 +1150,483 @@ class StackBackward(Function):
             else:
                 grads.append(None)
         return tuple(grads)
+
+
+class WhereBackward(Function):
+    """Differentiable `where(condition, x, y)` operation."""
+
+    @staticmethod
+    def forward(
+        ctx: Context,
+        condition: OpArg,
+        x: TensorLike,
+        y: TensorLike,
+    ) -> Tensor:
+        """Selects elements from `x` or `y` based on `condition`.
+
+        Args:
+            ctx: Autograd context object.
+            condition: Boolean condition tensor.
+            x: Values selected where `condition` is True.
+            y: Values selected where `condition` is False.
+
+        Returns:
+            Selected tensor.
+        """
+        from ml_switcheroo_compiler.ops.shape.indexing import where as _where
+
+        cond_t = condition if isinstance(condition, Tensor) else Tensor(condition)
+        x_t = x if isinstance(x, Tensor) else Tensor(x)
+        y_t = y if isinstance(y, Tensor) else Tensor(y)
+        ctx.save_for_backward(cond_t, x_t, y_t)
+        return _wrap(_where(_to_tensor(cond_t), _to_tensor(x_t), _to_tensor(y_t)))
+
+    @staticmethod
+    def backward(
+        ctx: Context, *grad_outputs: Tensor | None
+    ) -> tuple[Tensor | None, Tensor | None, Tensor | None]:
+        """Routes upstream gradients to `x` and `y` according to `condition`.
+
+        Args:
+            ctx: Autograd context object.
+            *grad_outputs: Upstream gradient tensor(s).
+
+        Returns:
+            Tuple `(None, grad_x, grad_y)`.
+        """
+        grad_output = grad_outputs[0] if grad_outputs else None
+        assert grad_output is not None
+        cond_t, x_t, y_t = ctx.saved_tensors
+        assert isinstance(cond_t, Tensor)
+        assert isinstance(x_t, Tensor)
+        assert isinstance(y_t, Tensor)
+        zeros_g = zero_torch.zeros_like(grad_output)
+        grad_x = (
+            _unbroadcast(zero_torch.where(cond_t, grad_output, zeros_g), x_t.shape)
+            if x_t.requires_grad
+            else None
+        )
+        grad_y = (
+            _unbroadcast(zero_torch.where(cond_t, zeros_g, grad_output), y_t.shape)
+            if y_t.requires_grad
+            else None
+        )
+        return None, grad_x, grad_y
+
+
+class ClampBackward(Function):
+    """Differentiable `clamp(input, min, max)` operation."""
+
+    @staticmethod
+    def forward(
+        ctx: Context,
+        a: TensorLike,
+        min_val: float | Tensor | None = None,
+        max_val: float | Tensor | None = None,
+    ) -> Tensor:
+        """Clamps `a` into `[min_val, max_val]`.
+
+        Args:
+            ctx: Autograd context object.
+            a: Input tensor.
+            min_val: Optional lower bound.
+            max_val: Optional upper bound.
+
+        Returns:
+            Clamped tensor.
+        """
+        a_t = a if isinstance(a, Tensor) else Tensor(a)
+        ctx.save_for_backward(a_t, min_val, max_val)
+        res = a_t
+        if min_val is not None:
+            res = _wrap(ops.maximum(_to_tensor(res), _to_tensor(min_val)))
+        if max_val is not None:
+            res = _wrap(ops.minimum(_to_tensor(res), _to_tensor(max_val)))
+        return res
+
+    @staticmethod
+    def backward(
+        ctx: Context, *grad_outputs: Tensor | None
+    ) -> tuple[Tensor | None, None, None]:
+        """Zeroes upstream gradients where `a` fell outside `[min_val, max_val]`.
+
+        Args:
+            ctx: Autograd context object.
+            *grad_outputs: Upstream gradient tensor(s).
+
+        Returns:
+            Tuple `(grad_a, None, None)`.
+        """
+        grad_output = grad_outputs[0] if grad_outputs else None
+        assert grad_output is not None
+        a_t, min_val, max_val = ctx.saved_tensors
+        assert isinstance(a_t, Tensor)
+        if not a_t.requires_grad:
+            return None, None, None
+        g = grad_output
+        zeros_g = zero_torch.zeros_like(g)
+        if isinstance(min_val, (int, float, Tensor)):
+            g = zero_torch.where(a_t >= min_val, g, zeros_g)
+        if isinstance(max_val, (int, float, Tensor)):
+            g = zero_torch.where(a_t <= max_val, g, zeros_g)
+        return g, None, None
+
+
+class MaxBackward(Function):
+    """Differentiable `max` reduction operation."""
+
+    @staticmethod
+    def forward(
+        ctx: Context,
+        a: TensorLike,
+        axis: int | Sequence[int] | None = None,
+        keepdims: bool = False,
+    ) -> Tensor:
+        """Computes `max(a)` along `axis`.
+
+        Args:
+            ctx: Autograd context object.
+            a: Input tensor.
+            axis: Optional reduction axis or sequence of axes.
+            keepdims: Whether reduced dimensions are kept.
+
+        Returns:
+            Reduced max tensor.
+        """
+        a_t = a if isinstance(a, Tensor) else Tensor(a)
+        res = _wrap(reductions.max(_to_tensor(a_t), axis=axis, keepdims=keepdims))
+        ctx.save_for_backward(a_t, res, axis, keepdims)
+        return res
+
+    @staticmethod
+    def backward(
+        ctx: Context, *grad_outputs: Tensor | None
+    ) -> tuple[Tensor | None, None, None]:
+        """Routes upstream gradient to maximal elements of `a`.
+
+        Args:
+            ctx: Autograd context object.
+            *grad_outputs: Upstream gradient tensor(s).
+
+        Returns:
+            Tuple `(grad_a, None, None)`.
+        """
+        grad_output = grad_outputs[0] if grad_outputs else None
+        assert grad_output is not None
+        a_t, res, axis, keepdims = ctx.saved_tensors
+        assert isinstance(a_t, Tensor)
+        assert isinstance(res, Tensor)
+        if not a_t.requires_grad:
+            return None, None, None
+        g_exp, _ = _expand_reduced_grad(grad_output, a_t.shape, axis, bool(keepdims))
+        res_exp, _ = _expand_reduced_grad(res, a_t.shape, axis, bool(keepdims))
+        eff_axis: int | tuple[int, ...] | None = (
+            axis
+            if isinstance(axis, int)
+            else (
+                tuple(int(x) for x in axis if isinstance(x, int))
+                if isinstance(axis, (tuple, list))
+                else None
+            )
+        )
+        mask = zero_torch.where(
+            a_t == res_exp,
+            zero_torch.ones_like(a_t),
+            zero_torch.zeros_like(a_t),
+        )
+        count = zero_torch.maximum(
+            zero_torch.sum(mask, axis=eff_axis, keepdims=True), 1.0
+        )
+        return (mask / count) * g_exp, None, None
+
+
+class MinBackward(Function):
+    """Differentiable `min` reduction operation."""
+
+    @staticmethod
+    def forward(
+        ctx: Context,
+        a: TensorLike,
+        axis: int | Sequence[int] | None = None,
+        keepdims: bool = False,
+    ) -> Tensor:
+        """Computes `min(a)` along `axis`.
+
+        Args:
+            ctx: Autograd context object.
+            a: Input tensor.
+            axis: Optional reduction axis or sequence of axes.
+            keepdims: Whether reduced dimensions are kept.
+
+        Returns:
+            Reduced min tensor.
+        """
+        a_t = a if isinstance(a, Tensor) else Tensor(a)
+        res = _wrap(reductions.min(_to_tensor(a_t), axis=axis, keepdims=keepdims))
+        ctx.save_for_backward(a_t, res, axis, keepdims)
+        return res
+
+    @staticmethod
+    def backward(
+        ctx: Context, *grad_outputs: Tensor | None
+    ) -> tuple[Tensor | None, None, None]:
+        """Routes upstream gradient to minimal elements of `a`.
+
+        Args:
+            ctx: Autograd context object.
+            *grad_outputs: Upstream gradient tensor(s).
+
+        Returns:
+            Tuple `(grad_a, None, None)`.
+        """
+        grad_output = grad_outputs[0] if grad_outputs else None
+        assert grad_output is not None
+        a_t, res, axis, keepdims = ctx.saved_tensors
+        assert isinstance(a_t, Tensor)
+        assert isinstance(res, Tensor)
+        if not a_t.requires_grad:
+            return None, None, None
+        g_exp, _ = _expand_reduced_grad(grad_output, a_t.shape, axis, bool(keepdims))
+        res_exp, _ = _expand_reduced_grad(res, a_t.shape, axis, bool(keepdims))
+        eff_axis: int | tuple[int, ...] | None = (
+            axis
+            if isinstance(axis, int)
+            else (
+                tuple(int(x) for x in axis if isinstance(x, int))
+                if isinstance(axis, (tuple, list))
+                else None
+            )
+        )
+        mask = zero_torch.where(
+            a_t == res_exp,
+            zero_torch.ones_like(a_t),
+            zero_torch.zeros_like(a_t),
+        )
+        count = zero_torch.maximum(
+            zero_torch.sum(mask, axis=eff_axis, keepdims=True), 1.0
+        )
+        return (mask / count) * g_exp, None, None
+
+
+class SoftmaxBackward(Function):
+    """Differentiable `softmax(x, dim)` operation."""
+
+    @staticmethod
+    def forward(ctx: Context, x: Tensor, dim: int = -1) -> Tensor:
+        """Computes `softmax(x, dim)` and saves probabilities for backward.
+
+        Args:
+            ctx: Autograd context object.
+            x: Input tensor.
+            dim: Dimension along which softmax is computed.
+
+        Returns:
+            Softmax probability tensor.
+        """
+        max_x = _wrap(reductions.max(_to_tensor(x), axis=dim, keepdims=True))
+        exp_x = _wrap(ops.exp(_to_tensor(x) - _to_tensor(max_x)))
+        sum_exp = _wrap(reductions.sum(_to_tensor(exp_x), axis=dim, keepdims=True))
+        probs = _wrap(ops.divide(_to_tensor(exp_x), _to_tensor(sum_exp)))
+        ctx.save_for_backward(x, probs, dim)
+        return probs
+
+    @staticmethod
+    def backward(
+        ctx: Context, *grad_outputs: Tensor | None
+    ) -> tuple[Tensor | None, None]:
+        """Computes `s * (g - sum(g * s, dim, keepdim=True))`.
+
+        Args:
+            ctx: Autograd context object.
+            *grad_outputs: Upstream gradient tensor(s).
+
+        Returns:
+            Tuple `(grad_x, None)`.
+        """
+        grad_output = grad_outputs[0] if grad_outputs else None
+        assert grad_output is not None
+        x, probs, dim = ctx.saved_tensors
+        assert isinstance(x, Tensor)
+        assert isinstance(probs, Tensor)
+        assert isinstance(dim, int)
+        if not x.requires_grad:
+            return None, None
+        dot = zero_torch.sum(grad_output * probs, axis=dim, keepdims=True)
+        return probs * (grad_output - dot), None
+
+
+class LogSoftmaxBackward(Function):
+    """Differentiable `log_softmax(x, dim)` operation."""
+
+    @staticmethod
+    def forward(ctx: Context, x: Tensor, dim: int = -1) -> Tensor:
+        """Computes `log_softmax(x, dim)` and saves log-probabilities for backward.
+
+        Args:
+            ctx: Autograd context object.
+            x: Input tensor.
+            dim: Dimension along which log_softmax is computed.
+
+        Returns:
+            Log-softmax tensor.
+        """
+        max_x = _wrap(reductions.max(_to_tensor(x), axis=dim, keepdims=True))
+        shifted = _wrap(_to_tensor(x) - _to_tensor(max_x))
+        exp_s = _wrap(ops.exp(_to_tensor(shifted)))
+        sum_exp = _wrap(reductions.sum(_to_tensor(exp_s), axis=dim, keepdims=True))
+        log_probs = _wrap(_to_tensor(shifted) - ops.log(_to_tensor(sum_exp)))
+        ctx.save_for_backward(x, log_probs, dim)
+        return log_probs
+
+    @staticmethod
+    def backward(
+        ctx: Context, *grad_outputs: Tensor | None
+    ) -> tuple[Tensor | None, None]:
+        """Computes `g - exp(log_probs) * sum(g, dim, keepdim=True)`.
+
+        Args:
+            ctx: Autograd context object.
+            *grad_outputs: Upstream gradient tensor(s).
+
+        Returns:
+            Tuple `(grad_x, None)`.
+        """
+        grad_output = grad_outputs[0] if grad_outputs else None
+        assert grad_output is not None
+        x, log_probs, dim = ctx.saved_tensors
+        assert isinstance(x, Tensor)
+        assert isinstance(log_probs, Tensor)
+        assert isinstance(dim, int)
+        if not x.requires_grad:
+            return None, None
+        probs = zero_torch.exp(log_probs)
+        sum_g = zero_torch.sum(grad_output, axis=dim, keepdims=True)
+        return grad_output - probs * sum_g, None
+
+
+class SplitBackward(Function):
+    """Differentiable `split(tensor, split_size_or_sections, dim)` operation."""
+
+    @staticmethod
+    def forward(
+        ctx: Context,
+        a: Tensor,
+        split_size_or_sections: OpArg,
+        dim: int = 0,
+    ) -> tuple[Tensor, ...]:
+        """Splits `a` along `dim` and saves input metadata for backward concatenation.
+
+        Args:
+            ctx: Autograd context object.
+            a: Input tensor.
+            split_size_or_sections: Chunk count or split indices.
+            dim: Dimension along which to split.
+
+        Returns:
+            Tuple of split `Tensor` parts.
+        """
+        parts = _wrap_tuple(
+            get_op("Split")()(a._tensor, split_size_or_sections, axis=dim)
+        )
+        ctx.save_for_backward(a, dim, *parts)
+        return parts
+
+    @staticmethod
+    def backward(
+        ctx: Context, *grad_outputs: Tensor | None
+    ) -> tuple[Tensor | None, None, None]:
+        """Places upstream gradient for the active split output at `ctx.output_nr` into a zero tensor of `a.shape`.
+
+        Args:
+            ctx: Autograd context object.
+            *grad_outputs: Upstream gradients for the split output.
+
+        Returns:
+            Tuple `(grad_a, None, None)`.
+        """
+        a = ctx.saved_tensors[0]
+        dim = ctx.saved_tensors[1]
+        parts = ctx.saved_tensors[2:]
+        assert isinstance(a, Tensor)
+        assert isinstance(dim, int)
+        if not a.requires_grad:
+            return None, None, None
+        g = grad_outputs[0] if grad_outputs else None
+        assert isinstance(g, Tensor)
+        out_nr = ctx.output_nr
+        padded_parts: list[Tensor] = []
+        for idx, part in enumerate(parts):
+            assert isinstance(part, Tensor)
+            if idx == out_nr and g.shape == part.shape:
+                padded_parts.append(g)
+            else:
+                padded_parts.append(zero_torch.zeros_like(part))
+        return zero_torch.concatenate(padded_parts, dim=dim), None, None
+
+
+class SliceBackward(Function):
+    """Differentiable integer/slice indexing operation for `Tensor.__getitem__`."""
+
+    @staticmethod
+    def forward(
+        ctx: Context,
+        a: Tensor,
+        index: int
+        | SliceIndexType
+        | Tensor
+        | tuple[int | SliceIndexType | Tensor | None, ...],
+    ) -> Tensor:
+        """Indexes `a` with `index` and saves `a` and `index` for backward scatter.
+
+        Args:
+            ctx: Autograd context object.
+            a: Input tensor.
+            index: Index specification.
+
+        Returns:
+            Sliced tensor.
+        """
+        ctx.save_for_backward(a)
+        ctx._slice_index = index
+        if isinstance(index, Tensor):
+            return _wrap(a._tensor[index._tensor])
+        if isinstance(index, tuple):
+            norm_tuple = tuple(k._tensor if isinstance(k, Tensor) else k for k in index)
+            return _wrap(a._tensor[norm_tuple])
+        return _wrap(a._tensor[index])
+
+    @staticmethod
+    def backward(
+        ctx: Context, *grad_outputs: Tensor | None
+    ) -> tuple[Tensor | None, None]:
+        """Scatters upstream gradient back into a zero tensor of `a.shape`.
+
+        Args:
+            ctx: Autograd context object.
+            *grad_outputs: Upstream gradient tensor(s).
+
+        Returns:
+            Tuple `(grad_a, None)`.
+        """
+        grad_output = grad_outputs[0] if grad_outputs else None
+        assert grad_output is not None
+        (a,) = ctx.saved_tensors
+        index = ctx._slice_index
+        assert isinstance(a, Tensor)
+        if not a.requires_grad:
+            return None, None
+        grad_a = zero_torch.zeros_like(a)
+        if isinstance(index, int) and len(a.shape) == 1:
+            lst = grad_a.tolist()
+            g_item = grad_output.item()
+            assert isinstance(lst, list) and isinstance(g_item, (int, float))
+            idx_norm = index if index >= 0 else len(lst) + index
+            lst[idx_norm] = float(g_item)
+            return Tensor(lst, dtype=a.dtype), None
+        if isinstance(index, slice) and len(a.shape) == 1:
+            lst = grad_a.tolist()
+            g_lst = grad_output.tolist()
+            assert isinstance(lst, list) and isinstance(g_lst, list)
+            lst[index] = g_lst
+            return Tensor(lst, dtype=a.dtype), None
+        return _unbroadcast(grad_output, a.shape), None

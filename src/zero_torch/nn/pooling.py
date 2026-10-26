@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from zero_torch._types import (
-    OpArg,
     OptSize1d,
     OptSize2d,
     OptSize3d,
@@ -43,15 +42,14 @@ from .module import Module
 class AdaptiveAvgPool1d(Module):
     """Applies a 1D adaptive average pooling over an input signal."""
 
-    def __init__(self, output_size: OptSize1d, *args: OpArg, **kwargs: OpArg) -> None:
+    __constants__: list[str] = ["output_size"]
+
+    def __init__(self, output_size: OptSize1d) -> None:
         """Initializes AdaptiveAvgPool1d.
 
         Args:
             output_size: Target output size `L_out`.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.output_size: OptSize1d = output_size
 
@@ -70,15 +68,14 @@ class AdaptiveAvgPool1d(Module):
 class AdaptiveAvgPool2d(Module):
     """Applies a 2D adaptive average pooling over an input signal."""
 
-    def __init__(self, output_size: OptSize2d, *args: OpArg, **kwargs: OpArg) -> None:
+    __constants__: list[str] = ["output_size"]
+
+    def __init__(self, output_size: OptSize2d) -> None:
         """Initializes AdaptiveAvgPool2d.
 
         Args:
             output_size: Target output spatial size `(H_out, W_out)` or `H_out`.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.output_size: OptSize2d = output_size
 
@@ -97,15 +94,14 @@ class AdaptiveAvgPool2d(Module):
 class AdaptiveAvgPool3d(Module):
     """Applies a 3D adaptive average pooling over an input signal."""
 
-    def __init__(self, output_size: OptSize3d, *args: OpArg, **kwargs: OpArg) -> None:
+    __constants__: list[str] = ["output_size"]
+
+    def __init__(self, output_size: OptSize3d) -> None:
         """Initializes AdaptiveAvgPool3d.
 
         Args:
             output_size: Target output volumetric size `(D_out, H_out, W_out)` or `D_out`.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.output_size: OptSize3d = output_size
 
@@ -124,22 +120,19 @@ class AdaptiveAvgPool3d(Module):
 class AdaptiveMaxPool1d(Module):
     """Applies a 1D adaptive max pooling over an input signal."""
 
+    __constants__: list[str] = ["output_size", "return_indices"]
+
     def __init__(
         self,
         output_size: OptSize1d,
         return_indices: bool = False,
-        *args: OpArg,
-        **kwargs: OpArg,
     ) -> None:
         """Initializes AdaptiveMaxPool1d.
 
         Args:
             output_size: Target output size `L_out`.
             return_indices: Whether to return argmax indices alongside pooled outputs.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.output_size: OptSize1d = output_size
         self.return_indices: bool = return_indices
@@ -161,22 +154,19 @@ class AdaptiveMaxPool1d(Module):
 class AdaptiveMaxPool2d(Module):
     """Applies a 2D adaptive max pooling over an input signal."""
 
+    __constants__: list[str] = ["output_size", "return_indices"]
+
     def __init__(
         self,
         output_size: OptSize2d,
         return_indices: bool = False,
-        *args: OpArg,
-        **kwargs: OpArg,
     ) -> None:
         """Initializes AdaptiveMaxPool2d.
 
         Args:
             output_size: Target output spatial size `(H_out, W_out)`.
             return_indices: Whether to return argmax indices alongside pooled outputs.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.output_size: OptSize2d = output_size
         self.return_indices: bool = return_indices
@@ -198,22 +188,19 @@ class AdaptiveMaxPool2d(Module):
 class AdaptiveMaxPool3d(Module):
     """Applies a 3D adaptive max pooling over an input signal."""
 
+    __constants__: list[str] = ["output_size", "return_indices"]
+
     def __init__(
         self,
         output_size: OptSize3d,
         return_indices: bool = False,
-        *args: OpArg,
-        **kwargs: OpArg,
     ) -> None:
         """Initializes AdaptiveMaxPool3d.
 
         Args:
             output_size: Target output volumetric size `(D_out, H_out, W_out)`.
             return_indices: Whether to return argmax indices alongside pooled outputs.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.output_size: OptSize3d = output_size
         self.return_indices: bool = return_indices
@@ -235,6 +222,14 @@ class AdaptiveMaxPool3d(Module):
 class AvgPool1d(Module):
     """Applies a 1D average pooling over an input signal."""
 
+    __constants__: list[str] = [
+        "kernel_size",
+        "stride",
+        "padding",
+        "ceil_mode",
+        "count_include_pad",
+    ]
+
     def __init__(
         self,
         kernel_size: Size1d,
@@ -242,8 +237,6 @@ class AvgPool1d(Module):
         padding: Size1d = 0,
         ceil_mode: bool = False,
         count_include_pad: bool = True,
-        *args: OpArg,
-        **kwargs: OpArg,
     ) -> None:
         """Initializes AvgPool1d.
 
@@ -253,10 +246,7 @@ class AvgPool1d(Module):
             padding: Implicit zero padding added on both sides.
             ceil_mode: When True, uses ceil instead of floor to compute output shape.
             count_include_pad: When True, includes zero-padding in the averaging calculation.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.kernel_size: Size1d = kernel_size
         self.stride: Size1d = stride if stride is not None else kernel_size
@@ -303,8 +293,6 @@ class AvgPool2d(Module):
         ceil_mode: bool = False,
         count_include_pad: bool = True,
         divisor_override: int | None = None,
-        *args: OpArg,
-        **kwargs: OpArg,
     ) -> None:
         """Initializes AvgPool2d.
 
@@ -315,10 +303,7 @@ class AvgPool2d(Module):
             ceil_mode: When True, uses ceil instead of floor to compute output shape.
             count_include_pad: When True, includes zero-padding in the averaging calculation.
             divisor_override: If specified, used as divisor instead of `kernel_size`.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.kernel_size: Size2d = kernel_size
         self.stride: Size2d = stride if stride is not None else kernel_size
@@ -367,8 +352,6 @@ class AvgPool3d(Module):
         ceil_mode: bool = False,
         count_include_pad: bool = True,
         divisor_override: int | None = None,
-        *args: OpArg,
-        **kwargs: OpArg,
     ) -> None:
         """Initializes AvgPool3d.
 
@@ -379,10 +362,7 @@ class AvgPool3d(Module):
             ceil_mode: When True, uses ceil instead of floor to compute output shape.
             count_include_pad: When True, includes zero-padding in the averaging calculation.
             divisor_override: If specified, used as divisor instead of `kernel_size`.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.kernel_size: Size3d = kernel_size
         self.stride: Size3d = stride if stride is not None else kernel_size

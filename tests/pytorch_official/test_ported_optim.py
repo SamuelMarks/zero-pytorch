@@ -141,3 +141,58 @@ def test_lr_schedulers_numerical_trajectories() -> None:
         s_plat.step(1.0)
         s_plat.step(1.0)
         assert opt.param_groups[0]["lr"] == pytest.approx(0.05)
+
+        plat_sd = s_plat.state_dict()
+        s_plat2 = lr_scheduler.ReduceLROnPlateau(
+            opt, mode="min", factor=0.5, patience=1
+        )
+        s_plat2.load_state_dict(plat_sd)
+        assert s_plat2.best == pytest.approx(1.0)
+        s_plat2.load_state_dict(
+            {
+                "best": None,
+                "num_bad_epochs": 0,
+                "cooldown_counter": 0,
+                "last_epoch": 0,
+                "_last_lr": [0.1],
+            }
+        )
+        assert s_plat2.best is None
+        s_plat2.load_state_dict({"best": [1.0]})
+
+
+def test_optimizer_hooks_state_and_lbfgs_adafactor() -> None:
+    """Verifies optimizer step pre/post hooks, state_dict Tensor cloning, Adafactor 1D/2D updates, and LBFGS history truncation."""
+    with EagerMode():
+        w1 = nn.Parameter(torch.tensor([2.0, -2.0]))
+        w1.grad = torch.tensor([0.5, -0.5])
+        base_opt = optim.Optimizer([w1], {"lr": 0.1})
+        events: list[str] = []
+        h_pre = base_opt.register_step_pre_hook(lambda _o: events.append("pre"))
+        h_post = base_opt.register_step_post_hook(lambda _o: events.append("post"))
+        base_opt.step()
+        assert events == ["pre", "post"]
+        h_pre.remove()
+        h_post.remove()
+
+        # Adafactor on 1D and 2D parameters + closure + empty group
+        w2 = nn.Parameter(torch.ones((2, 3)))
+        w2.grad = torch.ones((2, 3)) * 0.2
+        w1.grad = torch.tensor([0.5, -0.5])
+        adaf = optim.Adafactor([w1, w2], lr=0.05, eps=(1e-30, 0.001), weight_decay=0.01)
+        adaf.param_groups.append({"params": (w1,)})
+        loss_af = adaf.step(lambda: 1.5)
+        assert loss_af == 1.5
+        af_sd = adaf.state_dict()
+        adaf2 = optim.Adafactor([w1, w2], lr=0.05)
+        adaf2.load_state_dict(af_sd)
+        assert id(w2) in adaf2.state and "exp_avg_sq_row" in adaf2.state[id(w2)]
+
+        # LBFGS history size truncation
+        wl = nn.Parameter(torch.tensor([3.0, -1.0]))
+        lbfgs = optim.LBFGS([wl], lr=0.2, history_size=1)
+        lbfgs.param_groups.append({"params": (wl,)})
+        for step_i in range(4):
+            wl.grad = wl * (1.0 + 0.1 * float(step_i))
+            lbfgs.step()
+        assert len(lbfgs._s_history[id(wl)]) == 1

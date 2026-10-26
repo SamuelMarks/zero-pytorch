@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from types import FunctionType, MethodType, ModuleType
 
@@ -96,6 +97,8 @@ def _resolve_target_symbol(
 
 def verify_ecosystem_snapshot(
     todo_plan_path: Path | None = None,
+    home_dir: Path | None = None,
+    resolver_fn: Callable[[str], str] | None = None,
 ) -> list[str]:
     """Verifies that `zero_torch` implements the `ml-ecosystem-snapshots` v0.0.5 specification.
 
@@ -108,12 +111,15 @@ def verify_ecosystem_snapshot(
 
     Args:
         todo_plan_path: Optional path to `TODO_PLAN.md`.
+        home_dir: Optional override for user home directory path.
+        resolver_fn: Optional override for `resolve_snapshot_path`.
 
     Returns:
         List of missing or non-conformant API descriptions, or an empty list if conformant.
     """
+    base_home = Path.home() if home_dir is None else home_dir
     cache_path = (
-        Path.home()
+        base_home
         / ".cache"
         / "ml_ecosystem_snapshots"
         / "snapshots"
@@ -121,9 +127,12 @@ def verify_ecosystem_snapshot(
     )
     if not cache_path.exists():
         try:
-            from ml_ecosystem_snapshots.cli.resolver import resolve_snapshot_path
+            if resolver_fn is not None:
+                resolved = Path(resolver_fn("torch_v2.14.1_cpu"))
+            else:
+                from ml_ecosystem_snapshots.cli.resolver import resolve_snapshot_path
 
-            resolved = Path(resolve_snapshot_path("torch_v2.14.1_cpu"))
+                resolved = Path(resolve_snapshot_path("torch_v2.14.1_cpu"))
             if resolved.exists():
                 cache_path = resolved
         except ImportError:
@@ -242,8 +251,12 @@ def verify_ecosystem_snapshot(
     return missing
 
 
-def main() -> None:
-    """Checks API compliance against SEMANTIC_PLAN.md, TODO_PLAN.md, and ml-ecosystem-snapshots v0.0.5."""
+def main(snapshot_missing_override: list[str] | None = None) -> None:
+    """Checks API compliance against SEMANTIC_PLAN.md, TODO_PLAN.md, and ml-ecosystem-snapshots v0.0.5.
+
+    Args:
+        snapshot_missing_override: Optional override list for snapshot missing APIs.
+    """
     if not os.path.exists("SEMANTIC_PLAN.md"):
         print("SEMANTIC_PLAN.md not found, skipping compliance check.")
         sys.exit(0)
@@ -296,16 +309,17 @@ def main() -> None:
 
         mod_vars = vars(mod)
         for f_name in funcs:
-            f_name = f_name.strip()
-            if not f_name:
-                continue
             total += 1
             if f_name in mod_vars:
                 implemented += 1
             else:
                 missing.append(f"{mod_name}.{f_name}")
 
-    snapshot_missing = verify_ecosystem_snapshot()
+    snapshot_missing = (
+        verify_ecosystem_snapshot()
+        if snapshot_missing_override is None
+        else snapshot_missing_override
+    )
     missing.extend(snapshot_missing)
 
     pct = (implemented / total) * 100.0 if total > 0 else 100.0

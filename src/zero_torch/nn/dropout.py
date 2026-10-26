@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from zero_torch._types import OpArg
 from zero_torch.tensor import Tensor
 
 from .functional_dropout import (
@@ -19,18 +18,15 @@ from .module import Module
 class Dropout(Module):
     """During training, randomly zeroes some of the elements of the input tensor with probability `p`."""
 
-    def __init__(
-        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
-    ) -> None:
+    __constants__: list[str] = ["p", "inplace"]
+
+    def __init__(self, p: float = 0.5, inplace: bool = False) -> None:
         """Initializes the Dropout layer.
 
         Args:
             p: Probability of an element to be zeroed.
             inplace: If True, performs the operation in-place.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.p: float = p
         self.inplace: bool = inplace
@@ -50,18 +46,15 @@ class Dropout(Module):
 class Dropout1d(Module):
     """Randomly zero out entire 1D channels."""
 
-    def __init__(
-        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
-    ) -> None:
+    __constants__: list[str] = ["p", "inplace"]
+
+    def __init__(self, p: float = 0.5, inplace: bool = False) -> None:
         """Initializes the Dropout1d layer.
 
         Args:
             p: Probability of a channel to be zeroed.
             inplace: If True, performs the operation in-place.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.p: float = p
         self.inplace: bool = inplace
@@ -81,18 +74,15 @@ class Dropout1d(Module):
 class Dropout2d(Module):
     """Randomly zero out entire 2D channels."""
 
-    def __init__(
-        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
-    ) -> None:
+    __constants__: list[str] = ["p", "inplace"]
+
+    def __init__(self, p: float = 0.5, inplace: bool = False) -> None:
         """Initializes the Dropout2d layer.
 
         Args:
             p: Probability of a channel to be zeroed.
             inplace: If True, performs the operation in-place.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.p: float = p
         self.inplace: bool = inplace
@@ -112,18 +102,15 @@ class Dropout2d(Module):
 class Dropout3d(Module):
     """Randomly zero out entire 3D channels."""
 
-    def __init__(
-        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
-    ) -> None:
+    __constants__: list[str] = ["p", "inplace"]
+
+    def __init__(self, p: float = 0.5, inplace: bool = False) -> None:
         """Initializes the Dropout3d layer.
 
         Args:
             p: Probability of a channel to be zeroed.
             inplace: If True, performs the operation in-place.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.p: float = p
         self.inplace: bool = inplace
@@ -143,18 +130,15 @@ class Dropout3d(Module):
 class AlphaDropout(Module):
     """Applies Alpha Dropout over the input, maintaining self-normalizing properties."""
 
-    def __init__(
-        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
-    ) -> None:
+    __constants__: list[str] = ["p", "inplace"]
+
+    def __init__(self, p: float = 0.5, inplace: bool = False) -> None:
         """Initializes the AlphaDropout layer.
 
         Args:
             p: Probability of an element to be dropped.
             inplace: If True, performs the operation in-place.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.p: float = p
         self.inplace: bool = inplace
@@ -176,18 +160,15 @@ class AlphaDropout(Module):
 class FeatureAlphaDropout(Module):
     """Randomly masks out entire channels with Alpha Dropout."""
 
-    def __init__(
-        self, p: float = 0.5, inplace: bool = False, *args: OpArg, **kwargs: OpArg
-    ) -> None:
+    __constants__: list[str] = ["p", "inplace"]
+
+    def __init__(self, p: float = 0.5, inplace: bool = False) -> None:
         """Initializes the FeatureAlphaDropout layer.
 
         Args:
             p: Probability of a channel to be zeroed.
             inplace: If True, performs the operation in-place.
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
         """
-        _ = (args, kwargs)
         super().__init__()
         self.p: float = p
         self.inplace: bool = bool(inplace)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 
 import ml_switcheroo_compiler.ops.optimizers.updates as _opt
 from ml_switcheroo_compiler.core.tensor import Tensor as S_Tensor
@@ -13,6 +14,7 @@ from zero_torch._types import (
     ParamGroupDict,
     ParamsArg,
 )
+from zero_torch.nn.module import RemovableHandle
 from zero_torch.tensor import Tensor
 
 __all__ = [
@@ -112,6 +114,51 @@ class Optimizer:
             self.param_groups = [_merge_param_group(base_group, self.defaults)]
 
         self.state: dict[int, dict[str, Tensor]] = {}
+        self._step_pre_hooks: dict[int, Callable[[Optimizer], None]] = {}
+        self._step_post_hooks: dict[int, Callable[[Optimizer], None]] = {}
+        self._next_hook_id: int = 0
+
+    def register_step_pre_hook(
+        self, hook: Callable[[Optimizer], None]
+    ) -> RemovableHandle[Callable[[Optimizer], None]]:
+        """Registers an optimizer step pre-hook.
+
+        Args:
+            hook: Callable invoked with `self` prior to optimization step.
+
+        Returns:
+            A `RemovableHandle` that can be used to remove the added hook.
+        """
+        self._next_hook_id += 1
+        hid = self._next_hook_id
+        self._step_pre_hooks[hid] = hook
+        return RemovableHandle(self._step_pre_hooks, hid)
+
+    def register_step_post_hook(
+        self, hook: Callable[[Optimizer], None]
+    ) -> RemovableHandle[Callable[[Optimizer], None]]:
+        """Registers an optimizer step post-hook.
+
+        Args:
+            hook: Callable invoked with `self` after optimization step.
+
+        Returns:
+            A `RemovableHandle` that can be used to remove the added hook.
+        """
+        self._next_hook_id += 1
+        hid = self._next_hook_id
+        self._step_post_hooks[hid] = hook
+        return RemovableHandle(self._step_post_hooks, hid)
+
+    def _run_pre_hooks(self) -> None:
+        """Executes all registered step pre-hooks."""
+        for hook in list(self._step_pre_hooks.values()):
+            hook(self)
+
+    def _run_post_hooks(self) -> None:
+        """Executes all registered step post-hooks."""
+        for hook in list(self._step_post_hooks.values()):
+            hook(self)
 
     def step(self, closure: LossClosure = None) -> Tensor | float | None:
         """Performs a single optimization step.
@@ -122,6 +169,7 @@ class Optimizer:
         Returns:
             The evaluated loss if `closure` is provided, otherwise None.
         """
+        self._run_pre_hooks()
         loss: Tensor | float | None = None
         if closure is not None:
             loss = closure()
@@ -139,6 +187,7 @@ class Optimizer:
                 d_p = (-p.grad if maximize else p.grad) + p * wd
                 p.copy_(p - d_p * lr)
 
+        self._run_post_hooks()
         return loss
 
     def add_param_group(self, param_group: ParamGroupDict) -> None:
@@ -152,13 +201,16 @@ class Optimizer:
     def state_dict(
         self,
     ) -> dict[str, dict[int, dict[str, Tensor]] | list[ParamGroupDict]]:
-        """Returns the state of the optimizer as a `dict`.
+        """Returns the state of the optimizer as a `dict` with cloned Tensor buffers.
 
         Returns:
             Dictionary containing `'state'` and `'param_groups'`.
         """
         return {
-            "state": {k: dict(v) for k, v in self.state.items()},
+            "state": {
+                k: {sk: sv.clone() for sk, sv in v.items()}
+                for k, v in self.state.items()
+            },
             "param_groups": [_merge_param_group(g, {}) for g in self.param_groups],
         }
 
@@ -166,14 +218,17 @@ class Optimizer:
         self,
         state_dict: dict[str, dict[int, dict[str, Tensor]] | list[ParamGroupDict]],
     ) -> None:
-        """Loads the optimizer state.
+        """Loads the optimizer state and clones all Tensor buffers.
 
         Args:
             state_dict: Optimizer state dictionary returned from `state_dict()`.
         """
         raw_state = state_dict.get("state")
         if isinstance(raw_state, dict):
-            self.state = {k: dict(v) for k, v in raw_state.items()}
+            self.state = {
+                k: {sk: sv.clone() for sk, sv in v.items()}
+                for k, v in raw_state.items()
+            }
         raw_groups = state_dict.get("param_groups")
         if isinstance(raw_groups, list):
             self.param_groups = [
@@ -463,7 +518,8 @@ class Adafactor(Optimizer):
             foreach: Whether foreach implementation is used.
             maximize: Maximize the objective.
         """
-        _ = (eps, foreach)
+        _ = foreach
+        self._eps1: float = eps[0] if eps[0] is not None else 1e-30
         super().__init__(
             params,
             {
@@ -474,6 +530,73 @@ class Adafactor(Optimizer):
                 "maximize": maximize,
             },
         )
+
+    def step(self, closure: LossClosure = None) -> Tensor | float | None:
+        """Performs a single Adafactor optimization step with factored 2nd moments for >=2D tensors.
+
+        Args:
+            closure: A closure that reevaluates the model and returns the loss.
+
+        Returns:
+            Evaluated loss if `closure` is provided, else None.
+        """
+        self._run_pre_hooks()
+        loss: Tensor | float | None = None
+        if closure is not None:
+            loss = closure()
+        for group in self.param_groups:
+            lr = group.get("lr", 0.01)
+            beta2_decay = group.get("beta2_decay", -0.8)
+            d = group.get("d", 1.0)
+            wd = group.get("weight_decay", 0.0)
+            maximize = group.get("maximize", False)
+            group_params = group.get("params")
+            if not isinstance(group_params, list):
+                continue
+            for p in group_params:
+                if not isinstance(p, Tensor) or p.grad is None:
+                    continue
+                grad = -p.grad if maximize else p.grad
+                if wd != 0.0:
+                    p.copy_(p * (1.0 - lr * wd))
+                p_state = self.state.setdefault(id(p), {})
+                if "step" not in p_state:
+                    p_state["step"] = zero_torch.tensor(0.0)
+                    if len(p.shape) >= 2:
+                        p_state["exp_avg_sq_row"] = zero_torch.zeros(p.shape[:-1])
+                        p_state["exp_avg_sq_col"] = zero_torch.zeros(
+                            p.shape[:-2] + (p.shape[-1],)
+                        )
+                    else:
+                        p_state["exp_avg_sq"] = zero_torch.zeros_like(p)
+                step_val = _step_count(p_state["step"])
+                p_state["step"] = zero_torch.tensor(step_val)
+                beta2_t = 1.0 - (step_val**beta2_decay)
+                g2 = grad * grad + self._eps1
+                if len(p.shape) >= 2:
+                    r_t = p_state["exp_avg_sq_row"] * beta2_t + zero_torch.mean(
+                        g2, axis=-1
+                    ) * (1.0 - beta2_t)
+                    c_t = p_state["exp_avg_sq_col"] * beta2_t + zero_torch.mean(
+                        g2, axis=-2
+                    ) * (1.0 - beta2_t)
+                    p_state["exp_avg_sq_row"] = r_t
+                    p_state["exp_avg_sq_col"] = c_t
+                    r_mean = zero_torch.mean(r_t, axis=-1, keepdims=True)
+                    v_t = zero_torch.unsqueeze(
+                        r_t / (r_mean + self._eps1), -1
+                    ) * zero_torch.unsqueeze(c_t, -2)
+                else:
+                    v_t = p_state["exp_avg_sq"] * beta2_t + g2 * (1.0 - beta2_t)
+                    p_state["exp_avg_sq"] = v_t
+                u_t = grad / (zero_torch.sqrt(v_t) + self._eps1)
+                rms_u = zero_torch.sqrt(zero_torch.mean(u_t * u_t))
+                denom_clip = zero_torch.maximum(
+                    zero_torch.ones_like(rms_u), rms_u / max(1e-12, d)
+                )
+                p.copy_(p - (u_t / denom_clip) * lr)
+        self._run_post_hooks()
+        return loss
 
 
 class Adagrad(Optimizer):
@@ -800,6 +923,83 @@ class LBFGS(Optimizer):
                 "maximize": maximize,
             },
         )
+        self._s_history: dict[int, list[Tensor]] = {}
+        self._y_history: dict[int, list[Tensor]] = {}
+
+    def step(self, closure: LossClosure = None) -> Tensor | float | None:
+        """Performs a quasi-Newton L-BFGS optimization step using two-loop recursion.
+
+        Args:
+            closure: A closure that reevaluates the model and returns the loss.
+
+        Returns:
+            Evaluated loss if `closure` is provided, else None.
+        """
+        self._run_pre_hooks()
+        loss: Tensor | float | None = None
+        if closure is not None:
+            loss = closure()
+
+        for group in self.param_groups:
+            lr = group.get("lr", 1.0)
+            hist_raw = group.get("history_size", 100)
+            hist_size = int(hist_raw) if isinstance(hist_raw, int) else 100
+            maximize = group.get("maximize", False)
+            group_params = group.get("params")
+            if not isinstance(group_params, list):
+                continue
+            for p in group_params:
+                if not isinstance(p, Tensor) or p.grad is None:
+                    continue
+                grad = -p.grad if maximize else p.grad
+                pid = id(p)
+                p_state = self.state.setdefault(pid, {})
+                s_hist = self._s_history.setdefault(pid, [])
+                y_hist = self._y_history.setdefault(pid, [])
+
+                if "prev_param" in p_state and "prev_grad" in p_state:
+                    s_k = p.detach() - p_state["prev_param"]
+                    y_k = grad.detach() - p_state["prev_grad"]
+                    sy_val = _scalar_to_float(zero_torch.sum(s_k * y_k))
+                    if sy_val > 1e-10:
+                        s_hist.append(s_k)
+                        y_hist.append(y_k)
+                        if len(s_hist) > hist_size:
+                            s_hist.pop(0)
+                            y_hist.pop(0)
+
+                q = grad.detach()
+                alphas: list[float] = []
+                rhos: list[float] = []
+                for s_i, y_i in zip(reversed(s_hist), reversed(y_hist)):
+                    rho_i = 1.0 / (_scalar_to_float(zero_torch.sum(y_i * s_i)) + 1e-12)
+                    rhos.append(rho_i)
+                    alpha_i = rho_i * _scalar_to_float(zero_torch.sum(s_i * q))
+                    alphas.append(alpha_i)
+                    q = q - y_i * alpha_i
+
+                if s_hist and y_hist:
+                    s_last = s_hist[-1]
+                    y_last = y_hist[-1]
+                    gamma = _scalar_to_float(zero_torch.sum(s_last * y_last)) / (
+                        _scalar_to_float(zero_torch.sum(y_last * y_last)) + 1e-12
+                    )
+                    r = q * gamma
+                else:
+                    r = q
+
+                for s_i, y_i, rho_i, alpha_i in zip(
+                    s_hist, y_hist, reversed(rhos), reversed(alphas)
+                ):
+                    beta_i = rho_i * _scalar_to_float(zero_torch.sum(y_i * r))
+                    r = r + s_i * (alpha_i - beta_i)
+
+                p_state["prev_param"] = p.clone()
+                p_state["prev_grad"] = grad.clone()
+                p.copy_(p - r * lr)
+
+        self._run_post_hooks()
+        return loss
 
 
 class NAdam(Optimizer):

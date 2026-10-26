@@ -50,8 +50,7 @@ def test_distributions() -> None:
                 Returns:
                     Zero tensor.
                 """
-                _ = sample_shape
-                return torch.tensor(0.0)
+                return torch.zeros(sample_shape if sample_shape is not None else ())
 
         assert RSampleDist().sample().item() == 0.0
         with pytest.raises(NotImplementedError):
@@ -69,11 +68,11 @@ def test_distributions() -> None:
 
         ef = ExponentialFamily()
         with pytest.raises(NotImplementedError):
-            _ = ef._natural_params
+            assert ef._natural_params is not None
         with pytest.raises(NotImplementedError):
             ef._log_normalizer()
         with pytest.raises(NotImplementedError):
-            _ = ef._mean_carrier_measure
+            assert ef._mean_carrier_measure != 0.0
         with pytest.raises(NotImplementedError):
             ef.entropy()
 

@@ -2058,6 +2058,10 @@ def max(
     _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import MaxBackward
+
+        return MaxBackward.apply(input, eff_axis, eff_keepdims)
     res = _reductions.max(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
@@ -2164,6 +2168,10 @@ def min(
     _ = (dtype, out)
     eff_axis = dim if dim is not None else axis
     eff_keepdims = keepdim or keepdims
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import MinBackward
+
+        return MinBackward.apply(input, eff_axis, eff_keepdims)
     res = _reductions.min(_to_tensor(input), axis=eff_axis, keepdims=eff_keepdims)
     return _wrap(res)
 
@@ -2907,8 +2915,18 @@ def split(
     Returns:
         Tuple of split tensors.
     """
-    _ = dim
+    eff_dim = kwargs.pop("axis", dim)
+    if (
+        not kwargs
+        and isinstance(tensor, Tensor)
+        and tensor.requires_grad
+        and isinstance(eff_dim, int)
+    ):
+        from .autograd.math_ops import SplitBackward
+
+        return SplitBackward.apply(tensor, split_size_or_sections, eff_dim)
     t = tensor._tensor if isinstance(tensor, Tensor) else tensor
+    kwargs["axis"] = eff_dim
     res = get_op("Split")()(t, split_size_or_sections, **kwargs)
     return _wrap_tuple(res)
 
@@ -3482,6 +3500,23 @@ def where(
         Tensor: A new tensor with the where operation applied.
     """
     _ = out
+    if (
+        not kwargs
+        and condition is not None
+        and input is not None
+        and other is not None
+        and (
+            (isinstance(input, Tensor) and input.requires_grad)
+            or (isinstance(other, Tensor) and other.requires_grad)
+        )
+    ):
+        from .autograd.math_ops import WhereBackward
+
+        return WhereBackward.apply(
+            condition,
+            input if isinstance(input, (Tensor, int, float, bool)) else Tensor(input),
+            other if isinstance(other, (Tensor, int, float, bool)) else Tensor(other),
+        )
     raw_args = [a for a in (condition, input, other) if a is not None]
     res = _shape_indexing.where(
         *[
@@ -3891,6 +3926,10 @@ def clip(
         Clamped tensor.
     """
     _ = (out, kwargs)
+    if isinstance(input, Tensor) and input.requires_grad:
+        from .autograd.math_ops import ClampBackward
+
+        return ClampBackward.apply(input, min, max)
     res = input
     if min is not None:
         res = maximum(res, min)

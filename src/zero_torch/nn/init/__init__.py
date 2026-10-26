@@ -480,7 +480,7 @@ def kaiming_uniform_(
     fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
     fan = fan_in if mode == "fan_in" else fan_out
     gain = calculate_gain(nonlinearity, a)
-    std = gain / math.sqrt(fan)
+    std = gain / math.sqrt(fan) if fan > 0 else 0.0
     bound = math.sqrt(3.0) * std
     return uniform_(tensor, -bound, bound, generator)
 

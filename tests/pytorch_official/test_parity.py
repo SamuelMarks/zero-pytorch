@@ -313,3 +313,74 @@ def test_unfold_fold_parity_with_torch() -> None:
         )(r_uf_out)
         assert fd_out.shape == tuple(r_fd_out.shape)
         assert_allclose(fd_out.tolist(), r_fd_out.tolist(), rtol=1e-4)
+
+
+def test_training_step_parity_with_torch() -> None:
+    """Verifies end-to-end forward + MSELoss + backward + optimizer.step() parity across SGD, Adam, AdamW, and RMSprop."""
+    with EagerMode():
+        w_init = [[0.5, -0.25], [1.0, 0.75]]
+        b_init = [0.1, -0.2]
+        x_val = [[1.0, 2.0], [0.5, -1.0]]
+        y_val = [[1.5, 0.5], [0.0, 1.0]]
+
+        for opt_name in ("SGD", "Adam", "AdamW", "RMSprop"):
+            z_lin = nn.Linear(2, 2)
+            assert z_lin.weight is not None and z_lin.bias is not None
+            z_lin.weight.copy_(zero_torch.tensor(w_init))
+            z_lin.bias.copy_(zero_torch.tensor(b_init))
+
+            r_lin = real_torch.nn.Linear(2, 2)
+            with real_torch.no_grad():
+                r_lin.weight.copy_(real_torch.tensor(w_init))
+                r_lin.bias.copy_(real_torch.tensor(b_init))
+
+            if opt_name == "SGD":
+                z_opt: optim.Optimizer = optim.SGD(
+                    z_lin.parameters(), lr=0.05, momentum=0.9
+                )
+                r_opt: real_torch.optim.Optimizer = real_torch.optim.SGD(
+                    r_lin.parameters(), lr=0.05, momentum=0.9
+                )
+            elif opt_name == "Adam":
+                z_opt = optim.Adam(z_lin.parameters(), lr=0.05)
+                r_opt = real_torch.optim.Adam(r_lin.parameters(), lr=0.05)
+            elif opt_name == "AdamW":
+                z_opt = optim.AdamW(z_lin.parameters(), lr=0.05, weight_decay=0.01)
+                r_opt = real_torch.optim.AdamW(
+                    r_lin.parameters(), lr=0.05, weight_decay=0.01
+                )
+            else:
+                z_opt = optim.RMSprop(z_lin.parameters(), lr=0.01)
+                r_opt = real_torch.optim.RMSprop(r_lin.parameters(), lr=0.01)
+
+            z_loss_fn = nn.MSELoss()
+            r_loss_fn = real_torch.nn.MSELoss()
+
+            z_opt.zero_grad()
+            r_opt.zero_grad()
+
+            z_pred = z_lin(zero_torch.tensor(x_val))
+            r_pred = r_lin(real_torch.tensor(x_val))
+            assert_allclose(z_pred.tolist(), r_pred.detach().tolist(), rtol=1e-5)
+
+            z_loss = z_loss_fn(z_pred, zero_torch.tensor(y_val))
+            r_loss = r_loss_fn(r_pred, real_torch.tensor(y_val))
+            assert_allclose(z_loss.tolist(), r_loss.detach().tolist(), rtol=1e-5)
+
+            z_loss.backward()
+            r_loss.backward()
+            z_opt.step()
+            r_opt.step()
+
+            assert_allclose(
+                z_lin.weight.tolist(),
+                r_lin.weight.detach().tolist(),
+                rtol=1e-4,
+                atol=1e-5,
+            )
+            assert_allclose(
+                z_lin.bias.tolist(),
+                r_lin.bias.detach().tolist(),
+                rtol=1e-4,
+                atol=1e-5,
+            )

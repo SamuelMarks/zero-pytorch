@@ -176,8 +176,15 @@ def test_special_parity() -> None:
         assert torch.special.xlog1py(2.0, 3.0).shape == ()
         assert torch.special.digamma(t).shape == (3,)
         assert torch.special.psi(t).shape == (3,)
-        assert torch.special.gammainc(t, t2).shape == (3,)
-        assert torch.special.gammaincc(t, t2).shape == (3,)
+        g_inc = torch.special.gammainc(
+            Tensor([2.0, 2.0, 2.0]), Tensor([0.0, 0.5, 10.0])
+        )
+        g_incc = torch.special.gammaincc(
+            Tensor([2.0, 2.0, 2.0]), Tensor([0.0, 0.5, 10.0])
+        )
+        assert_allclose((g_inc + g_incc).tolist(), [1.0, 1.0, 1.0], rtol=1e-4)
+        g_large = torch.special.gammainc(Tensor(2.0), Tensor(10.0)).item()
+        assert isinstance(g_large, float) and g_large > 0.99
         assert torch.special.log_ndtr(t).shape == (3,)
         assert torch.special.log_softmax(t, dim=0).shape == (3,)
         assert torch.special.softmax(t, dim=0).shape == (3,)

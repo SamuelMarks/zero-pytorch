@@ -9,21 +9,29 @@ import zero_torch.nn as nn
 import zero_torch.nn.functional as F
 from tests.conftest import assert_allclose
 from zero_torch.autograd.math_ops import (
+    ClampBackward,
     CosBackward,
     ExpBackward,
     LogBackward,
+    LogSoftmaxBackward,
+    MaxBackward,
     MeanBackward,
+    MinBackward,
     PermuteBackward,
     ReluBackward,
     ReshapeBackward,
     SigmoidBackward,
     SinBackward,
+    SliceBackward,
+    SoftmaxBackward,
+    SplitBackward,
     SqrtBackward,
     SqueezeBackward,
     SumBackward,
     TanhBackward,
     TransposeBackward,
     UnsqueezeBackward,
+    WhereBackward,
 )
 
 
@@ -186,7 +194,7 @@ def test_autograd_unary_reduction_shape_and_modules() -> None:
         gx = torch.tensor([2.0], requires_grad=True)
         gy = torch.tensor([3.0], requires_grad=True)
         gz = gx * gx
-        (dgx, dgy_none) = torch.autograd.grad(gz, [gx, gy])
+        (dgx, dgy_none) = torch.autograd.grad(gz, [gx, gy], allow_unused=True)
         assert dgx is not None and dgx.item() == 4.0 and dgy_none is None
         gz2 = gx * 5.0
         (dgx2, dgy_zero) = torch.autograd.grad(
@@ -226,3 +234,127 @@ def test_autograd_unary_reduction_shape_and_modules() -> None:
         assert torch.autograd.overload(sq_fn) is sq_fn
         assert torch.autograd.variable(gx) is gx
         assert torch.autograd.variable().item() == 0.0
+
+
+def test_autograd_extended_ops_hooks_and_higher_order() -> None:
+    """Verifies Where/Clamp/Max/Min/Softmax/LogSoftmax/Split/Slice backward ops, Tensor.register_hook, create_graph=True, and inputs filtering."""
+    import pytest
+
+    with EagerMode():
+        # Where, Clamp, Max, Min, Softmax, LogSoftmax, Split, Slice
+        wx = torch.tensor([1.0, 5.0, -2.0], requires_grad=True)
+        wy = torch.tensor([10.0, 20.0, 30.0], requires_grad=True)
+        cond = torch.tensor([True, False, True])
+        w_out = torch.where(cond, wx, wy)
+        c_out = torch.clamp(torch.clamp(w_out, min=0.0), max=15.0)
+        c_out.sum().backward()
+        assert wx.grad is not None and wx.grad.tolist() == [1.0, 0.0, 0.0]
+        assert wy.grad is not None and wy.grad.tolist() == [0.0, 0.0, 0.0]
+
+        mx = torch.tensor([[1.0, 4.0], [3.0, 2.0]], requires_grad=True)
+        (torch.max(mx, dim=1) + torch.min(mx, dim=1)).sum().backward()
+        assert mx.grad is not None and mx.grad.tolist() == [[1.0, 1.0], [1.0, 1.0]]
+
+        sm_x = torch.tensor([[1.0, 2.0], [0.5, 1.5]], requires_grad=True)
+        (
+            F.softmax(sm_x, dim=-1) * torch.tensor([[1.0, 0.0], [0.0, 1.0]])
+        ).sum().backward()
+        assert sm_x.grad is not None and sm_x.grad.shape == (2, 2)
+
+        lsm_x = torch.tensor([[1.0, 2.0], [0.5, 1.5]], requires_grad=True)
+        F.nll_loss(F.log_softmax(lsm_x, dim=-1), torch.tensor([0, 1])).backward()
+        assert lsm_x.grad is not None and lsm_x.grad.shape == (2, 2)
+
+        sp_x = torch.tensor([1.0, 2.0, 3.0, 4.0], requires_grad=True)
+        p1, p2 = sp_x.chunk(2, dim=0)
+        (p1 * 2.0 + p2 * 3.0).sum().backward()
+        assert sp_x.grad is not None and sp_x.grad.tolist() == [2.0, 2.0, 3.0, 3.0]
+
+        sl_x = torch.tensor([10.0, 20.0, 30.0], requires_grad=True)
+        (sl_x[1] * 4.0 + sl_x[0:2].sum()).backward()
+        assert sl_x.grad is not None and sl_x.grad.tolist() == [1.0, 5.0, 0.0]
+
+        sl_2d = torch.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True)
+        sl_2d[(0, 1)].backward()
+        assert sl_2d.grad is not None
+
+        # Non-grad & edge branches on new Backward classes
+        c_nograd = torch.tensor([1.0, 2.0], requires_grad=False)
+        assert (
+            WhereBackward.apply(True, 1.0, torch.tensor(2.0, requires_grad=True)).item()
+            == 1.0
+        )
+        assert ClampBackward.apply(1.0, None, None).item() == 1.0
+        assert MaxBackward.apply(1.0, None, False).item() == 1.0
+        assert MinBackward.apply(1.0, None, False).item() == 1.0
+
+        ctx_c = torch.autograd.Context()
+        ctx_c.save_for_backward(c_nograd, 0.0, 1.0)
+        assert ClampBackward.backward(ctx_c, torch.ones((2,))) == (None, None, None)
+
+        ctx_m = torch.autograd.Context()
+        ctx_m.save_for_backward(c_nograd, c_nograd, None, False)
+        assert MaxBackward.backward(ctx_m, torch.ones((2,))) == (None, None, None)
+        assert MinBackward.backward(ctx_m, torch.ones((2,))) == (None, None, None)
+
+        ctx_sm = torch.autograd.Context()
+        ctx_sm.save_for_backward(c_nograd, c_nograd, -1)
+        assert SoftmaxBackward.backward(ctx_sm, torch.ones((2,))) == (None, None)
+        assert LogSoftmaxBackward.backward(ctx_sm, torch.ones((2,))) == (None, None)
+
+        ctx_sp = torch.autograd.Context()
+        ctx_sp.save_for_backward(c_nograd, 0, torch.ones((1,)), torch.ones((1,)))
+        assert SplitBackward.backward(ctx_sp, torch.ones((1,))) == (None, None, None)
+
+        ctx_sl = torch.autograd.Context()
+        ctx_sl.save_for_backward(c_nograd)
+        assert SliceBackward.backward(ctx_sl, torch.ones(())) == (None, None)
+        sl_idx_t = torch.tensor([10.0, 20.0], requires_grad=True)
+        sl_idx_t[torch.tensor([0])].sum().backward()
+
+        with torch.autograd.enable_grad():
+            with torch.autograd.inference_mode(True):
+                assert not torch.autograd.is_grad_enabled()
+
+        # Tensor.register_hook, create_graph=True, inputs filtering, allow_unused=False
+        with pytest.raises(RuntimeError):
+            c_nograd.register_hook(lambda g: g)
+        assert c_nograd.register_hook(None) is None
+
+        hx = torch.tensor([3.0], requires_grad=True)
+        h_handle = hx.register_hook(lambda g: g * 2.0)
+        h_noop = hx.register_hook(lambda _g: None)
+        hy = hx * hx
+        hy.backward(create_graph=True)
+        assert hx.grad is not None and hx.grad.item() == 12.0
+        assert h_handle is not None and h_noop is not None
+
+        # Higher-order derivative via create_graph=True in autograd.grad
+        x_ho = torch.tensor([2.0], requires_grad=True)
+        y_ho = x_ho * x_ho * x_ho
+        (dy_dx,) = torch.autograd.grad(y_ho, x_ho, create_graph=True)
+        assert dy_dx is not None and dy_dx.item() == 12.0
+        (d2y_dx2,) = torch.autograd.grad(dy_dx, x_ho)
+        assert d2y_dx2 is not None and d2y_dx2.item() == 12.0
+
+        # Unreachable input raises RuntimeError when allow_unused=False
+        unused_t = torch.tensor([1.0], requires_grad=True)
+        with pytest.raises(RuntimeError):
+            torch.autograd.grad(y_ho, [x_ho, unused_t], allow_unused=False)
+
+        # inputs parameter in backward (Tensor, list, and dict)
+        in1 = torch.tensor([2.0], requires_grad=True)
+        in2 = torch.tensor([3.0], requires_grad=True)
+        in1.backward(inputs=in2)
+        assert in1.grad is None
+        (in1 * in2).backward(inputs=in1)
+        assert in1.grad is not None and in2.grad is None
+        (in1 * in2).backward(inputs={"in2": in2})
+        assert in2.grad is not None
+
+        with torch.autograd.detect_anomaly():
+            with torch.autograd.set_detect_anomaly(True):
+                v_t = torch.autograd.variable(
+                    [1.0, 2.0], requires_grad=True, dtype="float32"
+                )
+                assert v_t.requires_grad is True

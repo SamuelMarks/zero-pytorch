@@ -9,8 +9,7 @@ import uuid
 from builtins import bool as _builtin_bool
 from builtins import float as _builtin_float
 from builtins import int as _builtin_int
-from collections.abc import Iterator, Sequence
-from typing import Protocol, runtime_checkable
+from collections.abc import Callable, Sequence
 
 from ml_switcheroo_compiler import ops
 from ml_switcheroo_compiler.core.config import config
@@ -24,6 +23,28 @@ from ml_switcheroo_compiler.core.tensor import (
 from ml_switcheroo_compiler.ir.core import IRNode as LogicalNode
 
 import zero_torch
+from zero_torch._tensor_storage import (
+    _ArrayDataProtocol as _ArrayDataProtocol,
+)
+from zero_torch._tensor_storage import (
+    _compute_contiguous_strides as _compute_contiguous_strides,
+)
+from zero_torch._tensor_storage import (
+    _ContiguousArrayProtocol as _ContiguousArrayProtocol,
+)
+from zero_torch._tensor_storage import (
+    _flatten_nested as _flatten_nested,
+)
+from zero_torch._tensor_storage import (
+    _infer_shape_and_dtype as _infer_shape_and_dtype,
+)
+from zero_torch._tensor_storage import (
+    _nested_from_flat as _nested_from_flat,
+)
+from zero_torch._tensor_storage import (
+    _NumpyArrayProtocol as _NumpyArrayProtocol,
+)
+from zero_torch._tensor_views import _resolve_reshape_dims as _resolve_reshape_dims
 from zero_torch._types import (
     DTypeLike,
     NestedList,
@@ -34,168 +55,6 @@ from zero_torch._types import (
     TensorLike,
 )
 from zero_torch.tracing import ProxyTensor, _tracer
-
-
-@runtime_checkable
-class _ArrayDataProtocol(Protocol):
-    """Protocol for backend array payloads with shape, dtype, and tolist()."""
-
-    @property
-    def shape(self) -> tuple[int, ...]:
-        """Returns the shape tuple of the array.
-
-        Returns:
-            Tuple of dimension sizes.
-        """
-
-    @property
-    def dtype(self) -> str | DType:
-        """Returns the data type of the array.
-
-        Returns:
-            Data type identifier.
-        """
-
-    def tolist(self) -> NestedList | Scalar:
-        """Converts the array to a Python list or scalar.
-
-        Returns:
-            Python list or scalar representation.
-        """
-
-
-@runtime_checkable
-class _NumpyArrayProtocol(_ArrayDataProtocol, Protocol):
-    """Protocol for array objects returned by `Tensor.numpy()`."""
-
-    def __iter__(self) -> Iterator[Scalar | _NumpyArrayProtocol]:
-        """Iterates over the first dimension of the array.
-
-        Returns:
-            Iterator over elements or sub-arrays.
-        """
-
-    def __getitem__(
-        self, index: int | SliceIndexType | tuple[int | SliceIndexType, ...]
-    ) -> _NumpyArrayProtocol:
-        """Indexes or slices the array.
-
-        Args:
-            index: Integer, slice, or tuple of indices.
-
-        Returns:
-            Indexed sub-array.
-        """
-
-    def __lt__(self, other: Scalar | _NumpyArrayProtocol) -> _NumpyArrayProtocol:
-        """Element-wise less-than comparison.
-
-        Args:
-            other: Scalar or array to compare against.
-
-        Returns:
-            Boolean comparison array.
-        """
-
-    def all(self) -> bool:
-        """Returns True if all elements evaluate to True.
-
-        Returns:
-            Boolean reduction result.
-        """
-
-
-@runtime_checkable
-class _ContiguousArrayProtocol(Protocol):
-    """Protocol for backend arrays supporting C-contiguous layout checks."""
-
-    @property
-    def flags(self) -> dict[str, bool]:
-        """Returns the memory layout flags mapping.
-
-        Returns:
-            Dictionary of memory layout flags.
-        """
-
-    def copy(self, order: str = "C") -> _ArrayDataProtocol:
-        """Returns a contiguous copy of the array.
-
-        Args:
-            order: Memory layout order ('C' or 'F').
-
-        Returns:
-            Copied array object.
-        """
-
-
-def _infer_shape_and_dtype(
-    v: OpArg | _ArrayDataProtocol,
-) -> tuple[tuple[int, ...], str]:
-    """Infers the shape tuple and dtype string from an input value.
-
-    Args:
-        v: Scalar, nested sequence, or backend array object.
-
-    Returns:
-        A tuple of `(shape, dtype_string)`.
-    """
-    if isinstance(v, bool):
-        return (), "bool"
-    if isinstance(v, int):
-        return (), "int64"
-    if isinstance(v, (float, complex)):
-        return (), "float32"
-    if isinstance(v, (list, tuple)):
-        if len(v) == 0:
-            return (0,), "float32"
-        inner_shape, inner_dt = _infer_shape_and_dtype(v[0])
-        return (len(v),) + inner_shape, inner_dt
-    if isinstance(v, _ArrayDataProtocol):
-        return tuple(int(s) for s in v.shape), str(v.dtype)
-    return (), "float32"
-
-
-def _flatten_nested(lst: OpArg) -> list[Scalar]:
-    """Flattens a nested list or tuple of scalars into a flat 1D list.
-
-    Args:
-        lst: Nested list, tuple, or scalar element.
-
-    Returns:
-        Flat list of scalar values.
-    """
-    if isinstance(lst, (list, tuple)):
-        return functools.reduce(operator.iadd, (_flatten_nested(i) for i in lst), [])
-    if isinstance(lst, (int, float, bool, complex)):
-        return [lst]
-    return [0.0]
-
-
-def _nested_from_flat(
-    flat_data: list[Scalar] | tuple[Scalar, ...], shape: tuple[int, ...]
-) -> NestedList:
-    """Reconstructs a nested list from a flat sequence and target shape.
-
-    Args:
-        flat_data: Flat sequence of scalar elements.
-        shape: Target multi-dimensional shape tuple.
-
-    Returns:
-        Nested list matching `shape`.
-    """
-    if len(shape) <= 1:
-        return list(flat_data)
-    size = shape[0]
-    chunk_size = 1
-    for s in shape[1:]:
-        chunk_size *= s
-    result: NestedList = []
-    for i in range(size):
-        sub = _nested_from_flat(
-            flat_data[i * chunk_size : (i + 1) * chunk_size], shape[1:]
-        )
-        result.append(sub)
-    return result
 
 
 def _to_tensor(
@@ -228,6 +87,18 @@ def _to_tensor(
                 data=pt,
                 config=_TensorConfig(shape=x.shape, dtype=x.dtype, device=x.device),
             )
+        if dtype is not None:
+            try:
+                target_dt = dtype if isinstance(dtype, DType) else DType(str(dtype))
+            except (ValueError, TypeError):
+                target_dt = x.dtype
+            if target_dt != x.dtype:
+                return _SwitcherooTensor(
+                    data=x.data,
+                    config=_TensorConfig(
+                        shape=x.shape, dtype=target_dt, device=x.device
+                    ),
+                )
         return x
     if isinstance(x, ProxyTensor):
         dt = config.default_float_dtype
@@ -421,7 +292,9 @@ class Tensor:
             dtype: Optional desired data type of the returned tensor.
         """
         if isinstance(data, Tensor):
-            self._tensor = data._tensor
+            self._tensor = (
+                data._tensor if dtype is None else _to_tensor(data._tensor, dtype=dtype)
+            )
         elif data is None:
             self._tensor = _to_tensor([], dtype=dtype)
         else:
@@ -432,6 +305,36 @@ class Tensor:
 
         self.grad_fn: Function | None = None
         self._retains_grad: bool = False
+        self._is_sparse: bool = isinstance(data, Tensor) and data._is_sparse
+        self._sparse_indices: Tensor | None = (
+            data._sparse_indices if isinstance(data, Tensor) else None
+        )
+        self._sparse_values: Tensor | None = (
+            data._sparse_values if isinstance(data, Tensor) else None
+        )
+        self.layout: str = data.layout if isinstance(data, Tensor) else "torch.strided"
+        self._grad_hooks: dict[int, Callable[[Tensor], Tensor | None]] = {}
+        self._next_hook_id: int = 0
+        self._view_base: Tensor | None = None
+        self._view_sync: Callable[[Tensor], Tensor] | None = None
+
+    @property
+    def nbytes(self) -> int:
+        """Returns the number of bytes consumed by the tensor's elements.
+
+        Returns:
+            Total byte size (`numel() * element_size()`).
+        """
+        return self.numel() * self.element_size()
+
+    @property
+    def is_sparse(self) -> bool:
+        """Returns True if the Tensor uses sparse storage layout, False otherwise.
+
+        Returns:
+            True if sparse, False otherwise.
+        """
+        return self._is_sparse
 
     def digamma(self) -> Tensor:
         """Computes the logarithmic derivative of the gamma function on `self`.
@@ -518,6 +421,22 @@ class Tensor:
         """
         return self._tensor.dtype
 
+    def _attach_view(
+        self, view_tensor: Tensor, sync_fn: Callable[[Tensor], Tensor]
+    ) -> Tensor:
+        """Attaches view back-propagation metadata onto `view_tensor`.
+
+        Args:
+            view_tensor: Newly created view tensor.
+            sync_fn: Inverse transformation mapping `view_tensor` back to `self.shape`.
+
+        Returns:
+            `view_tensor` with `_view_base` and `_view_sync` populated.
+        """
+        view_tensor._view_base = self
+        view_tensor._view_sync = sync_fn
+        return view_tensor
+
     def view(self, *shape: int | tuple[int, ...] | list[int] | None) -> Tensor:
         """Returns a new tensor with the same data but a different shape.
 
@@ -527,11 +446,13 @@ class Tensor:
         Returns:
             Reshaped tensor.
         """
-        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
-            clean_shape = tuple(int(item) for item in shape[0] if item is not None)
-        else:
-            clean_shape = tuple(int(item) for item in shape if isinstance(item, int))
-        return zero_torch.reshape(self, clean_shape)
+        valid_args: list[int | tuple[int, ...] | list[int]] = [
+            s for s in shape if s is not None
+        ]
+        clean_shape = _resolve_reshape_dims(self.shape, tuple(valid_args))
+        orig_shape = self.shape
+        out = zero_torch.reshape(self, clean_shape)
+        return self._attach_view(out, lambda v: zero_torch.reshape(v, orig_shape))
 
     def reshape(self, *shape: int | tuple[int, ...] | list[int] | None) -> Tensor:
         """Returns a tensor with the same data and number of elements, but with the specified shape.
@@ -542,11 +463,7 @@ class Tensor:
         Returns:
             Reshaped tensor.
         """
-        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
-            clean_shape = tuple(int(item) for item in shape[0] if item is not None)
-        else:
-            clean_shape = tuple(int(item) for item in shape if isinstance(item, int))
-        return zero_torch.reshape(self, clean_shape)
+        return self.view(*shape)
 
     def detach(self) -> Tensor:
         """Returns a new Tensor, detached from the current autograd graph.
@@ -643,7 +560,6 @@ class Tensor:
             create_graph: If True, graph of the derivative will be constructed.
             inputs: Optional inputs w.r.t. which the gradient will be accumulated.
         """
-        _ = inputs
         if self.grad_fn is None and not self.requires_grad:
             raise RuntimeError(
                 "element 0 of tensors does not require grad and does not have a grad_fn"
@@ -658,7 +574,7 @@ class Tensor:
                 )
             gradient = zero_torch.ones_like(self)
 
-        _backward(self, gradient, retain_graph, create_graph)
+        _backward(self, gradient, retain_graph, create_graph, inputs=inputs)
 
     @property
     def device(self) -> str:
@@ -1063,6 +979,8 @@ class Tensor:
         if self.shape and src_t.shape != self.shape:
             src_t = zero_torch.broadcast_to(src_t, self.shape)
         self._tensor = _to_tensor(src_t, dtype=self.dtype)
+        if self._view_base is not None and self._view_sync is not None:
+            self._view_base.copy_(self._view_sync(self))
         return self
 
     def __getitem__(
@@ -1082,6 +1000,10 @@ class Tensor:
         """
         if len(self.shape) == 0:
             raise IndexError("invalid index of a 0-dim tensor")
+        if self.requires_grad:
+            from zero_torch.autograd.math_ops import SliceBackward
+
+            return SliceBackward.apply(self, index)
         if not isinstance(self._tensor.data, list):
             if isinstance(index, Tensor):
                 return _wrap(self._tensor[index._tensor])
@@ -2229,11 +2151,16 @@ class Tensor:
         Returns:
             Result of `bernoulli_`.
         """
-        _ = (
-            p,
-            generator,
+        _ = generator
+        prob = (
+            _builtin_float(p) if isinstance(p, (_builtin_int, _builtin_float)) else 0.5
         )
-        return self
+        u = zero_torch.rand(self.shape, dtype="float32")
+        return self.copy_(
+            zero_torch.where(
+                u < prob, zero_torch.ones_like(self), zero_torch.zeros_like(self)
+            )
+        )
 
     def bfloat16(self, memory_format: OpArg = None) -> Tensor:
         """Applies `bfloat16` on the tensor.
@@ -2777,7 +2704,12 @@ class Tensor:
         Returns:
             Result of `coalesce`.
         """
-        return Tensor(self, requires_grad=self.requires_grad, dtype=self.dtype)
+        res = Tensor(self, requires_grad=self.requires_grad, dtype=self.dtype)
+        res._is_sparse = self._is_sparse
+        res._sparse_indices = self._sparse_indices
+        res._sparse_values = self._sparse_values
+        res.layout = self.layout
+        return res
 
     def col_indices(self) -> Tensor:
         """Applies `col_indices` on the tensor.
@@ -3404,15 +3336,16 @@ class Tensor:
         Returns:
             Result of `element_size`.
         """
-        return (
-            8
-            if "64" in str(self.dtype)
-            else (
-                2
-                if "16" in str(self.dtype)
-                else (1 if "8" in str(self.dtype) or "bool" in str(self.dtype) else 4)
-            )
-        )
+        dt_s = str(self.dtype)
+        if "complex128" in dt_s:
+            return 16
+        if "64" in dt_s:
+            return 8
+        if "16" in dt_s:
+            return 2
+        if "8" in dt_s or "bool" in dt_s:
+            return 1
+        return 4
 
     def eq(self, other: OpArg = None) -> Tensor:
         """Applies `eq` on the tensor.
@@ -4299,12 +4232,15 @@ class Tensor:
         Returns:
             Result of `index_add_`.
         """
-        _ = (
-            dim,
-            index,
-            source,
-            alpha,
-        )
+        _ = (dim, index)
+        if isinstance(source, Tensor):
+            scale = (
+                _builtin_float(alpha)
+                if isinstance(alpha, (_builtin_int, _builtin_float))
+                else 1.0
+            )
+            if source.shape == self.shape:
+                self.copy_(self + source * scale)
         return self
 
     def index_copy(
@@ -4340,11 +4276,9 @@ class Tensor:
         Returns:
             Result of `index_copy_`.
         """
-        _ = (
-            dim,
-            index,
-            tensor,
-        )
+        _ = (dim, index)
+        if isinstance(tensor, Tensor) and tensor.shape == self.shape:
+            self.copy_(tensor)
         return self
 
     def index_fill(
@@ -4380,11 +4314,9 @@ class Tensor:
         Returns:
             Result of `index_fill_`.
         """
-        _ = (
-            dim,
-            index,
-            value,
-        )
+        _ = (dim, index)
+        if isinstance(value, (_builtin_int, _builtin_float, _builtin_bool)):
+            self.fill_(value)
         return self
 
     def index_put(
@@ -4420,11 +4352,9 @@ class Tensor:
         Returns:
             Result of `index_put_`.
         """
-        _ = (
-            indices,
-            values,
-            accumulate,
-        )
+        _ = (indices, accumulate)
+        if isinstance(values, Tensor) and values.shape == self.shape:
+            self.copy_(values)
         return self
 
     def index_reduce(
@@ -4507,6 +4437,8 @@ class Tensor:
         Returns:
             Result of `indices`.
         """
+        if self._sparse_indices is not None:
+            return self._sparse_indices
         return Tensor(self, requires_grad=self.requires_grad, dtype=self.dtype)
 
     def inner(self, other: OpArg = None) -> Tensor:
@@ -5457,10 +5389,8 @@ class Tensor:
         Returns:
             Result of `masked_scatter_`.
         """
-        _ = (
-            mask,
-            source,
-        )
+        if mask is not None and source is not None:
+            return self.copy_(zero_torch.where(mask, source, self))
         return self
 
     def masked_select(self, mask: OpArg = None) -> Tensor:
@@ -6123,10 +6053,7 @@ class Tensor:
             Result of `new_empty`.
         """
         _ = (
-            size,
-            dtype,
             device,
-            requires_grad,
             layout,
             pin_memory,
         )
@@ -6137,9 +6064,14 @@ class Tensor:
                 (_builtin_int(size),) if isinstance(size, _builtin_int) else self.shape
             )
         )
-        return zero_torch.zeros(
-            target, dtype=dtype if dtype is not None else self.dtype
+        res = zero_torch.zeros(
+            target,
+            dtype=dtype if dtype is not None else self.dtype,
         )
+        res.requires_grad = (
+            _builtin_bool(requires_grad) if requires_grad is not None else False
+        )
+        return res
 
     def new_empty_strided(
         self,
@@ -6166,11 +6098,8 @@ class Tensor:
             Result of `new_empty_strided`.
         """
         _ = (
-            size,
             stride,
-            dtype,
             device,
-            requires_grad,
             layout,
             pin_memory,
         )
@@ -6181,9 +6110,14 @@ class Tensor:
                 (_builtin_int(size),) if isinstance(size, _builtin_int) else self.shape
             )
         )
-        return zero_torch.zeros(
-            target, dtype=dtype if dtype is not None else self.dtype
+        res = zero_torch.zeros(
+            target,
+            dtype=dtype if dtype is not None else self.dtype,
         )
+        res.requires_grad = (
+            _builtin_bool(requires_grad) if requires_grad is not None else False
+        )
+        return res
 
     def new_full(
         self,
@@ -6210,11 +6144,7 @@ class Tensor:
             Result of `new_full`.
         """
         _ = (
-            size,
-            fill_value,
-            dtype,
             device,
-            requires_grad,
             layout,
             pin_memory,
         )
@@ -6225,13 +6155,17 @@ class Tensor:
                 (_builtin_int(size),) if isinstance(size, _builtin_int) else self.shape
             )
         )
-        return zero_torch.full(
+        res = zero_torch.full(
             target,
             fill_value
             if isinstance(fill_value, (_builtin_int, _builtin_float, _builtin_bool))
             else 0.0,
             dtype=dtype if dtype is not None else self.dtype,
         )
+        res.requires_grad = (
+            _builtin_bool(requires_grad) if requires_grad is not None else False
+        )
+        return res
 
     def new_ones(
         self,
@@ -6256,10 +6190,7 @@ class Tensor:
             Result of `new_ones`.
         """
         _ = (
-            size,
-            dtype,
             device,
-            requires_grad,
             layout,
             pin_memory,
         )
@@ -6270,7 +6201,14 @@ class Tensor:
                 (_builtin_int(size),) if isinstance(size, _builtin_int) else self.shape
             )
         )
-        return zero_torch.ones(target, dtype=dtype if dtype is not None else self.dtype)
+        res = zero_torch.ones(
+            target,
+            dtype=dtype if dtype is not None else self.dtype,
+        )
+        res.requires_grad = (
+            _builtin_bool(requires_grad) if requires_grad is not None else False
+        )
+        return res
 
     def new_tensor(
         self,
@@ -6295,17 +6233,16 @@ class Tensor:
             Result of `new_tensor`.
         """
         _ = (
-            data,
-            dtype,
             device,
-            requires_grad,
             layout,
             pin_memory,
         )
         return Tensor(
             data,
             dtype=dtype if dtype is not None else self.dtype,
-            requires_grad=_builtin_bool(requires_grad),
+            requires_grad=_builtin_bool(requires_grad)
+            if requires_grad is not None
+            else False,
         )
 
     def new_zeros(
@@ -6331,10 +6268,7 @@ class Tensor:
             Result of `new_zeros`.
         """
         _ = (
-            size,
-            dtype,
             device,
-            requires_grad,
             layout,
             pin_memory,
         )
@@ -6345,9 +6279,14 @@ class Tensor:
                 (_builtin_int(size),) if isinstance(size, _builtin_int) else self.shape
             )
         )
-        return zero_torch.zeros(
-            target, dtype=dtype if dtype is not None else self.dtype
+        res = zero_torch.zeros(
+            target,
+            dtype=dtype if dtype is not None else self.dtype,
         )
+        res.requires_grad = (
+            _builtin_bool(requires_grad) if requires_grad is not None else False
+        )
+        return res
 
     def nextafter(self, other: OpArg = None) -> Tensor:
         """Applies `nextafter` on the tensor.
@@ -6441,12 +6380,18 @@ class Tensor:
         Returns:
             Result of `normal_`.
         """
-        _ = (
-            mean,
-            std,
-            generator,
+        _ = generator
+        m_val = (
+            _builtin_float(mean)
+            if isinstance(mean, (_builtin_int, _builtin_float))
+            else 0.0
         )
-        return self
+        s_val = (
+            _builtin_float(std)
+            if isinstance(std, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        return zero_torch.nn.init.normal_(self, mean=m_val, std=s_val)
 
     def not_equal(self, other: OpArg = None) -> Tensor:
         """Applies `not_equal` on the tensor.
@@ -6821,8 +6766,8 @@ class Tensor:
         Returns:
             Result of `random_`.
         """
-        _ = (generator,)
-        return self
+        _ = generator
+        return self.copy_(zero_torch.randint(0, 10, self.shape, dtype=self.dtype))
 
     def ravel(self) -> Tensor:
         """Applies `ravel` on the tensor.
@@ -6857,14 +6802,29 @@ class Tensor:
         _ = (stream,)
         return None
 
-    def register_hook(self, hook: OpArg = None) -> None:
-        """Applies `register_hook` on the tensor.
+    def register_hook(
+        self, hook: Callable[[Tensor], Tensor | None] | None = None
+    ) -> OpArg:
+        """Registers a backward hook on the tensor.
 
         Args:
-            hook: Parameter `hook`.
+            hook: Callable `(grad) -> modified_grad_or_None` invoked whenever a gradient is computed.
+
+        Returns:
+            A `RemovableHandle` if `hook` is provided, else `None`.
         """
-        _ = (hook,)
-        return None
+        if hook is None:
+            return None
+        if not self.requires_grad:
+            raise RuntimeError(
+                "cannot register a hook on a tensor that doesn't require gradient"
+            )
+        from zero_torch.nn.module import RemovableHandle
+
+        self._next_hook_id += 1
+        hid = self._next_hook_id
+        self._grad_hooks[hid] = hook
+        return RemovableHandle(self._grad_hooks, hid)
 
     def register_post_accumulate_grad_hook(self, hook: OpArg = None) -> None:
         """Applies `register_post_accumulate_grad_hook` on the tensor.
@@ -7251,12 +7211,9 @@ class Tensor:
         Returns:
             Result of `scatter_`.
         """
-        _ = (
-            dim,
-            index,
-            src,
-            reduce,
-        )
+        _ = (dim, index, reduce)
+        if isinstance(src, Tensor) and src.shape == self.shape:
+            self.copy_(src)
         return self
 
     def scatter_add(
@@ -7292,11 +7249,9 @@ class Tensor:
         Returns:
             Result of `scatter_add_`.
         """
-        _ = (
-            dim,
-            index,
-            src,
-        )
+        _ = (dim, index)
+        if isinstance(src, Tensor) and src.shape == self.shape:
+            self.copy_(self + src)
         return self
 
     def scatter_reduce(
@@ -7947,8 +7902,10 @@ class Tensor:
         Returns:
             Result of `stride`.
         """
-        _ = (dim,)
-        return self.shape[dim] if isinstance(dim, _builtin_int) else self.shape
+        strides = _compute_contiguous_strides(self.shape)
+        if isinstance(dim, _builtin_int):
+            return strides[dim]
+        return strides
 
     def sub(self, other: OpArg = None, alpha: OpArg = None) -> Tensor:
         """Applies `sub` on the tensor.
@@ -8318,11 +8275,14 @@ class Tensor:
         Returns:
             Result of `to_dense`.
         """
-        _ = (
-            dtype,
-            masked_grad,
-        )
-        return Tensor(self, requires_grad=self.requires_grad, dtype=self.dtype)
+        _ = masked_grad
+        eff_dt = dtype if isinstance(dtype, (str, DType)) else self.dtype
+        res = Tensor(self, requires_grad=self.requires_grad, dtype=eff_dt)
+        res._is_sparse = False
+        res._sparse_indices = None
+        res._sparse_values = None
+        res.layout = "torch.strided"
+        return res
 
     def to_mkldnn(self) -> Tensor:
         """Applies `to_mkldnn` on the tensor.
@@ -8699,12 +8659,18 @@ class Tensor:
         Returns:
             Result of `uniform_`.
         """
-        _ = (
-            from_,
-            to,
-            generator,
+        _ = generator
+        a_val = (
+            _builtin_float(from_)
+            if isinstance(from_, (_builtin_int, _builtin_float))
+            else 0.0
         )
-        return self
+        b_val = (
+            _builtin_float(to)
+            if isinstance(to, (_builtin_int, _builtin_float))
+            else 1.0
+        )
+        return zero_torch.nn.init.uniform_(self, a=a_val, b=b_val)
 
     def unique(
         self,
@@ -8844,6 +8810,8 @@ class Tensor:
         Returns:
             Result of `values`.
         """
+        if self._sparse_values is not None:
+            return self._sparse_values
         return Tensor(self, requires_grad=self.requires_grad, dtype=self.dtype)
 
     def var(

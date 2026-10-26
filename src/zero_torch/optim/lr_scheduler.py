@@ -73,7 +73,7 @@ class LRScheduler:
         }
 
     def load_state_dict(self, state_dict: dict[str, int | list[float]]) -> None:
-        """Loads the schedulers state.
+        """Loads the schedulers state and synchronizes `optimizer.param_groups` learning rates.
 
         Args:
             state_dict: Scheduler state dictionary returned from state_dict().
@@ -87,6 +87,8 @@ class LRScheduler:
         last = state_dict.get("_last_lr")
         if isinstance(last, list):
             self._last_lr = [float(x) for x in last]
+            for group, lr in zip(self.optimizer.param_groups, self._last_lr):
+                group["lr"] = lr
 
 
 _LRScheduler = LRScheduler
@@ -747,6 +749,46 @@ class ReduceLROnPlateau:
             List of last computed learning rates.
         """
         return list(self._last_lr)
+
+    def state_dict(self) -> dict[str, int | float | list[float] | None]:
+        """Returns the state of the `ReduceLROnPlateau` scheduler as a dictionary.
+
+        Returns:
+            Dictionary containing plateau state attributes.
+        """
+        return {
+            "best": self.best,
+            "num_bad_epochs": self.num_bad_epochs,
+            "cooldown_counter": self.cooldown_counter,
+            "last_epoch": self.last_epoch,
+            "_last_lr": list(self._last_lr),
+        }
+
+    def load_state_dict(
+        self, state_dict: dict[str, int | float | list[float] | None]
+    ) -> None:
+        """Loads the `ReduceLROnPlateau` scheduler state.
+
+        Args:
+            state_dict: State dictionary returned from `state_dict()`.
+        """
+        best = state_dict.get("best")
+        if best is None or isinstance(best, (int, float)):
+            self.best = float(best) if isinstance(best, (int, float)) else None
+        n_bad = state_dict.get("num_bad_epochs")
+        if isinstance(n_bad, int):
+            self.num_bad_epochs = n_bad
+        cd = state_dict.get("cooldown_counter")
+        if isinstance(cd, int):
+            self.cooldown_counter = cd
+        last_ep = state_dict.get("last_epoch")
+        if isinstance(last_ep, int):
+            self.last_epoch = last_ep
+        last = state_dict.get("_last_lr")
+        if isinstance(last, list):
+            self._last_lr = [float(x) for x in last]
+            for group, lr in zip(self.optimizer.param_groups, self._last_lr):
+                group["lr"] = lr
 
     def step(self, metrics: float, epoch: int | None = None) -> None:
         """Evaluates metric improvement and reduces learning rate on plateau.

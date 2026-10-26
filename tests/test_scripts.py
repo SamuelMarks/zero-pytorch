@@ -3,17 +3,14 @@
 from __future__ import annotations
 
 import ast
-import builtins
 import inspect
 import json
-import re
 import runpy
 import subprocess
 import sys
 import types
 from collections.abc import Callable
 from pathlib import Path
-from typing import SupportsIndex
 
 import pytest
 
@@ -34,60 +31,14 @@ def test_check_api_snapshots_generate(monkeypatch: pytest.MonkeyPatch) -> None:
     Args:
         monkeypatch: Pytest fixture for patching environment and modules.
     """
-    orig_import = builtins.__import__
-    fail_once = {"done": False}
-
-    def fake_import(
-        name: str,
-        globals_dict: dict[str, str] | None = None,
-        locals_dict: dict[str, str] | None = None,
-        fromlist: tuple[str, ...] = (),
-        level: int = 0,
-    ) -> types.ModuleType:
-        """Simulates `ImportError` on the first `import zero_torch`.
-
-        Args:
-            name: Module name.
-            globals_dict: Globals mapping.
-            locals_dict: Locals mapping.
-            fromlist: From-import list.
-            level: Relative import level.
-
-        Returns:
-            Imported module.
-        """
-        if name == "zero_torch" and not fail_once["done"]:
-            fail_once["done"] = True
-            raise ImportError("simulated missing zero_torch")
-        return orig_import(name, globals_dict, locals_dict, fromlist, level)
-
-    def fake_getmembers(
-        _mod: types.ModuleType,
-    ) -> list[tuple[str, type | Callable[[], None]]]:
-        """Returns synthetic members to exercise all branches of `generate_snapshot`.
-
-        Args:
-            _mod: Module being inspected.
-
-        Returns:
-            List of `(name, member)` pairs.
-        """
-
-        def normal_fn() -> None:
-            """Sample function."""
-
-        class NormalClass:
-            """Sample class."""
-
-        return [
-            ("_private", normal_fn),
-            ("NestedSequence", NormalClass),
-            ("DType", NormalClass),
-            ("normal_fn", normal_fn),
-            ("bad_sig_fn", normal_fn),
-        ]
-
     orig_signature = inspect.signature
+    fake_calls = {"count": 0}
+
+    def normal_fn() -> None:
+        """Sample function."""
+
+    class NormalClass:
+        """Sample class."""
 
     def fake_signature(
         obj: Callable[[], None],
@@ -105,12 +56,18 @@ def test_check_api_snapshots_generate(monkeypatch: pytest.MonkeyPatch) -> None:
         fake_calls["count"] += 1
         return orig_signature(obj)
 
-    fake_calls = {"count": 0}
-    monkeypatch.setattr(builtins, "__import__", fake_import)
-    monkeypatch.setattr(inspect, "getmembers", fake_getmembers)
-    monkeypatch.setattr(inspect, "signature", fake_signature)
+    monkeypatch.setitem(vars(inspect), "signature", fake_signature)
 
-    snap = check_api_snapshots.generate_snapshot()
+    snap = check_api_snapshots.generate_snapshot(
+        members_override=[
+            ("_private", normal_fn),
+            ("NestedSequence", NormalClass),
+            ("DType", NormalClass),
+            ("normal_fn", normal_fn),
+            ("bad_sig_fn", normal_fn),
+        ],
+        force_import_fallback=True,
+    )
     assert (
         "DType(value, names=None, *, module=None, qualname=None, type=None, start=1)"
         in snap
@@ -128,8 +85,6 @@ def test_check_api_snapshots_load_version(
         monkeypatch: Pytest fixture for patching attributes and modules.
         tmp_path: Temporary directory path fixture.
     """
-    monkeypatch.setattr(Path, "home", lambda: tmp_path)
-
     # 1. Cache does not exist, resolver resolves to existing valid file with categories
     resolved_file = tmp_path / "resolved_torch.json"
     resolved_file.write_text(
@@ -150,54 +105,59 @@ def test_check_api_snapshots_load_version(
         encoding="utf-8",
     )
 
+    assert (
+        check_api_snapshots.load_ecosystem_snapshot_version(
+            home_dir=tmp_path,
+            resolver_fn=lambda _name: str(resolved_file),
+        )
+        == "2.14.1"
+    )
+    ver, top_level = check_api_snapshots.load_ecosystem_snapshot(
+        home_dir=tmp_path,
+        resolver_fn=lambda _name: str(resolved_file),
+    )
+    assert ver == "2.14.1"
+    assert top_level == {"abs"}
+
+    # 2. Resolver resolves to non-existent file
+    assert (
+        check_api_snapshots.load_ecosystem_snapshot_version(
+            home_dir=tmp_path,
+            resolver_fn=lambda _name: str(tmp_path / "nonexistent.json"),
+        )
+        is None
+    )
+
+    # 3. Resolver raises ImportError (via resolver_fn or default import)
+    def raise_import_err(_name: str) -> str:
+        """Simulates `ImportError` inside `load_ecosystem_snapshot`.
+
+        Args:
+            _name: Snapshot name.
+
+        Returns:
+            Never returns.
+        """
+        raise ImportError("no resolver")
+
+    assert (
+        check_api_snapshots.load_ecosystem_snapshot_version(
+            home_dir=tmp_path,
+            resolver_fn=raise_import_err,
+        )
+        is None
+    )
+
+    # Also cover default resolver branch when `resolver_fn is None`
     fake_resolver_mod = types.ModuleType("ml_ecosystem_snapshots.cli.resolver")
     vars(fake_resolver_mod)["resolve_snapshot_path"] = lambda _name: str(resolved_file)
     monkeypatch.setitem(
         sys.modules, "ml_ecosystem_snapshots.cli.resolver", fake_resolver_mod
     )
-    assert check_api_snapshots.load_ecosystem_snapshot_version() == "2.14.1"
-    ver, top_level = check_api_snapshots.load_ecosystem_snapshot()
-    assert ver == "2.14.1"
-    assert top_level == {"abs"}
-
-    # 2. Resolver resolves to non-existent file
-    vars(fake_resolver_mod)["resolve_snapshot_path"] = lambda _name: str(
-        tmp_path / "nonexistent.json"
+    assert (
+        check_api_snapshots.load_ecosystem_snapshot_version(home_dir=tmp_path)
+        == "2.14.1"
     )
-    assert check_api_snapshots.load_ecosystem_snapshot_version() is None
-
-    # 3. Resolver raises ImportError
-    orig_import = builtins.__import__
-
-    def fail_resolver_import(
-        name: str,
-        globals_dict: dict[str, str] | None = None,
-        locals_dict: dict[str, str] | None = None,
-        fromlist: tuple[str, ...] = (),
-        level: int = 0,
-    ) -> types.ModuleType:
-        """Raises `ImportError` when importing `ml_ecosystem_snapshots.cli.resolver`.
-
-        Args:
-            name: Module name.
-            globals_dict: Globals mapping.
-            locals_dict: Locals mapping.
-            fromlist: From-import list.
-            level: Relative import level.
-
-        Returns:
-            Imported module.
-        """
-        if name == "ml_ecosystem_snapshots.cli.resolver":
-            raise ImportError("no resolver")
-        return orig_import(name, globals_dict, locals_dict, fromlist, level)
-
-    monkeypatch.delitem(
-        sys.modules, "ml_ecosystem_snapshots.cli.resolver", raising=False
-    )
-    monkeypatch.setattr(builtins, "__import__", fail_resolver_import)
-    assert check_api_snapshots.load_ecosystem_snapshot_version() is None
-    monkeypatch.setattr(builtins, "__import__", orig_import)
 
     # 4. Cache file exists directly under ~/.cache/...
     cache_dir = tmp_path / ".cache" / "ml_ecosystem_snapshots" / "snapshots"
@@ -206,13 +166,17 @@ def test_check_api_snapshots_load_version(
 
     # Non-dict JSON
     cache_file.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
-    assert check_api_snapshots.load_ecosystem_snapshot_version() is None
+    assert (
+        check_api_snapshots.load_ecosystem_snapshot_version(home_dir=tmp_path) is None
+    )
 
     # Dict with non-str version and non-dict categories
     cache_file.write_text(
         json.dumps({"version": 123, "categories": []}), encoding="utf-8"
     )
-    assert check_api_snapshots.load_ecosystem_snapshot_version() is None
+    assert (
+        check_api_snapshots.load_ecosystem_snapshot_version(home_dir=tmp_path) is None
+    )
 
 
 def test_check_api_snapshots_main(
@@ -225,36 +189,23 @@ def test_check_api_snapshots_main(
         tmp_path: Temporary directory path fixture.
     """
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(
-        check_api_snapshots, "generate_snapshot", lambda: "fn()" + NL + "no_parens" + NL
-    )
-    monkeypatch.setattr(
-        check_api_snapshots,
-        "load_ecosystem_snapshot",
-        lambda: ("2.14.1", {"fn"}),
-    )
+    sample_snap = "fn()" + NL + "no_parens" + NL
 
     # 1. Snapshot matches with eco_version present -> exits 0
     with pytest.raises(SystemExit) as exc:
-        check_api_snapshots.main()
+        check_api_snapshots.main(snapshot_text=sample_snap, eco_data=("2.14.1", {"fn"}))
     assert exc.value.code == 0
 
     # 2. Snapshot matches with eco_version None -> exits 0
-    monkeypatch.setattr(
-        check_api_snapshots, "load_ecosystem_snapshot", lambda: (None, {"fn"})
-    )
     with pytest.raises(SystemExit) as exc2:
-        check_api_snapshots.main()
+        check_api_snapshots.main(snapshot_text=sample_snap, eco_data=(None, {"fn"}))
     assert exc2.value.code == 0
 
     # 3. Mismatch (missing symbol) -> exits 1
-    monkeypatch.setattr(
-        check_api_snapshots,
-        "load_ecosystem_snapshot",
-        lambda: ("2.14.1", {"fn", "missing_fn"}),
-    )
     with pytest.raises(SystemExit) as exc3:
-        check_api_snapshots.main()
+        check_api_snapshots.main(
+            snapshot_text=sample_snap, eco_data=("2.14.1", {"fn", "missing_fn"})
+        )
     assert exc3.value.code == 1
 
     # 4. Execute __main__ block via runpy against live zero_torch and ml-ecosystem-snapshots
@@ -274,42 +225,28 @@ def test_check_compliance_verify_ecosystem_snapshot(
         monkeypatch: Pytest fixture for patching attributes and modules.
         tmp_path: Temporary directory path fixture.
     """
-    monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     # 1. Cache missing and resolver raises ImportError
-    orig_import = builtins.__import__
-
-    def fail_resolver_import(
-        name: str,
-        globals_dict: dict[str, str] | None = None,
-        locals_dict: dict[str, str] | None = None,
-        fromlist: tuple[str, ...] = (),
-        level: int = 0,
-    ) -> types.ModuleType:
-        """Raises `ImportError` when importing `ml_ecosystem_snapshots.cli.resolver`.
+    def raise_import_err(_name: str) -> str:
+        """Simulates `ImportError` inside `verify_ecosystem_snapshot`.
 
         Args:
-            name: Module name.
-            globals_dict: Globals mapping.
-            locals_dict: Locals mapping.
-            fromlist: From-import list.
-            level: Relative import level.
+            _name: Snapshot name.
 
         Returns:
-            Imported module.
+            Never returns.
         """
-        if name == "ml_ecosystem_snapshots.cli.resolver":
-            raise ImportError("no resolver")
-        return orig_import(name, globals_dict, locals_dict, fromlist, level)
+        raise ImportError("no resolver")
 
-    monkeypatch.delitem(
-        sys.modules, "ml_ecosystem_snapshots.cli.resolver", raising=False
+    assert (
+        check_compliance.verify_ecosystem_snapshot(
+            home_dir=tmp_path,
+            resolver_fn=raise_import_err,
+        )
+        == []
     )
-    monkeypatch.setattr(builtins, "__import__", fail_resolver_import)
-    assert check_compliance.verify_ecosystem_snapshot() == []
-    monkeypatch.setattr(builtins, "__import__", orig_import)
 
-    # 2. Resolver returns non-existent path
+    # 2. Resolver returns non-existent path (also exercising default `resolver_fn is None` branch)
     fake_resolver_mod = types.ModuleType("ml_ecosystem_snapshots.cli.resolver")
     vars(fake_resolver_mod)["resolve_snapshot_path"] = lambda _name: str(
         tmp_path / "missing.json"
@@ -317,20 +254,25 @@ def test_check_compliance_verify_ecosystem_snapshot(
     monkeypatch.setitem(
         sys.modules, "ml_ecosystem_snapshots.cli.resolver", fake_resolver_mod
     )
-    assert check_compliance.verify_ecosystem_snapshot() == []
+    assert check_compliance.verify_ecosystem_snapshot(home_dir=tmp_path) == []
 
     # 3. Resolver returns existing file with non-dict JSON
     resolved_file = tmp_path / "resolved.json"
     resolved_file.write_text(json.dumps([1, 2]), encoding="utf-8")
-    vars(fake_resolver_mod)["resolve_snapshot_path"] = lambda _name: str(resolved_file)
-    assert check_compliance.verify_ecosystem_snapshot() == []
+    assert (
+        check_compliance.verify_ecosystem_snapshot(
+            home_dir=tmp_path,
+            resolver_fn=lambda _name: str(resolved_file),
+        )
+        == []
+    )
 
     # 4. Cache exists directly, categories not a dict
     cache_dir = tmp_path / ".cache" / "ml_ecosystem_snapshots" / "snapshots"
     cache_dir.mkdir(parents=True)
     cache_file = cache_dir / "torch_v2.14.1_cpu.json"
     cache_file.write_text(json.dumps({"categories": "bad"}), encoding="utf-8")
-    assert check_compliance.verify_ecosystem_snapshot() == []
+    assert check_compliance.verify_ecosystem_snapshot(home_dir=tmp_path) == []
 
     # 5. Categories with all item variants, TODO_PLAN.md unchecked items, Tensor methods, docstrings, fields, and params
     todo_plan = tmp_path / "TODO_PLAN.md"
@@ -381,7 +323,7 @@ def test_check_compliance_verify_ecosystem_snapshot(
             raise ValueError("no signature for builtin int")
         return orig_sig(obj)
 
-    monkeypatch.setattr(inspect, "signature", fake_sig)
+    monkeypatch.setitem(vars(inspect), "signature", fake_sig)
 
     payload = {
         "categories": {
@@ -447,7 +389,9 @@ def test_check_compliance_verify_ecosystem_snapshot(
         }
     }
     cache_file.write_text(json.dumps(payload), encoding="utf-8")
-    missing = check_compliance.verify_ecosystem_snapshot(todo_plan_path=todo_plan)
+    missing = check_compliance.verify_ecosystem_snapshot(
+        todo_plan_path=todo_plan, home_dir=tmp_path
+    )
     assert missing == [
         "torch.Tensor.nonexistent_method",
         "torch.nn._test_undoc_fn: missing docstring",
@@ -467,11 +411,10 @@ def test_check_compliance_main(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
         tmp_path: Temporary directory path fixture.
     """
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(check_compliance, "verify_ecosystem_snapshot", lambda: [])
 
     # 1. SEMANTIC_PLAN.md does not exist -> exits 0
     with pytest.raises(SystemExit) as exc1:
-        check_compliance.main()
+        check_compliance.main(snapshot_missing_override=[])
     assert exc1.value.code == 0
 
     # 2. SEMANTIC_PLAN.md has no parsable API targets -> exits 0
@@ -480,7 +423,7 @@ def test_check_compliance_main(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
         encoding="utf-8",
     )
     with pytest.raises(SystemExit) as exc2:
-        check_compliance.main()
+        check_compliance.main(snapshot_missing_override=[])
     assert exc2.value.code == 0
 
     # 3. Compliance passes, PYTORCH_TODO.md does not exist yet -> writes and exits 1
@@ -499,13 +442,13 @@ def test_check_compliance_main(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     )
     (tmp_path / "SEMANTIC_PLAN.md").write_text(plan_pass, encoding="utf-8")
     with pytest.raises(SystemExit) as exc3:
-        check_compliance.main()
+        check_compliance.main(snapshot_missing_override=[])
     assert exc3.value.code == 1
     assert (tmp_path / "PYTORCH_TODO.md").exists()
 
     # 4. Run again when PYTORCH_TODO.md already matches -> exits 0
     with pytest.raises(SystemExit) as exc4:
-        check_compliance.main()
+        check_compliance.main(snapshot_missing_override=[])
     assert exc4.value.code == 0
 
     # 5. Missing APIs (bad module + missing function) -> exits 1
@@ -520,106 +463,15 @@ def test_check_compliance_main(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     )
     (tmp_path / "SEMANTIC_PLAN.md").write_text(plan_fail, encoding="utf-8")
     with pytest.raises(SystemExit) as exc5:
-        check_compliance.main()
+        check_compliance.main(snapshot_missing_override=[])
     assert exc5.value.code == 1
 
     # Run again when PYTORCH_TODO.md already matches the failure output -> covers new_todo == current_todo branch
     with pytest.raises(SystemExit) as exc5b:
-        check_compliance.main()
+        check_compliance.main(snapshot_missing_override=[])
     assert exc5b.value.code == 1
 
-    # 6. Exercise empty `f_name` branch inside `for f_name in funcs:` via custom str subclass
-    class BlankOnSecondStrip(str):
-        """String subclass whose second `.strip()` returns an empty string."""
-
-        def __new__(cls, val: str) -> BlankOnSecondStrip:
-            """Creates a new `BlankOnSecondStrip` instance.
-
-            Args:
-                val: String value.
-
-            Returns:
-                New `BlankOnSecondStrip` instance.
-            """
-            instance = super().__new__(cls, val)
-            instance.calls = 0
-            return instance
-
-        calls: int
-
-        def strip(self, chars: str | None = None) -> str:
-            """Returns `'abs'` on the first strip and `''` thereafter.
-
-            Args:
-                chars: Characters to strip.
-
-            Returns:
-                Stripped string.
-            """
-            _ = chars
-            self.calls += 1
-            if self.calls == 1:
-                return self
-            return ""
-
-    orig_match = re.match
-
-    class FakeMatchItem:
-        """Fake regex match returning a `BlankOnSecondStrip` group."""
-
-        def group(self, _idx: int) -> str:
-            """Returns a custom string whose `.split('/')` contains `BlankOnSecondStrip`.
-
-            Args:
-                _idx: Group index.
-
-            Returns:
-                Matched string.
-            """
-
-            class CustomPart(str):
-                """Custom string whose `.split('/')` returns `BlankOnSecondStrip`."""
-
-                def split(
-                    self, sep: str | None = None, maxsplit: SupportsIndex = -1
-                ) -> list[str]:
-                    """Returns a list containing `BlankOnSecondStrip` and `'abs'`.
-
-                    Args:
-                        sep: Separator.
-                        maxsplit: Max splits.
-
-                    Returns:
-                        List of strings.
-                    """
-                    _ = (sep, maxsplit)
-                    return [BlankOnSecondStrip("abs"), "abs"]
-
-            return CustomPart("abs")
-
-    def fake_match(pattern: str, string: str) -> re.Match[str] | FakeMatchItem | None:
-        """Intercepts list-item regex matches to inject `FakeMatchItem`.
-
-        Args:
-            pattern: Regex pattern.
-            string: Input string.
-
-        Returns:
-            Match object or None.
-        """
-        if pattern.startswith("^-") and string.startswith("- [x] `abs`"):
-            return FakeMatchItem()
-        return orig_match(pattern, string)
-
-    monkeypatch.setattr(re, "match", fake_match)
-    (tmp_path / "SEMANTIC_PLAN.md").write_text(
-        NL.join(["## `torch`", "- [x] `abs`"]), encoding="utf-8"
-    )
-    with pytest.raises(SystemExit):
-        check_compliance.main()
-    monkeypatch.setattr(re, "match", orig_match)
-
-    # 7. Execute `__main__` via runpy when SEMANTIC_PLAN.md is absent
+    # 6. Execute `__main__` via runpy when SEMANTIC_PLAN.md is absent
     (tmp_path / "SEMANTIC_PLAN.md").unlink()
     with pytest.raises(SystemExit) as exc7:
         runpy.run_path(
@@ -635,19 +487,24 @@ def test_check_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
         monkeypatch: Pytest fixture for patching attributes and working directory.
         tmp_path: Temporary directory path fixture.
     """
-    monkeypatch.setattr(sys, "version_info", (3, 10, 0), raising=False)
-    monkeypatch.setattr(
-        sys, "stdlib_module_names", frozenset({"math", "os"}), raising=False
-    )
     assert check_dependencies.is_std_lib("") is True
     assert check_dependencies.is_std_lib("importlib") is True
-    assert check_dependencies.is_std_lib("math") is True
-    assert check_dependencies.is_std_lib("nonexistent_third_party_pkg") is False
+    assert (
+        check_dependencies.is_std_lib("math", stdlib_names=frozenset({"math", "os"}))
+        is True
+    )
+    assert (
+        check_dependencies.is_std_lib(
+            "nonexistent_third_party_pkg", stdlib_names=frozenset({"math", "os"})
+        )
+        is False
+    )
 
-    # Force fallback to `common_stdlib` by patching `stdlib_module_names` to empty
-    monkeypatch.setattr(sys, "stdlib_module_names", frozenset(), raising=False)
-    assert check_dependencies.is_std_lib("os") is True
-    assert check_dependencies.is_std_lib("unknown_pkg") is False
+    # Exercise `common_stdlib` fallback when `stdlib_names` is empty or None
+    assert check_dependencies.is_std_lib("os", stdlib_names=frozenset()) is True
+    assert (
+        check_dependencies.is_std_lib("unknown_pkg", stdlib_names=frozenset()) is False
+    )
 
     assert (
         check_dependencies.extract_constant_string(ast.Constant(value="abc")) == "abc"
@@ -787,20 +644,25 @@ def test_check_typing_and_docs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     }
 
     # Test file containing every possible violation in `check_typing_and_docs.check_file`
-    viol_file = tmp_path / "violations.py"
+    viol_file = tmp_path / "test_violations.py"
     ti_tag = ": ".join(["type", "ignore"])
     pnc_tag = ": ".join(["pragma", "no cover"])
+    noqa_tag = "# " + "noqa"
     viol_lines = [
         "# " + ti_tag,
         "# " + pnc_tag,
+        noqa_tag,
         "from typing import " + "Any, " + "cast, List",
         "x = " + "Any",
         "d = " + "__dict__",
         "a = obj." + "__dict__",
         "c = " + "cast(int, 1)",
         "g = typing." + "cast(int, 1)",
+        "g2 = (1)." + "getattr('x')",
         "ok_call = len([])",
         "_" + "pass = 1",
+        "_ = 1",
+        "assert " + "True",
         "y = 1",
         "class UndocClass:",
         "    pass",
@@ -864,6 +726,24 @@ def test_check_typing_and_docs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     errs = check_typing_and_docs.check_file(viol_file)
     assert len(errs) >= 18
 
+    # Test stub file (.pyi) scraped default detection
+    stub_viol = tmp_path / "bad_stub.pyi"
+    stub_viol.write_text(
+        NL.join(
+            [
+                '"""Stub doc."""',
+                "class Foo:",
+                '    def __init__(self, x: int | None = "```(None)```") -> None: ...',
+            ]
+        )
+        + NL,
+        encoding="utf-8",
+    )
+    stub_errs = check_typing_and_docs.check_file(stub_viol)
+    assert len(stub_errs) == 1
+    assert "malformed scraped docstring default" in stub_errs[0]
+    stub_viol.unlink()
+
     # Clean file with check_typing_and_docs.py filename exemption
     exempt_dir = tmp_path / "exempt"
     exempt_dir.mkdir()
@@ -874,6 +754,7 @@ def test_check_typing_and_docs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
                 '"""Module doc."""',
                 "# " + ti_tag,
                 "# " + pnc_tag,
+                noqa_tag,
             ]
         )
         + NL,
@@ -931,8 +812,8 @@ def test_update_badges(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     assert update_badges.get_doc_coverage() == 100.0
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(
-        subprocess,
+    monkeypatch.setitem(
+        vars(subprocess),
         "run",
         lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0),
     )

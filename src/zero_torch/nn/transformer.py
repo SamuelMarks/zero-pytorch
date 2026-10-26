@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import math
+from collections.abc import Callable
 
 from ml_switcheroo_compiler.core.dtype import DType
 
@@ -60,7 +61,7 @@ class MultiheadAttention(Module):
             bias_k: Optional key bias parameter.
             bias_v: Optional value bias parameter.
         """
-        _ = (add_bias_kv, add_zero_attn, device, dtype, bias_k, bias_v)
+        _ = (device, dtype)
         super().__init__()
         self.embed_dim: int = embed_dim
         self.kdim: int = kdim if kdim is not None else embed_dim
@@ -72,6 +73,7 @@ class MultiheadAttention(Module):
         self.num_heads: int = num_heads
         self.dropout: float = dropout
         self.batch_first: bool = batch_first
+        self.add_zero_attn: bool = add_zero_attn
         self.head_dim: int = embed_dim // num_heads
 
         self.in_proj_weight: Parameter | None
@@ -101,6 +103,23 @@ class MultiheadAttention(Module):
         else:
             self.in_proj_bias = None
         self.register_parameter("in_proj_bias", self.in_proj_bias)
+
+        if add_bias_kv:
+            self.bias_k = (
+                bias_k
+                if bias_k is not None
+                else Parameter(zero_torch.empty((1, 1, embed_dim)))
+            )
+            self.bias_v = (
+                bias_v
+                if bias_v is not None
+                else Parameter(zero_torch.empty((1, 1, embed_dim)))
+            )
+        else:
+            self.bias_k = bias_k
+            self.bias_v = bias_v
+        self.register_parameter("bias_k", self.bias_k)
+        self.register_parameter("bias_v", self.bias_v)
 
         self.out_proj: Linear = Linear(embed_dim, embed_dim, bias=bias)
         self.add_module("out_proj", self.out_proj)
@@ -174,9 +193,22 @@ class MultiheadAttention(Module):
                 k = k + b_k
                 v = v + b_v
 
+        if self.bias_k is not None and self.bias_v is not None:
+            k = zero_torch.concatenate([k, self.bias_k.repeat(1, bsz, 1)], dim=0)
+            v = zero_torch.concatenate([v, self.bias_v.repeat(1, bsz, 1)], dim=0)
+            src_len += 1
+
         q = q.view(tgt_len, bsz * self.num_heads, self.head_dim).transpose(0, 1)
         k = k.view(src_len, bsz * self.num_heads, self.head_dim).transpose(0, 1)
         v = v.view(src_len, bsz * self.num_heads, self.head_dim).transpose(0, 1)
+
+        if self.add_zero_attn:
+            zero_pad = zero_torch.zeros(
+                (bsz * self.num_heads, 1, self.head_dim), dtype=k.dtype
+            )
+            k = zero_torch.concatenate([k, zero_pad], dim=1)
+            v = zero_torch.concatenate([v, zero_pad], dim=1)
+            src_len += 1
 
         attn_output_weights = zero_torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(
             self.head_dim
@@ -193,21 +225,44 @@ class MultiheadAttention(Module):
             attn_output_weights = attn_output_weights + causal_mask
 
         if attn_mask is not None:
-            if attn_mask.dtype == DType.Bool:
+            eff_attn_mask = attn_mask
+            if eff_attn_mask.shape[-1] < src_len:
+                pad_cols = src_len - eff_attn_mask.shape[-1]
+                pad_val = False if eff_attn_mask.dtype == DType.Bool else 0.0
+                pad_shape = eff_attn_mask.shape[:-1] + (pad_cols,)
+                eff_attn_mask = zero_torch.concatenate(
+                    [
+                        eff_attn_mask,
+                        zero_torch.full(pad_shape, pad_val, dtype=eff_attn_mask.dtype),
+                    ],
+                    dim=-1,
+                )
+            if eff_attn_mask.dtype == DType.Bool:
                 attn_output_weights = zero_torch.where(
-                    attn_mask,
+                    eff_attn_mask,
                     zero_torch.full_like(attn_output_weights, -1e9),
                     attn_output_weights,
                 )
             else:
-                attn_output_weights = attn_output_weights + attn_mask
+                attn_output_weights = attn_output_weights + eff_attn_mask
 
         if key_padding_mask is not None:
+            eff_kpm = key_padding_mask
+            if eff_kpm.shape[-1] < src_len:
+                pad_cols = src_len - eff_kpm.shape[-1]
+                pad_val = False if eff_kpm.dtype == DType.Bool else 0.0
+                eff_kpm = zero_torch.concatenate(
+                    [
+                        eff_kpm,
+                        zero_torch.full((bsz, pad_cols), pad_val, dtype=eff_kpm.dtype),
+                    ],
+                    dim=-1,
+                )
             weights_4d_kpm = attn_output_weights.view(
                 bsz, self.num_heads, tgt_len, src_len
             )
-            mask_4d = zero_torch.reshape(key_padding_mask, (bsz, 1, 1, src_len))
-            if key_padding_mask.dtype == DType.Bool:
+            mask_4d = zero_torch.reshape(eff_kpm, (bsz, 1, 1, src_len))
+            if eff_kpm.dtype == DType.Bool:
                 weights_4d_kpm = zero_torch.where(
                     mask_4d,
                     zero_torch.full_like(weights_4d_kpm, -1e9),
@@ -256,7 +311,7 @@ class TransformerEncoderLayer(Module):
         nhead: int,
         dim_feedforward: int = 2048,
         dropout: float = 0.1,
-        activation: str = "relu",
+        activation: str | Callable[[Tensor], Tensor] = "relu",
         layer_norm_eps: float = 1e-05,
         batch_first: bool = False,
         norm_first: bool = False,
@@ -271,7 +326,7 @@ class TransformerEncoderLayer(Module):
             nhead: The number of heads in the multiheadattention models.
             dim_feedforward: The dimension of the feedforward network model.
             dropout: The dropout value.
-            activation: The activation function of the intermediate layer (`'relu'` or `'gelu'`).
+            activation: The activation function of the intermediate layer (`'relu'`, `'gelu'`, or callable).
             layer_norm_eps: The eps value in layer normalization components.
             batch_first: If True, input and output tensors are provided as `(batch, seq, feature)`.
             norm_first: If True, layer norm is done prior to attention and feedforward operations.
@@ -293,7 +348,12 @@ class TransformerEncoderLayer(Module):
         self.dropout1: Dropout = Dropout(dropout)
         self.dropout2: Dropout = Dropout(dropout)
 
-        self.activation: Module = ReLU() if activation == "relu" else GELU()
+        if isinstance(activation, str):
+            act_mod: Module = ReLU() if activation == "relu" else GELU()
+            self.activation: Callable[[Tensor], Tensor] = act_mod
+            self.add_module("activation", act_mod)
+        else:
+            self.activation = activation
         self.norm_first: bool = norm_first
         self.add_module("self_attn", self.self_attn)
         self.add_module("linear1", self.linear1)
@@ -303,7 +363,6 @@ class TransformerEncoderLayer(Module):
         self.add_module("norm2", self.norm2)
         self.add_module("dropout1", self.dropout1)
         self.add_module("dropout2", self.dropout2)
-        self.add_module("activation", self.activation)
 
     def forward(
         self,
@@ -390,7 +449,7 @@ class TransformerDecoderLayer(Module):
         nhead: int,
         dim_feedforward: int = 2048,
         dropout: float = 0.1,
-        activation: str = "relu",
+        activation: str | Callable[[Tensor], Tensor] = "relu",
         layer_norm_eps: float = 1e-05,
         batch_first: bool = False,
         norm_first: bool = False,
@@ -405,7 +464,7 @@ class TransformerDecoderLayer(Module):
             nhead: The number of heads in the multiheadattention models.
             dim_feedforward: The dimension of the feedforward network model.
             dropout: The dropout value.
-            activation: The activation function of the intermediate layer (`'relu'` or `'gelu'`).
+            activation: The activation function of the intermediate layer (`'relu'`, `'gelu'`, or callable).
             layer_norm_eps: The eps value in layer normalization components.
             batch_first: If True, input and output tensors are provided as `(batch, seq, feature)`.
             norm_first: If True, layer norm is done prior to self attention, multihead attention and feedforward operations.
@@ -434,7 +493,12 @@ class TransformerDecoderLayer(Module):
         self.dropout2: Dropout = Dropout(dropout)
         self.dropout3: Dropout = Dropout(dropout)
 
-        self.activation: Module = ReLU() if activation == "relu" else GELU()
+        if isinstance(activation, str):
+            act_mod: Module = ReLU() if activation == "relu" else GELU()
+            self.activation: Callable[[Tensor], Tensor] = act_mod
+            self.add_module("activation", act_mod)
+        else:
+            self.activation = activation
         self.norm_first: bool = norm_first
         self.add_module("self_attn", self.self_attn)
         self.add_module("multihead_attn", self.multihead_attn)
@@ -447,7 +511,6 @@ class TransformerDecoderLayer(Module):
         self.add_module("dropout1", self.dropout1)
         self.add_module("dropout2", self.dropout2)
         self.add_module("dropout3", self.dropout3)
-        self.add_module("activation", self.activation)
 
     def forward(
         self,

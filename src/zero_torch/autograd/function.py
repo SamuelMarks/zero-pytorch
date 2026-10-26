@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from zero_torch._types import OpArg, TensorLike
+from zero_torch._types import OpArg, Scalar, TensorLike
 
 if TYPE_CHECKING:
     from typing import ParamSpec, Protocol, TypeVar
@@ -56,6 +56,10 @@ class Context:
     def __init__(self) -> None:
         """Initializes Context."""
         self.saved_tensors: tuple[TensorLike, ...] = ()
+        self.saved_scalars: dict[str, Scalar] = {}
+        self.saved_shapes: dict[str, tuple[int, ...]] = {}
+        self._slice_index: OpArg = None
+        self.output_nr: int = 0
 
     def save_for_backward(self, *tensors: TensorLike) -> None:
         """Saves given tensors for a future call to backward.
@@ -164,6 +168,7 @@ class Function:
         Returns:
             Computed input gradients.
         """
+        self.ctx.output_nr = self.output_nr
         return self.__class__.backward(self.ctx, *args, **kwargs)
 
     @staticmethod

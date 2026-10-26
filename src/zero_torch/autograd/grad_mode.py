@@ -102,3 +102,23 @@ class no_grad(set_grad_enabled):
     def __init__(self) -> None:
         """Initializes the no_grad context manager."""
         super().__init__(False)
+
+
+class enable_grad(set_grad_enabled):
+    """Context-manager and decorator that enables gradient calculation."""
+
+    def __init__(self) -> None:
+        """Initializes the enable_grad context manager."""
+        super().__init__(True)
+
+
+class inference_mode(set_grad_enabled):
+    """Context-manager and decorator that enables or disables inference mode."""
+
+    def __init__(self, mode: bool = True) -> None:
+        """Initializes the inference_mode context manager.
+
+        Args:
+            mode: Whether to enable (`True`) or disable (`False`) inference mode.
+        """
+        super().__init__(not mode)

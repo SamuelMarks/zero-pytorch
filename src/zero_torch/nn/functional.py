@@ -493,6 +493,10 @@ def softmax(
     _ = (_stacklevel, dtype, args, kwargs)
     x = _extract_tensor(input)
     eff_dim = dim if isinstance(dim, int) else -1
+    if x.requires_grad:
+        from ..autograd.math_ops import SoftmaxBackward
+
+        return SoftmaxBackward.apply(x, eff_dim)
     max_x = zero_torch.max(x, axis=eff_dim, keepdims=True)
     exp_x = zero_torch.exp(x - max_x)
     sum_exp = zero_torch.sum(exp_x, axis=eff_dim, keepdims=True)
@@ -1670,6 +1674,10 @@ def log_softmax(
     _ = (_stacklevel, dtype, args, kwargs)
     x = _extract_tensor(input)
     eff_dim = dim if isinstance(dim, int) else -1
+    if x.requires_grad:
+        from ..autograd.math_ops import LogSoftmaxBackward
+
+        return LogSoftmaxBackward.apply(x, eff_dim)
     max_x = zero_torch.max(x, axis=eff_dim, keepdims=True)
     shifted = x - max_x
     log_sum_exp = zero_torch.log(

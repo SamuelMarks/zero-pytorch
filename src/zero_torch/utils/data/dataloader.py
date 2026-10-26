@@ -244,10 +244,8 @@ class DataLoader(Generic[_T_co]):
             in_order: If False, allows out-of-order batch delivery from workers.
         """
         _ = (
-            num_workers,
             pin_memory,
             timeout,
-            worker_init_fn,
             multiprocessing_context,
             prefetch_factor,
             persistent_workers,
@@ -257,6 +255,8 @@ class DataLoader(Generic[_T_co]):
         self.dataset: Dataset[_T_co] = dataset
         self.batch_size: int | None = batch_size
         self.drop_last: bool = drop_last
+        self.num_workers: int = num_workers
+        self.worker_init_fn: _WorkerInitFn | None = worker_init_fn
         self.sampler: Sampler[int] | Iterable[int] | None = sampler
         self.batch_sampler: Sampler[list[int]] | Iterable[list[int]] | None = (
             batch_sampler
@@ -289,6 +289,9 @@ class DataLoader(Generic[_T_co]):
         Yields:
             Collated batches or dataset items.
         """
+        if self.worker_init_fn is not None and self.num_workers > 0:
+            for wid in range(self.num_workers):
+                self.worker_init_fn(wid)
         if self.batch_sampler is not None:
             for indices in self.batch_sampler:
                 batch_items: list[_T_co] = [self.dataset[i] for i in indices]

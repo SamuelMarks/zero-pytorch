@@ -9,7 +9,7 @@ from ml_switcheroo_compiler.ops.base import get_op
 
 import zero_torch
 from zero_torch._types import DTypeLike, OpArg
-from zero_torch.tensor import Tensor, _wrap, _wrap_tuple
+from zero_torch.tensor import Tensor, _flatten_nested, _wrap, _wrap_tuple
 
 
 def _pick_first(primary: Tensor | None, alias: Tensor | None) -> Tensor:
@@ -396,9 +396,16 @@ def lu(
     Returns:
         Tuple of `(P, L, U)` tensors.
     """
-    _ = (pivot, out)
     mat = _pick_first(A, input)
-    return _wrap_tuple(_ops.lu(mat._tensor, **kwargs))
+    p_mat, l_mat, u_mat = _wrap_tuple(_ops.lu(mat._tensor, **kwargs))
+    if not pivot:
+        p_mat = zero_torch.eye(mat.shape[-2], dtype=mat.dtype)
+    if out is not None:
+        out[0].copy_(p_mat)
+        out[1].copy_(l_mat)
+        out[2].copy_(u_mat)
+        return out
+    return (p_mat, l_mat, u_mat)
 
 
 def lu_factor(
@@ -471,12 +478,22 @@ def lu_solve(
     Returns:
         Solution tensor `X`.
     """
-    _ = pivots
     n = LU.shape[-1]
     eye_n = zero_torch.eye(n, dtype=LU.dtype)
     l_mat = zero_torch.tril(LU, diagonal=-1) + eye_n
     u_mat = zero_torch.triu(LU)
-    a_recon = zero_torch.matmul(l_mat, u_mat)
+    p_rows = eye_n.tolist()
+    assert isinstance(p_rows, list)
+    piv_flat = _flatten_nested(pivots.tolist())
+    for i, p_val in enumerate(piv_flat):
+        raw_idx = int(float(p_val)) if isinstance(p_val, (int, float)) else i
+        idx = max(0, min(len(p_rows) - 1, raw_idx - 1 if raw_idx >= 1 else raw_idx))
+        if i < len(p_rows):
+            p_rows[i], p_rows[idx] = p_rows[idx], p_rows[i]
+    p_mat = Tensor(p_rows, dtype=LU.dtype)
+    a_recon = zero_torch.matmul(
+        p_mat.transpose(-2, -1), zero_torch.matmul(l_mat, u_mat)
+    )
     if adjoint:
         a_recon = a_recon.transpose(-2, -1)
     if not left:
@@ -565,11 +582,17 @@ def qr(
         **kwargs: Optional keyword arguments.
 
     Returns:
-        Tuple of `(Q, R)` tensors.
+        Tuple of `(Q, R)` tensors (or `(Tensor([]), R)` when `mode='r'`).
     """
-    _ = (mode, out)
     mat = _pick_first(A, input)
-    return _wrap_tuple(get_op("Qr")()(mat._tensor, **kwargs))
+    q_mat, r_mat = _wrap_tuple(get_op("Qr")()(mat._tensor, **kwargs))
+    if mode == "r":
+        q_mat = zero_torch.empty((0,), dtype=mat.dtype)
+    if out is not None:
+        out[0].copy_(q_mat)
+        out[1].copy_(r_mat)
+        return out
+    return (q_mat, r_mat)
 
 
 def svd(
@@ -592,9 +615,16 @@ def svd(
     Returns:
         Tuple of `(U, S, Vh)` tensors.
     """
-    _ = (full_matrices, driver)
+    _ = driver
     mat = _pick_first(A, input)
-    return _wrap_tuple(get_op("Svd")()(mat._tensor, **kwargs))
+    u_mat, s_vec, vh_mat = _wrap_tuple(get_op("Svd")()(mat._tensor, **kwargs))
+    if not full_matrices and len(mat.shape) >= 2:
+        k = min(mat.shape[-2], mat.shape[-1])
+        if u_mat.shape[-1] > k:
+            u_mat = u_mat[:, :k]
+        if vh_mat.shape[-2] > k:
+            vh_mat = vh_mat[:k, :]
+    return (u_mat, s_vec, vh_mat)
 
 
 def svdvals(
@@ -666,6 +696,9 @@ def pinv(
     input: Tensor,
     rcond: float | Tensor | None = None,
     hermitian: bool = False,
+    *,
+    atol: float | Tensor | None = None,
+    rtol: float | Tensor | None = None,
     **kwargs: OpArg,
 ) -> Tensor:
     """Computes the pseudo-inverse (Moore-Penrose inverse) of a matrix.
@@ -674,12 +707,31 @@ def pinv(
         input: Input matrix tensor.
         rcond: Relative condition cutoff for small singular values.
         hermitian: Indicates whether `input` is Hermitian.
-        **kwargs: Optional `atol` and `rtol` arguments.
+        atol: Optional absolute tolerance for singular value cutoff.
+        rtol: Optional relative tolerance for singular value cutoff.
+        **kwargs: Optional keyword arguments.
 
     Returns:
         Pseudo-inverse matrix tensor.
     """
-    _ = (rcond, hermitian)
+    _ = hermitian
+    eff_rtol = rtol if rtol is not None else rcond
+    if (eff_rtol is not None or atol is not None) and len(input.shape) == 2:
+        u_mat, s_vec, vh_mat = svd(input, full_matrices=False)
+        max_s = zero_torch.max(s_vec)
+        r_item = eff_rtol.item() if isinstance(eff_rtol, Tensor) else eff_rtol
+        r_val = float(r_item) if isinstance(r_item, (int, float)) else 1e-15
+        a_item = atol.item() if isinstance(atol, Tensor) else atol
+        a_val = float(a_item) if isinstance(a_item, (int, float)) else 0.0
+        cutoff = zero_torch.maximum(max_s * r_val, a_val)
+        safe_s = zero_torch.where(s_vec > cutoff, s_vec, zero_torch.ones_like(s_vec))
+        s_inv = zero_torch.where(
+            s_vec > cutoff, 1.0 / safe_s, zero_torch.zeros_like(s_vec)
+        )
+        return zero_torch.matmul(
+            vh_mat.transpose(-2, -1),
+            zero_torch.matmul(zero_torch.diag(s_inv), u_mat.transpose(-2, -1)),
+        )
     return _wrap(get_op("Pinv")()(input._tensor, **kwargs))
 
 
@@ -705,9 +757,17 @@ def solve(
     Returns:
         Solution tensor `X`.
     """
-    _ = left
     mat_a = _pick_first(A, input)
     mat_b = _pick_first(B, other)
+    if not left:
+        sol_t = _wrap(
+            get_op("Solve")()(
+                mat_a.transpose(-2, -1)._tensor,
+                mat_b.transpose(-2, -1)._tensor,
+                **kwargs,
+            )
+        )
+        return sol_t.transpose(-2, -1)
     return _wrap(get_op("Solve")()(mat_a._tensor, mat_b._tensor, **kwargs))
 
 
@@ -867,7 +927,13 @@ def cross(
     Returns:
         Cross product tensor.
     """
-    _ = dim
+    ndim = len(input.shape)
+    norm_dim = dim if dim >= 0 else ndim + dim
+    if norm_dim != ndim - 1:
+        in_swapped = input.transpose(norm_dim, -1)
+        oth_swapped = other.transpose(norm_dim, -1)
+        res = _wrap(_ops.cross(in_swapped._tensor, oth_swapped._tensor, **kwargs))
+        return res.transpose(norm_dim, -1)
     return _wrap(_ops.cross(input._tensor, other._tensor, **kwargs))
 
 
@@ -889,8 +955,15 @@ def diagonal(
     Returns:
         Partial view/tensor of the diagonal elements.
     """
-    _ = (dim1, dim2)
-    return zero_torch.diag(A, diagonal=offset)
+    ndim = len(A.shape)
+    d1 = dim1 if dim1 >= 0 else ndim + dim1
+    d2 = dim2 if dim2 >= 0 else ndim + dim2
+    mat = A
+    if (d1, d2) != (ndim - 2, ndim - 1):
+        rem = [i for i in range(ndim) if i not in (d1, d2)]
+        perm = tuple(rem + [d1, d2])
+        mat = zero_torch.permute(A, perm)
+    return zero_torch.diag(mat, diagonal=offset)
 
 
 def matmul(input: Tensor, other: Tensor) -> Tensor:
