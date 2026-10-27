@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import math
 
-import ml_switcheroo_compiler.ops as _ops
-from ml_switcheroo_compiler.ops.base import get_op
-
 import zero_torch
 from zero_torch._types import DTypeLike, OpArg, Scalar
-from zero_torch.tensor import Tensor, _flatten_nested, _wrap
+from zero_torch.tensor import Tensor, _flatten_nested
 
 
 def _copy_if_out(res: Tensor, out: Tensor | None) -> Tensor:
@@ -38,7 +35,14 @@ def bessel_j0(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> T
     Returns:
         Output tensor with `J_0(input)`.
     """
-    return _copy_if_out(_wrap(get_op("BesselJ0")()(input._tensor, **kwargs)), out)
+    _ = kwargs
+    quarter_x2 = (input * input) / 4.0
+    res = zero_torch.ones_like(input)
+    term = zero_torch.ones_like(input)
+    for k in range(1, 15):
+        term = -term * quarter_x2 / float(k * k)
+        res = res + term
+    return _copy_if_out(res, out)
 
 
 def bessel_j1(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
@@ -52,7 +56,15 @@ def bessel_j1(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> T
     Returns:
         Output tensor with `J_1(input)`.
     """
-    return _copy_if_out(_wrap(get_op("BesselJ1")()(input._tensor, **kwargs)), out)
+    _ = kwargs
+    quarter_x2 = (input * input) / 4.0
+    half_x = input / 2.0
+    res = half_x
+    term = half_x
+    for k in range(1, 15):
+        term = -term * quarter_x2 / float(k * (k + 1))
+        res = res + term
+    return _copy_if_out(res, out)
 
 
 def bessel_y0(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
@@ -66,7 +78,18 @@ def bessel_y0(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> T
     Returns:
         Output tensor with `Y_0(input)`.
     """
-    return _copy_if_out(_wrap(get_op("BesselY0")()(input._tensor, **kwargs)), out)
+    _ = kwargs
+    euler_gamma = 0.5772156649015328606
+    j0 = bessel_j0(input)
+    quarter_x2 = (input * input) / 4.0
+    series = (zero_torch.log(input / 2.0) + euler_gamma) * j0
+    term = zero_torch.ones_like(input)
+    harmonic = 0.0
+    for k in range(1, 15):
+        term = -term * quarter_x2 / float(k * k)
+        harmonic += 1.0 / float(k)
+        series = series - term * harmonic
+    return _copy_if_out((2.0 / math.pi) * series, out)
 
 
 def bessel_y1(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> Tensor:
@@ -80,7 +103,21 @@ def bessel_y1(input: Tensor, *, out: Tensor | None = None, **kwargs: OpArg) -> T
     Returns:
         Output tensor with `Y_1(input)`.
     """
-    return _copy_if_out(_wrap(get_op("BesselY1")()(input._tensor, **kwargs)), out)
+    _ = kwargs
+    euler_gamma = 0.5772156649015328606
+    j1 = bessel_j1(input)
+    quarter_x2 = (input * input) / 4.0
+    half_x = input / 2.0
+    series = (zero_torch.log(half_x) + euler_gamma) * j1 - (1.0 / input) - 0.5 * half_x
+    term = half_x
+    h_k = 0.0
+    h_k1 = 1.0
+    for k in range(1, 15):
+        term = -term * quarter_x2 / float(k * (k + 1))
+        h_k += 1.0 / float(k)
+        h_k1 += 1.0 / float(k + 1)
+        series = series - 0.5 * (h_k + h_k1) * term
+    return _copy_if_out((2.0 / math.pi) * series, out)
 
 
 def modified_bessel_i0(
@@ -390,7 +427,19 @@ def erfinv(input: Tensor, *, out: Tensor | None = None) -> Tensor:
     Returns:
         Output tensor with `erfinv(input)`.
     """
-    return _copy_if_out(zero_torch.erfinv(input), out)
+    a = 0.147
+    y = zero_torch.clamp(input, min=-0.999999, max=0.999999)
+    ln_term = zero_torch.log(1.0 - y * y)
+    t1 = 2.0 / (math.pi * a) + 0.5 * ln_term
+    t2 = ln_term / a
+    rad = zero_torch.maximum(
+        zero_torch.sqrt(t1 * t1 - t2) - t1, zero_torch.zeros_like(y)
+    )
+    x = zero_torch.sign(y) * zero_torch.sqrt(rad)
+    two_over_sqrt_pi = 2.0 / math.sqrt(math.pi)
+    for _ in range(2):
+        x = x - (zero_torch.erf(x) - y) / (two_over_sqrt_pi * zero_torch.exp(-(x * x)))
+    return _copy_if_out(x, out)
 
 
 def exp2(input: Tensor, *, out: Tensor | None = None) -> Tensor:
@@ -549,7 +598,19 @@ def digamma(input: Tensor, *, out: Tensor | None = None) -> Tensor:
     Returns:
         Output tensor with `psi(input)`.
     """
-    return _copy_if_out(zero_torch.digamma(input), out)
+    z = input
+    shift_sum = zero_torch.zeros_like(input)
+    for _ in range(8):
+        shift_sum = shift_sum - 1.0 / z
+        z = z + 1.0
+    inv_z = 1.0 / z
+    inv_z2 = inv_z * inv_z
+    asymp = (
+        zero_torch.log(z)
+        - 0.5 * inv_z
+        - inv_z2 * (1.0 / 12.0 - inv_z2 * (1.0 / 120.0 - inv_z2 / 252.0))
+    )
+    return _copy_if_out(shift_sum + asymp, out)
 
 
 def psi(input: Tensor, *, out: Tensor | None = None) -> Tensor:
@@ -798,7 +859,10 @@ def polygamma(
     Returns:
         Output tensor with `psi^(n)(input)`.
     """
-    return _copy_if_out(_wrap(_ops.polygamma(n, input._tensor, **kwargs)), out)
+    _ = kwargs
+    s = float(n + 1)
+    scale = ((-1.0) ** (n + 1)) * math.gamma(s)
+    return _copy_if_out(scale * zeta(Tensor(s, dtype=input.dtype), input), out)
 
 
 def multigammaln(
@@ -833,7 +897,18 @@ def zeta(
     Returns:
         Output tensor with `zeta(input, other)`.
     """
-    return _copy_if_out(_wrap(_ops.zeta(input._tensor, other._tensor, **kwargs)), out)
+    _ = kwargs
+    total = zero_torch.zeros_like(other)
+    for k in range(8):
+        total = total + (other + float(k)) ** (-input)
+    qn = other + 8.0
+    safe_sm1 = zero_torch.where(input == 1.0, zero_torch.ones_like(input), input - 1.0)
+    tail = (
+        (qn ** (1.0 - input)) / safe_sm1
+        + 0.5 * (qn ** (-input))
+        + (input / 12.0) * (qn ** (-(input + 1.0)))
+    )
+    return _copy_if_out(total + tail, out)
 
 
 def _eval_chebyshev_t(x: float, deg: int) -> float:

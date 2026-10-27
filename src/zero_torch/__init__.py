@@ -796,8 +796,7 @@ def digamma(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
         Tensor: A new tensor with the digamma operation applied.
     """
     _ = out
-    res = _ops.digamma(_to_tensor(input))
-    return _wrap(res)
+    return special.digamma(_wrap(_to_tensor(input)))
 
 
 def divide(
@@ -1004,8 +1003,7 @@ def erfinv(input: TensorLike, *, out: Tensor | None = None) -> Tensor:
         Tensor: A new tensor with the erfinv operation applied.
     """
     _ = out
-    res = _ops.erfinv(_to_tensor(input))
-    return _wrap(res)
+    return special.erfinv(_wrap(_to_tensor(input)))
 
 
 def exp(input: TensorLike, *, out: Tensor | None = None) -> Tensor:

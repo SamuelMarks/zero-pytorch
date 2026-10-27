@@ -426,9 +426,26 @@ def lu_factor(
     Returns:
         Tuple of `(LU, pivots)` tensors.
     """
-    _ = pivot
+    _ = (pivot, kwargs)
     mat = _pick_first(A, input)
-    return _wrap_tuple(get_op("LuFactor")()(mat._tensor, **kwargs))
+    m = mat.shape[-2]
+    n = mat.shape[-1]
+    k_dim = min(m, n)
+    flat = [
+        float(x) if isinstance(x, (int, float)) else 0.0
+        for x in _flatten_nested(mat.tolist())
+    ]
+    rows = [flat[r * n : (r + 1) * n] for r in range(m)]
+    for j in range(k_dim):
+        diag = rows[j][j] if rows[j][j] != 0.0 else 1.0
+        for i in range(j + 1, m):
+            mult = rows[i][j] / diag
+            rows[i][j] = mult
+            for col in range(j + 1, n):
+                rows[i][col] -= mult * rows[j][col]
+    lu_mat = zero_torch.reshape(Tensor(rows, dtype=mat.dtype), mat.shape)
+    pivots = zero_torch.arange(1, k_dim + 1, dtype=zero_torch.int32)
+    return (lu_mat, pivots)
 
 
 def lu_factor_ex(

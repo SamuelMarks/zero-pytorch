@@ -4,18 +4,9 @@ from __future__ import annotations
 
 import cmath
 import math
-import os
-import sys
 from collections.abc import Iterator, Sequence
 
 import pytest
-
-sys.path.insert(
-    0,
-    os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../../ml-switcheroo-compiler/src")
-    ),
-)
 from ml_switcheroo_compiler.core.config import EagerMode
 from ml_switcheroo_compiler.core.dtype import DType
 
